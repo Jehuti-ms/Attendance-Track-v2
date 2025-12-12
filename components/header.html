@@ -1,0 +1,98 @@
+<header class="app-header" data-component="header">
+    <nav class="navbar">
+        <div class="navbar-brand">
+            <a href="/" data-navigate class="brand-link">
+                <img src="../assets/icons/icon-192.png" alt="Logo" class="brand-logo">
+                <span class="brand-text">Attendance Track v2</span>
+            </a>
+            <button class="navbar-toggle" id="menu-toggle">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+        </div>
+        
+        <div class="navbar-menu" id="navbar-menu">
+            <ul class="nav-list">
+                <li class="nav-item">
+                    <a href="/dashboard" data-navigate class="nav-link">
+                        <i class="icon-dashboard"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="/attendance" data-navigate class="nav-link">
+                        <i class="icon-attendance"></i>
+                        <span>Attendance</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="/reports" data-navigate class="nav-link">
+                        <i class="icon-reports"></i>
+                        <span>Reports</span>
+                    </a>
+                </li>
+                <li class="nav-item dropdown">
+                    <a href="#" class="nav-link dropdown-toggle">
+                        <i class="icon-tools"></i>
+                        <span>Tools</span>
+                    </a>
+                    <div class="dropdown-menu">
+                        <a href="/maintenance" data-navigate class="dropdown-item">
+                            <i class="icon-maintenance"></i>
+                            Maintenance
+                        </a>
+                        <a href="/settings" data-navigate class="dropdown-item">
+                            <i class="icon-settings"></i>
+                            Settings
+                        </a>
+                    </div>
+                </li>
+            </ul>
+            
+            <div class="navbar-user">
+                <div class="user-dropdown">
+                    <button class="user-toggle" id="user-toggle">
+                        <div class="user-avatar">
+                            <span>AU</span>
+                        </div>
+                        <span class="user-name">Admin User</span>
+                    </button>
+                    <div class="user-menu">
+                        <a href="/settings" data-navigate class="user-menu-item">
+                            <i class="icon-profile"></i>
+                            Profile Settings
+                        </a>
+                        <button id="logout-btn" class="user-menu-item logout-btn">
+                            <i class="icon-logout"></i>
+                            Logout
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+</header>
+
+<script>
+    // Mobile menu toggle
+    document.getElementById('menu-toggle')?.addEventListener('click', function() {
+        const menu = document.getElementById('navbar-menu');
+        menu.classList.toggle('active');
+        this.classList.toggle('active');
+    });
+    
+    // User dropdown toggle
+    document.getElementById('user-toggle')?.addEventListener('click', function(e) {
+        e.stopPropagation();
+        const menu = this.nextElementSibling;
+        menu.classList.toggle('show');
+    });
+    
+    // Close dropdowns when clicking outside
+    document.addEventListener('click', function() {
+        document.querySelectorAll('.user-menu').forEach(menu => {
+            menu.classList.remove('show');
+        });
+    });
+</script>
