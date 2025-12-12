@@ -1,0 +1,26 @@
+{
+  "appName": "Attendance Track v2",
+  "version": "2.0.0",
+  "schoolName": "Your School Name",
+  "defaultTermWeeks": 14,
+  "features": {
+    "googleSheetsIntegration": true,
+    "pdfExport": true,
+    "emailReports": true,
+    "dataImport": true,
+    "offlineMode": true
+  },
+  "export": {
+    "pdf": {
+      "defaultOrientation": "landscape",
+      "defaultFormat": "a4",
+      "includeHeader": true,
+      "includeFooter": true
+    },
+    "email": {
+      "defaultSubject": "Attendance Report",
+      "defaultBody": "Please find the attendance report attached.",
+      "allowMultipleRecipients": true
+    }
+  }
+}
