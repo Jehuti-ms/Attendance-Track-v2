@@ -33,6 +33,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             apiEndpoint: null
         };
     }
+
+    case '/attendance':
+    // Pass the app instance to initializeAttendance
+    initializeAttendance(this.app || window.app);
+    break;
     
     // Set app version in footer
     const versionElement = document.getElementById('app-version');
