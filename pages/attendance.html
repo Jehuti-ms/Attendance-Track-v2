@@ -1,0 +1,159 @@
+<section class="page active">
+    <div class="page-header">
+        <h2>Daily Attendance</h2>
+        <div class="controls">
+            <div class="control-group" style="margin: 0;">
+                <label for="attendance-date">Date:</label>
+                <input type="date" id="attendance-date" class="form-control" style="width: 200px;">
+            </div>
+            <div class="control-group" style="margin: 0;">
+                <label for="attendance-term">Term:</label>
+                <select id="attendance-term" class="form-control" style="width: 150px;">
+                    <option value="term1">Term 1</option>
+                    <option value="term2">Term 2</option>
+                    <option value="term3">Term 3</option>
+                </select>
+            </div>
+            <div class="control-group" style="margin: 0;">
+                <label for="attendance-week">Week:</label>
+                <select id="attendance-week" class="form-control" style="width: 150px;">
+                    <!-- Weeks will be populated by JavaScript -->
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <div class="session-tabs">
+        <div class="session-tabs-left">
+            <button class="session-tab active" data-session="both">Both Sessions</button>
+            <button class="session-tab" data-session="am">AM Session Only</button>
+            <button class="session-tab" data-session="pm">PM Session Only</button>
+        </div>
+        <div class="session-tabs-right">
+            <button id="save-attendance" class="btn btn-primary">Save Current Session</button>
+            <button id="save-all-attendance" class="btn btn-success">Save Both Sessions</button>
+            <button id="clear-attendance" class="btn btn-secondary">Clear</button>
+        </div>
+    </div>
+
+    <!-- Enhanced Attendance Table with Layout B Structure -->
+    <div class="attendance-table-container">
+        <div class="attendance-table-wrapper">
+            <table class="attendance-table">
+                <thead>
+                    <tr>
+                        <th rowspan="2">Year Group</th>
+                        <th rowspan="2">Class</th>
+                        <th rowspan="2">Total</th>
+                        <th colspan="2">Male Present</th>
+                        <th colspan="2">Female Present</th>
+                        <th rowspan="2">AM Rate</th>
+                        <th rowspan="2">PM Rate</th>
+                        <th rowspan="2">Daily Rate</th>
+                        <th rowspan="2">Cumulative</th>
+                        <th rowspan="2">vs Avg</th>
+                    </tr>
+                    <tr>
+                        <th>AM</th>
+                        <th>PM</th>
+                        <th>AM</th>
+                        <th>PM</th>
+                    </tr>
+                </thead>
+                <tbody id="attendance-body">
+                    <!-- Data will be populated by JavaScript -->
+                </tbody>
+                <tfoot>
+                    <tr class="session-totals-row">
+                        <td colspan="2"><strong>Session Totals:</strong></td>
+                        <td id="total-students-cell">0</td>
+                        <td id="total-am-male">0</td>
+                        <td id="total-pm-male">0</td>
+                        <td id="total-am-female">0</td>
+                        <td id="total-pm-female">0</td>
+                        <td id="avg-am-rate">0%</td>
+                        <td id="avg-pm-rate">0%</td>
+                        <td id="avg-daily-rate">0%</td>
+                        <td id="cumulative-total">0</td>
+                        <td id="vs-avg-trend">-</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+
+    <!-- Analysis Summary -->
+    <div class="attendance-summary" id="attendance-summary">
+        <div class="summary-item">
+            <span class="summary-value" id="summary-total-present">0</span>
+            <span class="summary-label">Total Present</span>
+            <div class="summary-trend positive" id="summary-total-trend">
+                <span>↗</span> <span>+0%</span>
+            </div>
+        </div>
+        <div class="summary-item">
+            <span class="summary-value" id="summary-am-attendance">0%</span>
+            <span class="summary-label">AM Attendance</span>
+            <div class="summary-trend positive" id="summary-am-trend">
+                <span>↗</span> <span>+0%</span>
+            </div>
+        </div>
+        <div class="summary-item">
+            <span class="summary-value" id="summary-pm-attendance">0%</span>
+            <span class="summary-label">PM Attendance</span>
+            <div class="summary-trend positive" id="summary-pm-trend">
+                <span>↗</span> <span>+0%</span>
+            </div>
+        </div>
+        <div class="summary-item">
+            <span class="summary-value" id="summary-daily-average">0%</span>
+            <span class="summary-label">Daily Average</span>
+            <div class="summary-trend positive" id="summary-daily-trend">
+                <span>↗</span> <span>+0%</span>
+            </div>
+        </div>
+        <div class="summary-item">
+            <span class="summary-value" id="summary-best-class">-</span>
+            <span class="summary-label">Best Performing</span>
+            <span class="summary-label" style="font-size: 0.8rem;" id="summary-best-rate">0%</span>
+        </div>
+        <div class="summary-item">
+            <span class="summary-value" id="summary-needs-attention">0</span>
+            <span class="summary-label">Needs Attention</span>
+            <span class="summary-label" style="font-size: 0.8rem;" id="summary-attention-rate">Classes</span>
+        </div>
+    </div>
+
+    <!-- Session Comparison -->
+    <div class="year-groups-section" style="margin-top: 20px;">
+        <h3>Session Comparison Analysis</h3>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 15px;">
+            <div>
+                <h4 style="color: var(--primary-color); margin-bottom: 10px;">AM Session Breakdown</h4>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div>
+                        <strong>Male Attendance:</strong>
+                        <div style="font-size: 1.2rem; color: var(--primary-color);" id="am-male-percentage">0%</div>
+                    </div>
+                    <div>
+                        <strong>Female Attendance:</strong>
+                        <div style="font-size: 1.2rem; color: #e91e63;" id="am-female-percentage">0%</div>
+                    </div>
+                </div>
+            </div>
+            <div>
+                <h4 style="color: var(--primary-color); margin-bottom: 10px;">PM Session Breakdown</h4>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div>
+                        <strong>Male Attendance:</strong>
+                        <div style="font-size: 1.2rem; color: var(--primary-color);" id="pm-male-percentage">0%</div>
+                    </div>
+                    <div>
+                        <strong>Female Attendance:</strong>
+                        <div style="font-size: 1.2rem; color: #e91e63;" id="pm-female-percentage">0%</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
