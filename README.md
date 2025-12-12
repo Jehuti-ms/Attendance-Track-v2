@@ -1,54 +1,27 @@
-# Attendance-Track-v2
-attendance-track-v2/
-├── index.html
-├── config.json
-├── manifest.json
-├── service-worker.js
-├── assets/
-│   ├── css/
-│   │   ├── main.css
-│   │   ├── components.css
-│   │   └── theme.css
-│   ├── js/
-│   │   ├── main.js
-│   │   ├── attendance-app.js
-│   │   ├── modules/
-│   │   │   ├── auth.js
-│   │   │   ├── dashboard.js
-│   │   │   ├── setup.js
-│   │   │   ├── attendance.js
-│   │   │   ├── reports.js
-│   │   │   ├── export.js
-│   │   │   ├── maintenance.js
-│   │   │   ├── settings.js
-│   │   │   ├── import.js
-│   │   │   └── utils.js
-│   │   └── vendors/
-│   │       ├── jsPDF.min.js
-│   │       ├── jspdf-autotable.min.js
-│   │       └── html2canvas.min.js
-│   └── icons/
-│       ├── icon.svg
-│       ├── favicon.ico
-│       ├── icon-192.png
-│       └── icon-512.png
-├── pages/
-│   ├── login.html
-│   ├── dashboard.html
-│   ├── setup.html
-│   ├── attendance.html
-│   ├── reports.html
-│   ├── maintenance.html
-│   └── settings.html
-├── components/
-│   ├── header.html
-│   ├── footer.html
-│   ├── metrics-grid.html
-│   ├── attendance-table.html
-│   ├── report-controls.html
-│   └── modals/
-│       ├── email-modal.html
-│       ├── pdf-preview-modal.html
-│       ├── import-preview-modal.html
-│       └── sheet-selection-modal.html
-└── README.md
+# Attendance Track v2
+
+A modular, feature-rich school attendance tracking system with email and PDF export capabilities.
+
+## Features
+
+### Core Features
+- **Modular Architecture**: Clean separation of concerns for easy maintenance
+- **Layout B Table Design**: Superior UX with AM/PM side-by-side comparison
+- **Sticky Headers**: Table headers remain visible while scrolling
+- **Real-time Analysis**: Cumulative data and trend comparisons
+- **Multi-session Support**: AM/PM sessions with individual tracking
+
+### Export Features
+- **PDF Export**: Generate professional PDF reports with tables and charts
+- **Email Integration**: Send reports directly via email with attachments
+- **Excel/CSV Export**: Export data for further analysis in spreadsheet software
+- **Print Support**: Browser-native printing with optimized layouts
+
+### Advanced Features
+- **Google Sheets Integration**: Sync data with Google Sheets
+- **Data Import/Export**: Import existing data and backup your records
+- **Theme Support**: Light/dark mode with persistent preferences
+- **Offline Mode**: Work without internet connection
+- **Responsive Design**: Works on desktop and mobile devices
+
+## Project Structure
