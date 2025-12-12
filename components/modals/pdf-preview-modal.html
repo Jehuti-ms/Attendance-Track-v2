@@ -1,0 +1,842 @@
+<div class="modal-overlay" id="pdf-preview-modal" data-component="pdf-preview-modal" style="display: none;">
+    <div class="modal-container modal-xl">
+        <div class="modal-header">
+            <h3 class="modal-title">PDF Report Preview</h3>
+            <div class="header-actions">
+                <div class="zoom-controls">
+                    <button class="btn-icon" id="zoom-out" title="Zoom Out">
+                        <i class="icon-zoom-out"></i>
+                    </button>
+                    <span class="zoom-level" id="zoom-level">100%</span>
+                    <button class="btn-icon" id="zoom-in" title="Zoom In">
+                        <i class="icon-zoom-in"></i>
+                    </button>
+                    <button class="btn-icon" id="zoom-fit" title="Fit to Width">
+                        <i class="icon-fit"></i>
+                    </button>
+                    <button class="btn-icon" id="zoom-actual" title="Actual Size">
+                        <i class="icon-actual"></i>
+                    </button>
+                </div>
+                <button class="modal-close" id="pdf-modal-close">&times;</button>
+            </div>
+        </div>
+        
+        <div class="modal-body">
+            <div class="preview-container">
+                <div class="preview-sidebar">
+                    <div class="sidebar-section">
+                        <h4>Pages</h4>
+                        <div class="page-thumbnails" id="page-thumbnails">
+                            <!-- Page thumbnails will be generated here -->
+                            <div class="page-thumb loading">
+                                <div class="thumbnail-placeholder"></div>
+                                <span class="page-number">1</span>
+                            </div>
+                            <div class="page-thumb loading">
+                                <div class="thumbnail-placeholder"></div>
+                                <span class="page-number">2</span>
+                            </div>
+                            <div class="page-thumb loading">
+                                <div class="thumbnail-placeholder"></div>
+                                <span class="page-number">3</span>
+                            </div>
+                        </div>
+                        <div class="page-info">
+                            Page <span id="current-page">1</span> of <span id="total-pages">3</span>
+                        </div>
+                    </div>
+                    
+                    <div class="sidebar-section">
+                        <h4>Preview Options</h4>
+                        <div class="preview-options">
+                            <label class="checkbox">
+                                <input type="checkbox" id="show-margins" checked>
+                                <span>Show Margins</span>
+                            </label>
+                            <label class="checkbox">
+                                <input type="checkbox" id="show-grid" checked>
+                                <span>Show Grid</span>
+                            </label>
+                            <label class="checkbox">
+                                <input type="checkbox" id="single-page" checked>
+                                <span>Single Page View</span>
+                            </label>
+                            <label class="checkbox">
+                                <input type="checkbox" id="show-watermark">
+                                <span>Show Watermark</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="sidebar-section">
+                        <h4>Export Settings</h4>
+                        <div class="export-settings">
+                            <div class="form-group">
+                                <label for="paper-size">Paper Size</label>
+                                <select id="paper-size" class="select-control">
+                                    <option value="A4" selected>A4 (210 × 297 mm)</option>
+                                    <option value="Letter">Letter (8.5 × 11 in)</option>
+                                    <option value="Legal">Legal (8.5 × 14 in)</option>
+                                    <option value="A3">A3 (297 × 420 mm)</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="orientation">Orientation</label>
+                                <select id="orientation" class="select-control">
+                                    <option value="portrait" selected>Portrait</option>
+                                    <option value="landscape">Landscape</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="quality">Quality</label>
+                                <select id="quality" class="select-control">
+                                    <option value="standard" selected>Standard</option>
+                                    <option value="high">High</option>
+                                    <option value="print">Print Quality</option>
+                                </select>
+                            </div>
+                            
+                            <div class="margin-settings">
+                                <label>Margins (mm)</label>
+                                <div class="margin-inputs">
+                                    <input type="number" id="margin-top" value="20" min="0" max="50">
+                                    <input type="number" id="margin-right" value="20" min="0" max="50">
+                                    <input type="number" id="margin-bottom" value="20" min="0" max="50">
+                                    <input type="number" id="margin-left" value="20" min="0" max="50">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="preview-main">
+                    <div class="preview-toolbar">
+                        <div class="toolbar-left">
+                            <button class="btn btn-secondary btn-sm" id="previous-page">
+                                <i class="icon-chevron-left"></i>
+                                Previous
+                            </button>
+                            <button class="btn btn-secondary btn-sm" id="next-page">
+                                Next
+                                <i class="icon-chevron-right"></i>
+                            </button>
+                            <div class="page-navigation">
+                                <input type="number" id="page-jump" min="1" value="1" class="page-input">
+                                <span>/ <span id="total-pages-display">3</span></span>
+                            </div>
+                        </div>
+                        
+                        <div class="toolbar-center">
+                            <div class="view-mode">
+                                <button class="btn-icon active" data-mode="single" title="Single Page">
+                                    <i class="icon-single"></i>
+                                </button>
+                                <button class="btn-icon" data-mode="double" title="Two Pages">
+                                    <i class="icon-double"></i>
+                                </button>
+                                <button class="btn-icon" data-mode="thumb" title="Thumbnails">
+                                    <i class="icon-thumb"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="toolbar-right">
+                            <button class="btn-icon" id="rotate-left" title="Rotate Left">
+                                <i class="icon-rotate-left"></i>
+                            </button>
+                            <button class="btn-icon" id="rotate-right" title="Rotate Right">
+                                <i class="icon-rotate-right"></i>
+                            </button>
+                            <button class="btn-icon" id="search-pdf" title="Search">
+                                <i class="icon-search"></i>
+                            </button>
+                            <button class="btn-icon" id="fullscreen" title="Full Screen">
+                                <i class="icon-fullscreen"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="preview-content" id="preview-content">
+                        <div class="pdf-pages" id="pdf-pages">
+                            <!-- PDF pages will be rendered here -->
+                            <div class="pdf-page active" data-page="1">
+                                <div class="page-content">
+                                    <div class="page-header">
+                                        <h1>Attendance Report</h1>
+                                        <div class="report-meta">
+                                            <div class="meta-item">
+                                                <strong>Period:</strong> January 1, 2024 - January 31, 2024
+                                            </div>
+                                            <div class="meta-item">
+                                                <strong>Generated:</strong> ${new Date().toLocaleDateString()}
+                                            </div>
+                                            <div class="meta-item">
+                                                <strong>Total Records:</strong> 1,245
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="page-section">
+                                        <h2>Executive Summary</h2>
+                                        <div class="summary-metrics">
+                                            <div class="metric">
+                                                <div class="metric-value">94.2%</div>
+                                                <div class="metric-label">Overall Attendance Rate</div>
+                                            </div>
+                                            <div class="metric">
+                                                <div class="metric-value">87.5%</div>
+                                                <div class="metric-label">Punctuality Rate</div>
+                                            </div>
+                                            <div class="metric">
+                                                <div class="metric-value">6.3%</div>
+                                                <div class="metric-label">Absenteeism Rate</div>
+                                            </div>
+                                            <div class="metric">
+                                                <div class="metric-value">4.8%</div>
+                                                <div class="metric-label">Late Arrivals</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="page-section">
+                                        <h2>Department Performance</h2>
+                                        <div class="chart-placeholder">
+                                            <div class="chart-bar" style="height: 80%;" data-department="Sales">
+                                                <span class="bar-label">Sales: 96%</span>
+                                            </div>
+                                            <div class="chart-bar" style="height: 70%;" data-department="Marketing">
+                                                <span class="bar-label">Marketing: 92%</span>
+                                            </div>
+                                            <div class="chart-bar" style="height: 85%;" data-department="Engineering">
+                                                <span class="bar-label">Engineering: 95%</span>
+                                            </div>
+                                            <div class="chart-bar" style="height: 75%;" data-department="HR">
+                                                <span class="bar-label">HR: 89%</span>
+                                            </div>
+                                            <div class="chart-bar" style="height: 90%;" data-department="Operations">
+                                                <span class="bar-label">Operations: 97%</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="page-footer">
+                                    <div class="footer-left">
+                                        Confidential - For Internal Use Only
+                                    </div>
+                                    <div class="footer-center">
+                                        Page 1 of 3
+                                    </div>
+                                    <div class="footer-right">
+                                        Generated by Attendance Track v2
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="pdf-page" data-page="2">
+                                <div class="page-content">
+                                    <h2>Detailed Attendance Records</h2>
+                                    <p>Page 2 content would show detailed tables...</p>
+                                </div>
+                            </div>
+                            
+                            <div class="pdf-page" data-page="3">
+                                <div class="page-content">
+                                    <h2>Analysis & Recommendations</h2>
+                                    <p>Page 3 content would show analysis...</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="preview-overlay" id="preview-overlay">
+                            <div class="loading-spinner" id="pdf-loading">
+                                <i class="icon-spinner"></i>
+                                <span>Loading PDF preview...</span>
+                            </div>
+                            <div class="error-state" id="pdf-error" style="display: none;">
+                                <i class="icon-error"></i>
+                                <h4>Failed to load PDF preview</h4>
+                                <p>There was an error loading the PDF document.</p>
+                                <button class="btn btn-primary" id="retry-load">Retry</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="preview-footer">
+                        <div class="footer-info">
+                            <div class="info-item">
+                                <i class="icon-info"></i>
+                                <span>File size: <strong id="file-size">2.4 MB</strong></span>
+                            </div>
+                            <div class="info-item">
+                                <i class="icon-dimensions"></i>
+                                <span>Dimensions: <strong id="file-dimensions">210 × 297 mm</strong></span>
+                            </div>
+                            <div class="info-item">
+                                <i class="icon-pages"></i>
+                                <span>Pages: <strong id="file-pages">3</strong></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="modal-footer">
+            <div class="footer-left">
+                <button class="btn btn-secondary" id="print-preview">
+                    <i class="icon-print"></i>
+                    Print Preview
+                </button>
+                <button class="btn btn-secondary" id="download-pdf">
+                    <i class="icon-download"></i>
+                    Download PDF
+                </button>
+            </div>
+            <div class="footer-right">
+                <button class="btn btn-secondary" id="close-preview">
+                    Close
+                </button>
+                <button class="btn btn-primary" id="export-pdf">
+                    <i class="icon-export"></i>
+                    Export with Settings
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // PDF Preview Modal Component
+    class PdfPreviewModal {
+        constructor() {
+            this.zoomLevel = 1.0;
+            this.currentPage = 1;
+            this.totalPages = 3;
+            this.rotation = 0;
+            this.viewMode = 'single';
+            this.isFullscreen = false;
+            this.pdfDocument = null;
+            
+            this.initializeElements();
+            this.bindEvents();
+            this.generateThumbnails();
+            this.updateZoomDisplay();
+            this.updatePageDisplay();
+        }
+        
+        initializeElements() {
+            this.elements = {
+                modal: document.getElementById('pdf-preview-modal'),
+                closeBtn: document.getElementById('pdf-modal-close'),
+                zoomOut: document.getElementById('zoom-out'),
+                zoomIn: document.getElementById('zoom-in'),
+                zoomFit: document.getElementById('zoom-fit'),
+                zoomActual: document.getElementById('zoom-actual'),
+                zoomLevel: document.getElementById('zoom-level'),
+                currentPage: document.getElementById('current-page'),
+                totalPages: document.getElementById('total-pages'),
+                pageJump: document.getElementById('page-jump'),
+                totalPagesDisplay: document.getElementById('total-pages-display'),
+                previousPage: document.getElementById('previous-page'),
+                nextPage: document.getElementById('next-page'),
+                pageThumbnails: document.getElementById('page-thumbnails'),
+                pdfPages: document.getElementById('pdf-pages'),
+                previewContent: document.getElementById('preview-content'),
+                previewOverlay: document.getElementById('preview-overlay'),
+                pdfLoading: document.getElementById('pdf-loading'),
+                pdfError: document.getElementById('pdf-error'),
+                retryLoad: document.getElementById('retry-load'),
+                viewModeButtons: document.querySelectorAll('.view-mode .btn-icon'),
+                rotateLeft: document.getElementById('rotate-left'),
+                rotateRight: document.getElementById('rotate-right'),
+                searchPdf: document.getElementById('search-pdf'),
+                fullscreen: document.getElementById('fullscreen'),
+                printPreview: document.getElementById('print-preview'),
+                downloadPdf: document.getElementById('download-pdf'),
+                closePreview: document.getElementById('close-preview'),
+                exportPdf: document.getElementById('export-pdf'),
+                showMargins: document.getElementById('show-margins'),
+                showGrid: document.getElementById('show-grid'),
+                singlePage: document.getElementById('single-page'),
+                showWatermark: document.getElementById('show-watermark')
+            };
+            
+            this.elements.pageJump.max = this.totalPages;
+            this.elements.totalPages.textContent = this.totalPages;
+            this.elements.totalPagesDisplay.textContent = this.totalPages;
+        }
+        
+        bindEvents() {
+            // Close modal
+            this.elements.closeBtn.addEventListener('click', () => this.close());
+            this.elements.closePreview.addEventListener('click', () => this.close());
+            
+            // Zoom controls
+            this.elements.zoomOut.addEventListener('click', () => this.zoomOut());
+            this.elements.zoomIn.addEventListener('click', () => this.zoomIn());
+            this.elements.zoomFit.addEventListener('click', () => this.zoomFit());
+            this.elements.zoomActual.addEventListener('click', () => this.zoomActual());
+            
+            // Page navigation
+            this.elements.previousPage.addEventListener('click', () => this.previousPage());
+            this.elements.nextPage.addEventListener('click', () => this.nextPage());
+            this.elements.pageJump.addEventListener('change', (e) => {
+                this.goToPage(parseInt(e.target.value));
+            });
+            
+            // View mode
+            this.elements.viewModeButtons.forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    this.setViewMode(e.currentTarget.dataset.mode);
+                });
+            });
+            
+            // Rotation
+            this.elements.rotateLeft.addEventListener('click', () => this.rotate(-90));
+            this.elements.rotateRight.addEventListener('click', () => this.rotate(90));
+            
+            // Search
+            this.elements.searchPdf.addEventListener('click', () => {
+                this.openSearch();
+            });
+            
+            // Fullscreen
+            this.elements.fullscreen.addEventListener('click', () => {
+                this.toggleFullscreen();
+            });
+            
+            // Print and export
+            this.elements.printPreview.addEventListener('click', () => {
+                this.printPreview();
+            });
+            
+            this.elements.downloadPdf.addEventListener('click', () => {
+                this.downloadPdf();
+            });
+            
+            this.elements.exportPdf.addEventListener('click', () => {
+                this.exportWithSettings();
+            });
+            
+            // Preview options
+            this.elements.showMargins.addEventListener('change', (e) => {
+                this.toggleMargins(e.target.checked);
+            });
+            
+            this.elements.showGrid.addEventListener('change', (e) => {
+                this.toggleGrid(e.target.checked);
+            });
+            
+            this.elements.singlePage.addEventListener('change', (e) => {
+                this.toggleSinglePage(e.target.checked);
+            });
+            
+            this.elements.showWatermark.addEventListener('change', (e) => {
+                this.toggleWatermark(e.target.checked);
+            });
+            
+            // Retry loading
+            this.elements.retryLoad?.addEventListener('click', () => {
+                this.loadPdf();
+            });
+            
+            // Close on overlay click
+            this.elements.modal.addEventListener('click', (e) => {
+                if (e.target === this.elements.modal) {
+                    this.close();
+                }
+            });
+            
+            // Escape key to close
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && this.isOpen) {
+                    if (this.isFullscreen) {
+                        this.exitFullscreen();
+                    } else {
+                        this.close();
+                    }
+                }
+            });
+            
+            // Keyboard shortcuts
+            document.addEventListener('keydown', (e) => {
+                if (!this.isOpen) return;
+                
+                switch(e.key) {
+                    case 'ArrowLeft':
+                        e.preventDefault();
+                        this.previousPage();
+                        break;
+                    case 'ArrowRight':
+                        e.preventDefault();
+                        this.nextPage();
+                        break;
+                    case '+':
+                    case '=':
+                        if (e.ctrlKey) {
+                            e.preventDefault();
+                            this.zoomIn();
+                        }
+                        break;
+                    case '-':
+                        if (e.ctrlKey) {
+                            e.preventDefault();
+                            this.zoomOut();
+                        }
+                        break;
+                    case '0':
+                        if (e.ctrlKey) {
+                            e.preventDefault();
+                            this.zoomActual();
+                        }
+                        break;
+                    case 'f':
+                        if (e.ctrlKey) {
+                            e.preventDefault();
+                            this.toggleFullscreen();
+                        }
+                        break;
+                }
+            });
+        }
+        
+        open(pdfData = null) {
+            this.elements.modal.style.display = 'block';
+            document.body.style.overflow = 'hidden';
+            this.isOpen = true;
+            
+            if (pdfData) {
+                this.loadPdf(pdfData);
+            } else {
+                this.hideLoading();
+            }
+            
+            // Focus on modal
+            setTimeout(() => {
+                this.elements.previewContent.focus();
+            }, 100);
+        }
+        
+        close() {
+            this.elements.modal.style.display = 'none';
+            document.body.style.overflow = '';
+            this.isOpen = false;
+            
+            if (this.isFullscreen) {
+                this.exitFullscreen();
+            }
+        }
+        
+        loadPdf(pdfData = null) {
+            this.showLoading();
+            
+            // Simulate PDF loading
+            setTimeout(() => {
+                // In a real implementation, this would use PDF.js or similar
+                // to render the PDF document
+                
+                // For demo purposes, we'll just hide the loading state
+                this.hideLoading();
+                
+                // Generate thumbnails for the loaded PDF
+                this.generateThumbnails();
+                
+                // Update page count if PDF has different number of pages
+                if (pdfData && pdfData.numPages) {
+                    this.totalPages = pdfData.numPages;
+                    this.updatePageDisplay();
+                }
+            }, 1000);
+        }
+        
+        showLoading() {
+            this.elements.pdfLoading.style.display = 'flex';
+            this.elements.pdfError.style.display = 'none';
+            this.elements.previewOverlay.style.display = 'flex';
+        }
+        
+        hideLoading() {
+            this.elements.previewOverlay.style.display = 'none';
+        }
+        
+        showError() {
+            this.elements.pdfLoading.style.display = 'none';
+            this.elements.pdfError.style.display = 'flex';
+            this.elements.previewOverlay.style.display = 'flex';
+        }
+        
+        generateThumbnails() {
+            const thumbnails = [];
+            
+            for (let i = 1; i <= this.totalPages; i++) {
+                thumbnails.push(`
+                    <div class="page-thumb ${i === this.currentPage ? 'active' : ''}" 
+                         data-page="${i}">
+                        <div class="thumbnail-placeholder">
+                            <span class="page-preview">Page ${i}</span>
+                        </div>
+                        <span class="page-number">${i}</span>
+                    </div>
+                `);
+            }
+            
+            this.elements.pageThumbnails.innerHTML = thumbnails.join('');
+            
+            // Add click handlers to thumbnails
+            this.elements.pageThumbnails.querySelectorAll('.page-thumb').forEach(thumb => {
+                thumb.addEventListener('click', (e) => {
+                    const page = parseInt(e.currentTarget.dataset.page);
+                    this.goToPage(page);
+                });
+            });
+        }
+        
+        goToPage(page) {
+            if (page < 1) page = 1;
+            if (page > this.totalPages) page = this.totalPages;
+            
+            this.currentPage = page;
+            
+            // Update active page in main view
+            this.elements.pdfPages.querySelectorAll('.pdf-page').forEach(p => {
+                p.classList.remove('active');
+            });
+            
+            const targetPage = this.elements.pdfPages.querySelector(`[data-page="${page}"]`);
+            if (targetPage) {
+                targetPage.classList.add('active');
+            }
+            
+            // Update active thumbnail
+            this.elements.pageThumbnails.querySelectorAll('.page-thumb').forEach(thumb => {
+                thumb.classList.remove('active');
+                if (parseInt(thumb.dataset.page) === page) {
+                    thumb.classList.add('active');
+                }
+            });
+            
+            // Update page displays
+            this.elements.currentPage.textContent = page;
+            this.elements.pageJump.value = page;
+            
+            // Scroll to page
+            if (targetPage) {
+                targetPage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+        
+        previousPage() {
+            this.goToPage(this.currentPage - 1);
+        }
+        
+        nextPage() {
+            this.goToPage(this.currentPage + 1);
+        }
+        
+        updatePageDisplay() {
+            this.elements.totalPages.textContent = this.totalPages;
+            this.elements.totalPagesDisplay.textContent = this.totalPages;
+            this.elements.pageJump.max = this.totalPages;
+        }
+        
+        zoomOut() {
+            this.zoomLevel = Math.max(0.25, this.zoomLevel - 0.25);
+            this.applyZoom();
+        }
+        
+        zoomIn() {
+            this.zoomLevel = Math.min(4, this.zoomLevel + 0.25);
+            this.applyZoom();
+        }
+        
+        zoomFit() {
+            const container = this.elements.previewContent;
+            const page = this.elements.pdfPages.querySelector('.pdf-page.active');
+            
+            if (container && page) {
+                const containerWidth = container.clientWidth - 40; // Account for padding
+                const pageWidth = page.offsetWidth;
+                this.zoomLevel = containerWidth / pageWidth;
+                this.applyZoom();
+            }
+        }
+        
+        zoomActual() {
+            this.zoomLevel = 1.0;
+            this.applyZoom();
+        }
+        
+        applyZoom() {
+            const pages = this.elements.pdfPages.querySelectorAll('.pdf-page');
+            pages.forEach(page => {
+                page.style.transform = `scale(${this.zoomLevel}) rotate(${this.rotation}deg)`;
+            });
+            
+            this.updateZoomDisplay();
+        }
+        
+        updateZoomDisplay() {
+            this.elements.zoomLevel.textContent = `${Math.round(this.zoomLevel * 100)}%`;
+        }
+        
+        setViewMode(mode) {
+            this.viewMode = mode;
+            
+            // Update button states
+            this.elements.viewModeButtons.forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.mode === mode) {
+                    btn.classList.add('active');
+                }
+            });
+            
+            // Apply view mode to PDF pages container
+            this.elements.pdfPages.className = 'pdf-pages';
+            this.elements.pdfPages.classList.add(`view-${mode}`);
+            
+            // For single page view, ensure only current page is visible
+            if (mode === 'single') {
+                this.elements.pdfPages.querySelectorAll('.pdf-page').forEach((page, index) => {
+                    if (index + 1 === this.currentPage) {
+                        page.classList.add('active');
+                    } else {
+                        page.classList.remove('active');
+                    }
+                });
+            } else {
+                // Show all pages for other view modes
+                this.elements.pdfPages.querySelectorAll('.pdf-page').forEach(page => {
+                    page.classList.add('active');
+                });
+            }
+        }
+        
+        rotate(degrees) {
+            this.rotation += degrees;
+            this.applyZoom(); // Zoom transform includes rotation
+        }
+        
+        openSearch() {
+            const searchTerm = prompt('Search in PDF:');
+            if (searchTerm) {
+                alert(`Searching for "${searchTerm}"...\n\nThis feature would highlight matching text in the PDF.`);
+                // In a real implementation, this would use PDF.js search functionality
+            }
+        }
+        
+        toggleFullscreen() {
+            if (!this.isFullscreen) {
+                this.enterFullscreen();
+            } else {
+                this.exitFullscreen();
+            }
+        }
+        
+        enterFullscreen() {
+            const modal = this.elements.modal.querySelector('.modal-container');
+            if (modal.requestFullscreen) {
+                modal.requestFullscreen();
+            } else if (modal.webkitRequestFullscreen) {
+                modal.webkitRequestFullscreen();
+            } else if (modal.msRequestFullscreen) {
+                modal.msRequestFullscreen();
+            }
+            
+            this.isFullscreen = true;
+            this.elements.fullscreen.classList.add('active');
+        }
+        
+        exitFullscreen() {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            } else if (document.webkitExitFullscreen) {
+                document.webkitExitFullscreen();
+            } else if (document.msExitFullscreen) {
+                document.msExitFullscreen();
+            }
+            
+            this.isFullscreen = false;
+            this.elements.fullscreen.classList.remove('active');
+        }
+        
+        toggleMargins(show) {
+            this.elements.pdfPages.classList.toggle('show-margins', show);
+        }
+        
+        toggleGrid(show) {
+            this.elements.pdfPages.classList.toggle('show-grid', show);
+        }
+        
+        toggleSinglePage(single) {
+            if (single) {
+                this.setViewMode('single');
+            } else {
+                this.setViewMode('double');
+            }
+        }
+        
+        toggleWatermark(show) {
+            this.elements.pdfPages.classList.toggle('show-watermark', show);
+        }
+        
+        printPreview() {
+            alert('Opening print preview...\n\nIn a real implementation, this would open the browser\'s print dialog with PDF-specific settings.');
+            // window.print() could be used here
+        }
+        
+        downloadPdf() {
+            alert('Downloading PDF file...\n\nIn a real implementation, this would trigger a download of the generated PDF.');
+            
+            // Simulate download
+            const link = document.createElement('a');
+            link.href = '#'; // In real app, this would be the PDF blob URL
+            link.download = `attendance_report_${new Date().toISOString().split('T')[0]}.pdf`;
+            link.click();
+        }
+        
+        exportWithSettings() {
+            const settings = {
+                paperSize: document.getElementById('paper-size').value,
+                orientation: document.getElementById('orientation').value,
+                quality: document.getElementById('quality').value,
+                margins: {
+                    top: document.getElementById('margin-top').value,
+                    right: document.getElementById('margin-right').value,
+                    bottom: document.getElementById('margin-bottom').value,
+                    left: document.getElementById('margin-left').value
+                },
+                options: {
+                    showMargins: this.elements.showMargins.checked,
+                    showGrid: this.elements.showGrid.checked,
+                    showWatermark: this.elements.showWatermark.checked
+                }
+            };
+            
+            console.log('Exporting PDF with settings:', settings);
+            alert(`Exporting PDF with custom settings:\n\nPaper: ${settings.paperSize}\nOrientation: ${settings.orientation}\nQuality: ${settings.quality}`);
+            
+            // In a real app, this would regenerate the PDF with these settings
+            this.downloadPdf();
+        }
+    }
+    
+    // Initialize when modal is present
+    document.addEventListener('DOMContentLoaded', () => {
+        if (document.getElementById('pdf-preview-modal')) {
+            window.pdfPreviewModal = new PdfPreviewModal();
+            
+            // Expose open method globally
+            window.openPdfPreview = (pdfData) => {
+                window.pdfPreviewModal.open(pdfData);
+            };
+            
+            // Close method
+            window.closePdfPreview = () => {
+                window.pdfPreviewModal.close();
+            };
+        }
+    });
+</script>
