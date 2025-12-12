@@ -34,10 +34,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         };
     }
 
-    case '/attendance':
-    // Pass the app instance to initializeAttendance
-    initializeAttendance(this.app || window.app);
-    break;
     
     // Set app version in footer
     const versionElement = document.getElementById('app-version');
@@ -444,13 +440,12 @@ class AppRouter {
             case '/login':
                 initializeAuth();
                 break;
-            case '/':
             case '/dashboard':
                 initializeDashboard();
                 break;
             case '/attendance':
-                initializeAttendance();
-                break;
+                initializeAttendance(this.app || window.app);
+            break;
             case '/reports':
                 initializeReports();
                 break;
