@@ -1,0 +1,288 @@
+<div class="metrics-grid" data-component="metrics-grid">
+    <div class="metric-card today-attendance">
+        <div class="metric-icon">
+            <i class="icon-today"></i>
+        </div>
+        <div class="metric-content">
+            <h3 class="metric-title">Today's Attendance</h3>
+            <div class="metric-value" id="today-total">0</div>
+            <div class="metric-details">
+                <span class="metric-detail present">
+                    <span class="detail-label">Present:</span>
+                    <span class="detail-value" id="today-present">0</span>
+                </span>
+                <span class="metric-detail absent">
+                    <span class="detail-label">Absent:</span>
+                    <span class="detail-value" id="today-absent">0</span>
+                </span>
+            </div>
+        </div>
+        <div class="metric-trend positive" id="today-trend">
+            <i class="icon-trend-up"></i>
+            <span>0%</span>
+        </div>
+    </div>
+    
+    <div class="metric-card monthly-stats">
+        <div class="metric-icon">
+            <i class="icon-monthly"></i>
+        </div>
+        <div class="metric-content">
+            <h3 class="metric-title">This Month</h3>
+            <div class="metric-value" id="month-total">0</div>
+            <div class="metric-details">
+                <span class="metric-detail">
+                    <span class="detail-label">Avg. Daily:</span>
+                    <span class="detail-value" id="month-avg">0</span>
+                </span>
+                <span class="metric-detail">
+                    <span class="detail-label">Working Days:</span>
+                    <span class="detail-value" id="month-days">0</span>
+                </span>
+            </div>
+        </div>
+        <div class="metric-period">
+            <select id="month-selector" class="period-selector">
+                <!-- Months will be populated dynamically -->
+            </select>
+        </div>
+    </div>
+    
+    <div class="metric-card attendance-rate">
+        <div class="metric-icon">
+            <i class="icon-rate"></i>
+        </div>
+        <div class="metric-content">
+            <h3 class="metric-title">Attendance Rate</h3>
+            <div class="metric-value" id="attendance-rate">0%</div>
+            <div class="metric-progress">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="rate-progress" style="width: 0%"></div>
+                </div>
+            </div>
+            <div class="metric-target">
+                <span class="target-label">Target:</span>
+                <span class="target-value" id="target-rate">95%</span>
+            </div>
+        </div>
+        <button class="metric-action" id="adjust-target-btn" title="Adjust target">
+            <i class="icon-adjust"></i>
+        </button>
+    </div>
+    
+    <div class="metric-card upcoming-events">
+        <div class="metric-icon">
+            <i class="icon-events"></i>
+        </div>
+        <div class="metric-content">
+            <h3 class="metric-title">Upcoming</h3>
+            <div class="metric-value" id="upcoming-count">0</div>
+            <div class="metric-list">
+                <div class="event-item">
+                    <span class="event-name">No upcoming events</span>
+                    <span class="event-date" id="next-event-date"></span>
+                </div>
+            </div>
+        </div>
+        <button class="metric-action" id="view-events-btn" title="View all events">
+            <i class="icon-view-all"></i>
+        </button>
+    </div>
+    
+    <div class="metric-card recent-activity">
+        <div class="metric-icon">
+            <i class="icon-activity"></i>
+        </div>
+        <div class="metric-content">
+            <h3 class="metric-title">Recent Activity</h3>
+            <div class="activity-list">
+                <div class="activity-item" id="recent-activity-1">
+                    <i class="icon-check"></i>
+                    <span class="activity-text">Attendance taken for today</span>
+                    <span class="activity-time">Just now</span>
+                </div>
+                <div class="activity-item" id="recent-activity-2">
+                    <i class="icon-report"></i>
+                    <span class="activity-text">Monthly report generated</span>
+                    <span class="activity-time">2 hours ago</span>
+                </div>
+                <div class="activity-item" id="recent-activity-3">
+                    <i class="icon-sync"></i>
+                    <span class="activity-text">Data synchronized</span>
+                    <span class="activity-time">Yesterday</span>
+                </div>
+            </div>
+        </div>
+        <button class="metric-action" id="refresh-activity-btn" title="Refresh">
+            <i class="icon-refresh"></i>
+        </button>
+    </div>
+    
+    <div class="metric-card export-ready">
+        <div class="metric-icon">
+            <i class="icon-export"></i>
+        </div>
+        <div class="metric-content">
+            <h3 class="metric-title">Export Ready</h3>
+            <div class="metric-value" id="export-ready-count">0</div>
+            <div class="metric-subtitle">Reports pending export</div>
+            <div class="metric-actions">
+                <button class="btn btn-sm btn-primary" id="quick-export-btn">
+                    <i class="icon-download"></i>
+                    Export All
+                </button>
+                <button class="btn btn-sm btn-secondary" id="view-reports-btn">
+                    <i class="icon-eye"></i>
+                    View
+                </button>
+            </div>
+        </div>
+        <div class="metric-badge" id="export-badge">New</div>
+    </div>
+</div>
+
+<script>
+    // Metrics grid functionality
+    class MetricsGrid {
+        constructor() {
+            this.initializeSelectors();
+            this.bindEvents();
+            this.refreshMetrics();
+        }
+        
+        initializeSelectors() {
+            this.selectors = {
+                todayTotal: document.getElementById('today-total'),
+                todayPresent: document.getElementById('today-present'),
+                todayAbsent: document.getElementById('today-absent'),
+                todayTrend: document.getElementById('today-trend'),
+                monthTotal: document.getElementById('month-total'),
+                monthAvg: document.getElementById('month-avg'),
+                monthDays: document.getElementById('month-days'),
+                monthSelector: document.getElementById('month-selector'),
+                attendanceRate: document.getElementById('attendance-rate'),
+                rateProgress: document.getElementById('rate-progress'),
+                targetRate: document.getElementById('target-rate'),
+                upcomingCount: document.getElementById('upcoming-count'),
+                nextEventDate: document.getElementById('next-event-date'),
+                exportReadyCount: document.getElementById('export-ready-count'),
+                exportBadge: document.getElementById('export-badge')
+            };
+        }
+        
+        bindEvents() {
+            // Month selector change
+            this.selectors.monthSelector?.addEventListener('change', (e) => {
+                this.loadMonthMetrics(e.target.value);
+            });
+            
+            // Adjust target button
+            document.getElementById('adjust-target-btn')?.addEventListener('click', () => {
+                this.adjustTargetRate();
+            });
+            
+            // View events button
+            document.getElementById('view-events-btn')?.addEventListener('click', () => {
+                window.appRouter.navigateTo('/reports');
+            });
+            
+            // Refresh activity
+            document.getElementById('refresh-activity-btn')?.addEventListener('click', () => {
+                this.refreshActivity();
+            });
+            
+            // Quick export
+            document.getElementById('quick-export-btn')?.addEventListener('click', () => {
+                this.quickExport();
+            });
+            
+            // View reports
+            document.getElementById('view-reports-btn')?.addEventListener('click', () => {
+                window.appRouter.navigateTo('/reports');
+            });
+        }
+        
+        async refreshMetrics() {
+            try {
+                // Simulate loading metrics
+                await this.loadTodayMetrics();
+                await this.loadMonthMetrics();
+                await this.loadAttendanceRate();
+                await this.loadUpcomingEvents();
+                await this.checkExports();
+            } catch (error) {
+                console.error('Error refreshing metrics:', error);
+            }
+        }
+        
+        async loadTodayMetrics() {
+            // In a real app, this would fetch from database
+            const today = new Date().toISOString().split('T')[0];
+            const data = await window.attendanceDB?.getAttendanceByDate(today) || { present: 0, absent: 0 };
+            
+            const total = data.present + data.absent;
+            this.selectors.todayTotal.textContent = total;
+            this.selectors.todayPresent.textContent = data.present;
+            this.selectors.todayAbsent.textContent = data.absent;
+            
+            // Calculate trend (simplified)
+            const trend = total > 0 ? ((data.present / total) * 100).toFixed(1) : 0;
+            this.selectors.todayTrend.innerHTML = `
+                <i class="icon-trend-${trend > 90 ? 'up' : 'down'}"></i>
+                <span>${trend}%</span>
+            `;
+        }
+        
+        async loadMonthMetrics(month = null) {
+            // Implementation would fetch month data
+            this.selectors.monthTotal.textContent = '0';
+            this.selectors.monthAvg.textContent = '0';
+            this.selectors.monthDays.textContent = '0';
+        }
+        
+        async loadAttendanceRate() {
+            // Implementation would calculate rate
+            const rate = 95; // Example
+            this.selectors.attendanceRate.textContent = `${rate}%`;
+            this.selectors.rateProgress.style.width = `${rate}%`;
+        }
+        
+        async loadUpcomingEvents() {
+            // Implementation would fetch events
+            this.selectors.upcomingCount.textContent = '0';
+            this.selectors.nextEventDate.textContent = 'No events';
+        }
+        
+        async checkExports() {
+            // Implementation would check pending exports
+            const count = 0; // Example
+            this.selectors.exportReadyCount.textContent = count;
+            this.selectors.exportBadge.style.display = count > 0 ? 'flex' : 'none';
+        }
+        
+        adjustTargetRate() {
+            const newTarget = prompt('Enter new target attendance rate (%):', '95');
+            if (newTarget && !isNaN(newTarget) && newTarget >= 0 && newTarget <= 100) {
+                this.selectors.targetRate.textContent = `${newTarget}%`;
+                localStorage.setItem('targetRate', newTarget);
+            }
+        }
+        
+        refreshActivity() {
+            // Implementation would refresh activity log
+            console.log('Refreshing activity...');
+        }
+        
+        quickExport() {
+            // Implementation would trigger export
+            console.log('Quick export triggered...');
+        }
+    }
+    
+    // Initialize when component loads
+    document.addEventListener('DOMContentLoaded', () => {
+        if (document.querySelector('[data-component="metrics-grid"]')) {
+            window.metricsGrid = new MetricsGrid();
+        }
+    });
+</script>
