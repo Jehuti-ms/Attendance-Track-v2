@@ -1,0 +1,611 @@
+<div class="report-controls" data-component="report-controls">
+    <div class="controls-header">
+        <h3 class="controls-title">Report Configuration</h3>
+        <div class="controls-actions">
+            <button class="btn btn-secondary" id="save-template-btn">
+                <i class="icon-save"></i>
+                Save as Template
+            </button>
+            <button class="btn btn-primary" id="generate-report-btn">
+                <i class="icon-generate"></i>
+                Generate Report
+            </button>
+        </div>
+    </div>
+    
+    <div class="controls-grid">
+        <!-- Report Type Selection -->
+        <div class="control-group">
+            <label class="control-label">Report Type</label>
+            <div class="report-type-selector">
+                <div class="type-options">
+                    <label class="type-option">
+                        <input type="radio" name="report-type" value="daily" checked>
+                        <div class="type-card">
+                            <i class="icon-daily"></i>
+                            <span>Daily Summary</span>
+                        </div>
+                    </label>
+                    <label class="type-option">
+                        <input type="radio" name="report-type" value="monthly">
+                        <div class="type-card">
+                            <i class="icon-monthly"></i>
+                            <span>Monthly Analysis</span>
+                        </div>
+                    </label>
+                    <label class="type-option">
+                        <input type="radio" name="report-type" value="custom">
+                        <div class="type-card">
+                            <i class="icon-custom"></i>
+                            <span>Custom Range</span>
+                        </div>
+                    </label>
+                    <label class="type-option">
+                        <input type="radio" name="report-type" value="individual">
+                        <div class="type-card">
+                            <i class="icon-individual"></i>
+                            <span>Individual Report</span>
+                        </div>
+                    </label>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Date Range -->
+        <div class="control-group">
+            <label class="control-label">Date Range</label>
+            <div class="date-range-controls">
+                <div class="date-presets">
+                    <button class="preset-btn active" data-preset="today">Today</button>
+                    <button class="preset-btn" data-preset="yesterday">Yesterday</button>
+                    <button class="preset-btn" data-preset="thisWeek">This Week</button>
+                    <button class="preset-btn" data-preset="lastWeek">Last Week</button>
+                    <button class="preset-btn" data-preset="thisMonth">This Month</button>
+                    <button class="preset-btn" data-preset="lastMonth">Last Month</button>
+                </div>
+                <div class="custom-range">
+                    <div class="date-input-group">
+                        <label>From</label>
+                        <input type="date" id="report-date-from" class="date-input">
+                    </div>
+                    <div class="date-input-group">
+                        <label>To</label>
+                        <input type="date" id="report-date-to" class="date-input">
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Filters -->
+        <div class="control-group">
+            <label class="control-label">Filters</label>
+            <div class="filter-controls">
+                <div class="filter-section">
+                    <h4>Status</h4>
+                    <div class="filter-checkboxes">
+                        <label class="checkbox">
+                            <input type="checkbox" name="filter-status" value="present" checked>
+                            <span>Present</span>
+                        </label>
+                        <label class="checkbox">
+                            <input type="checkbox" name="filter-status" value="absent" checked>
+                            <span>Absent</span>
+                        </label>
+                        <label class="checkbox">
+                            <input type="checkbox" name="filter-status" value="late" checked>
+                            <span>Late</span>
+                        </label>
+                        <label class="checkbox">
+                            <input type="checkbox" name="filter-status" value="excused">
+                            <span>Excused</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="filter-section">
+                    <h4>Departments</h4>
+                    <div class="department-selector">
+                        <select class="multi-select" id="department-select" multiple>
+                            <option value="all" selected>All Departments</option>
+                            <option value="sales">Sales</option>
+                            <option value="marketing">Marketing</option>
+                            <option value="engineering">Engineering</option>
+                            <option value="hr">Human Resources</option>
+                            <option value="operations">Operations</option>
+                        </select>
+                        <div class="selected-departments" id="selected-departments">
+                            <span class="selected-tag">All Departments</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="filter-section">
+                    <h4>Additional Filters</h4>
+                    <div class="additional-filters">
+                        <label class="checkbox">
+                            <input type="checkbox" id="filter-overtime">
+                            <span>Include Overtime</span>
+                        </label>
+                        <label class="checkbox">
+                            <input type="checkbox" id="filter-breaks">
+                            <span>Include Break Times</span>
+                        </label>
+                        <label class="checkbox">
+                            <input type="checkbox" id="filter-notes">
+                            <span>Include Notes</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Format Options -->
+        <div class="control-group">
+            <label class="control-label">Output Format</label>
+            <div class="format-options">
+                <label class="format-option">
+                    <input type="radio" name="output-format" value="pdf" checked>
+                    <div class="format-card">
+                        <i class="icon-pdf"></i>
+                        <span>PDF Document</span>
+                        <small>Printable, high quality</small>
+                    </div>
+                </label>
+                <label class="format-option">
+                    <input type="radio" name="output-format" value="excel">
+                    <div class="format-card">
+                        <i class="icon-excel"></i>
+                        <span>Excel Spreadsheet</span>
+                        <small>Editable, with formulas</small>
+                    </div>
+                </label>
+                <label class="format-option">
+                    <input type="radio" name="output-format" value="csv">
+                    <div class="format-card">
+                        <i class="icon-csv"></i>
+                        <span>CSV File</span>
+                        <small>Simple, compatible</small>
+                    </div>
+                </label>
+                <label class="format-option">
+                    <input type="radio" name="output-format" value="html">
+                    <div class="format-card">
+                        <i class="icon-html"></i>
+                        <span>HTML Report</span>
+                        <small>Web viewable</small>
+                    </div>
+                </label>
+            </div>
+        </div>
+        
+        <!-- Report Options -->
+        <div class="control-group">
+            <label class="control-label">Report Options</label>
+            <div class="report-options">
+                <div class="option-row">
+                    <label class="checkbox">
+                        <input type="checkbox" id="include-charts" checked>
+                        <span>Include Charts & Graphs</span>
+                    </label>
+                    <label class="checkbox">
+                        <input type="checkbox" id="include-summary" checked>
+                        <span>Include Executive Summary</span>
+                    </label>
+                </div>
+                <div class="option-row">
+                    <label class="checkbox">
+                        <input type="checkbox" id="include-details">
+                        <span>Include Detailed Records</span>
+                    </label>
+                    <label class="checkbox">
+                        <input type="checkbox" id="include-totals" checked>
+                        <span>Include Totals & Averages</span>
+                    </label>
+                </div>
+                <div class="option-row">
+                    <label class="checkbox">
+                        <input type="checkbox" id="include-comparison">
+                        <span>Include Previous Period Comparison</span>
+                    </label>
+                    <label class="checkbox">
+                        <input type="checkbox" id="color-code" checked>
+                        <span>Color Code by Status</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Email Settings -->
+        <div class="control-group">
+            <label class="control-label">Delivery Options</label>
+            <div class="delivery-options">
+                <div class="delivery-method">
+                    <label class="radio">
+                        <input type="radio" name="delivery" value="download" checked>
+                        <span>Download Immediately</span>
+                    </label>
+                    <label class="radio">
+                        <input type="radio" name="delivery" value="email">
+                        <span>Send via Email</span>
+                    </label>
+                    <label class="radio">
+                        <input type="radio" name="delivery" value="both">
+                        <span>Both</span>
+                    </label>
+                </div>
+                
+                <div class="email-settings" id="email-settings">
+                    <div class="email-inputs">
+                        <div class="form-group">
+                            <label for="email-recipients">Recipients</label>
+                            <input type="text" id="email-recipients" 
+                                   placeholder="Enter email addresses (comma separated)">
+                        </div>
+                        <div class="form-group">
+                            <label for="email-subject">Subject</label>
+                            <input type="text" id="email-subject" 
+                                   value="Attendance Report - {{date}}">
+                        </div>
+                        <div class="form-group">
+                            <label for="email-message">Message</label>
+                            <textarea id="email-message" rows="3">
+Please find attached the attendance report for the selected period.
+
+Best regards,
+Attendance Track System
+                            </textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="controls-footer">
+        <button class="btn btn-secondary" id="reset-controls">
+            <i class="icon-reset"></i>
+            Reset to Defaults
+        </button>
+        <div class="footer-actions">
+            <button class="btn btn-secondary" id="preview-report-btn">
+                <i class="icon-preview"></i>
+                Preview Report
+            </button>
+            <button class="btn btn-primary" id="run-report-btn">
+                <i class="icon-run"></i>
+                Generate Now
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Report Controls Component
+    class ReportControls {
+        constructor() {
+            this.currentPreset = 'today';
+            this.settings = this.loadSavedSettings();
+            this.initializeElements();
+            this.bindEvents();
+            this.updateUI();
+        }
+        
+        initializeElements() {
+            this.elements = {
+                reportType: document.querySelectorAll('input[name="report-type"]'),
+                presetButtons: document.querySelectorAll('.preset-btn'),
+                dateFrom: document.getElementById('report-date-from'),
+                dateTo: document.getElementById('report-date-to'),
+                departmentSelect: document.getElementById('department-select'),
+                selectedDepartments: document.getElementById('selected-departments'),
+                outputFormat: document.querySelectorAll('input[name="output-format"]'),
+                deliveryMethod: document.querySelectorAll('input[name="delivery"]'),
+                emailSettings: document.getElementById('email-settings'),
+                saveTemplateBtn: document.getElementById('save-template-btn'),
+                generateReportBtn: document.getElementById('generate-report-btn'),
+                previewReportBtn: document.getElementById('preview-report-btn'),
+                runReportBtn: document.getElementById('run-report-btn'),
+                resetControls: document.getElementById('reset-controls')
+            };
+        }
+        
+        bindEvents() {
+            // Report type changes
+            this.elements.reportType.forEach(radio => {
+                radio.addEventListener('change', (e) => {
+                    this.settings.reportType = e.target.value;
+                    this.onReportTypeChange();
+                });
+            });
+            
+            // Date preset buttons
+            this.elements.presetButtons.forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    this.setDatePreset(e.target.dataset.preset);
+                });
+            });
+            
+            // Custom date changes
+            this.elements.dateFrom.addEventListener('change', () => {
+                this.currentPreset = 'custom';
+                this.updatePresetButtons();
+                this.settings.dateFrom = this.elements.dateFrom.value;
+            });
+            
+            this.elements.dateTo.addEventListener('change', () => {
+                this.currentPreset = 'custom';
+                this.updatePresetButtons();
+                this.settings.dateTo = this.elements.dateTo.value;
+            });
+            
+            // Department selection
+            this.elements.departmentSelect.addEventListener('change', () => {
+                this.updateSelectedDepartments();
+            });
+            
+            // Output format
+            this.elements.outputFormat.forEach(radio => {
+                radio.addEventListener('change', (e) => {
+                    this.settings.outputFormat = e.target.value;
+                });
+            });
+            
+            // Delivery method
+            this.elements.deliveryMethod.forEach(radio => {
+                radio.addEventListener('change', (e) => {
+                    this.settings.deliveryMethod = e.target.value;
+                    this.toggleEmailSettings();
+                });
+            });
+            
+            // Action buttons
+            this.elements.saveTemplateBtn.addEventListener('click', () => {
+                this.saveAsTemplate();
+            });
+            
+            this.elements.generateReportBtn.addEventListener('click', () => {
+                this.generateReport();
+            });
+            
+            this.elements.previewReportBtn.addEventListener('click', () => {
+                this.previewReport();
+            });
+            
+            this.elements.runReportBtn.addEventListener('click', () => {
+                this.runReport();
+            });
+            
+            this.elements.resetControls.addEventListener('click', () => {
+                this.resetToDefaults();
+            });
+            
+            // Initialize date values
+            this.setDatePreset('today');
+        }
+        
+        setDatePreset(preset) {
+            this.currentPreset = preset;
+            const today = new Date();
+            
+            let dateFrom, dateTo;
+            
+            switch(preset) {
+                case 'today':
+                    dateFrom = dateTo = this.formatDate(today);
+                    break;
+                case 'yesterday':
+                    const yesterday = new Date(today);
+                    yesterday.setDate(yesterday.getDate() - 1);
+                    dateFrom = dateTo = this.formatDate(yesterday);
+                    break;
+                case 'thisWeek':
+                    const startOfWeek = new Date(today);
+                    startOfWeek.setDate(today.getDate() - today.getDay());
+                    dateFrom = this.formatDate(startOfWeek);
+                    dateTo = this.formatDate(today);
+                    break;
+                case 'lastWeek':
+                    const lastWeekStart = new Date(today);
+                    lastWeekStart.setDate(today.getDate() - today.getDay() - 7);
+                    const lastWeekEnd = new Date(lastWeekStart);
+                    lastWeekEnd.setDate(lastWeekStart.getDate() + 6);
+                    dateFrom = this.formatDate(lastWeekStart);
+                    dateTo = this.formatDate(lastWeekEnd);
+                    break;
+                case 'thisMonth':
+                    dateFrom = new Date(today.getFullYear(), today.getMonth(), 1);
+                    dateTo = today;
+                    dateFrom = this.formatDate(dateFrom);
+                    dateTo = this.formatDate(dateTo);
+                    break;
+                case 'lastMonth':
+                    const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+                    const lastMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0);
+                    dateFrom = this.formatDate(lastMonth);
+                    dateTo = this.formatDate(lastMonthEnd);
+                    break;
+            }
+            
+            this.elements.dateFrom.value = dateFrom;
+            this.elements.dateTo.value = dateTo;
+            this.settings.dateFrom = dateFrom;
+            this.settings.dateTo = dateTo;
+            
+            this.updatePresetButtons();
+        }
+        
+        updatePresetButtons() {
+            this.elements.presetButtons.forEach(btn => {
+                if (btn.dataset.preset === this.currentPreset) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+        }
+        
+        updateSelectedDepartments() {
+            const selected = Array.from(this.elements.departmentSelect.selectedOptions);
+            const tags = selected.map(option => {
+                return `<span class="selected-tag" data-value="${option.value}">
+                    ${option.text}
+                    <button type="button" class="remove-tag">&times;</button>
+                </span>`;
+            }).join('');
+            
+            this.elements.selectedDepartments.innerHTML = tags;
+            
+            // Add remove event listeners
+            this.elements.selectedDepartments.querySelectorAll('.remove-tag').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const value = e.target.parentElement.dataset.value;
+                    const option = this.elements.departmentSelect.querySelector(`option[value="${value}"]`);
+                    if (option) option.selected = false;
+                    this.updateSelectedDepartments();
+                });
+            });
+        }
+        
+        onReportTypeChange() {
+            const type = this.settings.reportType;
+            
+            // Enable/disable certain controls based on report type
+            if (type === 'daily') {
+                // Daily reports don't need date range
+                this.elements.dateFrom.disabled = true;
+                this.elements.dateTo.disabled = true;
+                this.setDatePreset('today');
+            } else {
+                this.elements.dateFrom.disabled = false;
+                this.elements.dateTo.disabled = false;
+            }
+        }
+        
+        toggleEmailSettings() {
+            const method = this.settings.deliveryMethod;
+            this.elements.emailSettings.style.display = 
+                (method === 'email' || method === 'both') ? 'block' : 'none';
+        }
+        
+        loadSavedSettings() {
+            const defaultSettings = {
+                reportType: 'daily',
+                dateFrom: this.formatDate(new Date()),
+                dateTo: this.formatDate(new Date()),
+                filters: {
+                    status: ['present', 'absent', 'late'],
+                    departments: ['all'],
+                    includeOvertime: false,
+                    includeBreaks: false,
+                    includeNotes: false
+                },
+                outputFormat: 'pdf',
+                options: {
+                    includeCharts: true,
+                    includeSummary: true,
+                    includeDetails: false,
+                    includeTotals: true,
+                    includeComparison: false,
+                    colorCode: true
+                },
+                deliveryMethod: 'download',
+                email: {
+                    recipients: '',
+                    subject: 'Attendance Report - {{date}}',
+                    message: `Please find attached the attendance report for the selected period.\n\nBest regards,\nAttendance Track System`
+                }
+            };
+            
+            const saved = localStorage.getItem('reportSettings');
+            return saved ? { ...defaultSettings, ...JSON.parse(saved) } : defaultSettings;
+        }
+        
+        saveSettings() {
+            // Collect current settings from UI
+            this.collectCurrentSettings();
+            localStorage.setItem('reportSettings', JSON.stringify(this.settings));
+            this.showNotification('Settings saved', 'success');
+        }
+        
+        collectCurrentSettings() {
+            // Collect all current settings from the UI
+            // This would be a comprehensive collection of all form values
+            console.log('Collecting current settings...');
+        }
+        
+        saveAsTemplate() {
+            const templateName = prompt('Enter template name:');
+            if (templateName) {
+                this.collectCurrentSettings();
+                const templates = JSON.parse(localStorage.getItem('reportTemplates') || '[]');
+                templates.push({
+                    name: templateName,
+                    settings: this.settings,
+                    created: new Date().toISOString()
+                });
+                localStorage.setItem('reportTemplates', JSON.stringify(templates));
+                this.showNotification(`Template "${templateName}" saved`, 'success');
+            }
+        }
+        
+        generateReport() {
+            this.collectCurrentSettings();
+            this.saveSettings();
+            
+            // Trigger report generation in the reports module
+            if (window.reportsModule) {
+                window.reportsModule.generateReport(this.settings);
+            } else {
+                console.log('Generating report with settings:', this.settings);
+                this.showNotification('Report generation started', 'info');
+            }
+        }
+        
+        previewReport() {
+            this.collectCurrentSettings();
+            
+            // Open preview modal
+            if (window.reportsModule) {
+                window.reportsModule.previewReport(this.settings);
+            } else {
+                console.log('Preview report with settings:', this.settings);
+                this.showNotification('Opening preview...', 'info');
+            }
+        }
+        
+        runReport() {
+            this.generateReport();
+        }
+        
+        resetToDefaults() {
+            if (confirm('Reset all report controls to default values?')) {
+                localStorage.removeItem('reportSettings');
+                this.settings = this.loadSavedSettings();
+                this.updateUI();
+                this.showNotification('Controls reset to defaults', 'info');
+            }
+        }
+        
+        updateUI() {
+            // Update all UI elements based on current settings
+            // This would sync the UI with this.settings object
+            console.log('Updating UI with current settings...');
+        }
+        
+        formatDate(date) {
+            return date.toISOString().split('T')[0];
+        }
+        
+        showNotification(message, type = 'info') {
+            // Implement notification system
+            console.log(`${type.toUpperCase()}: ${message}`);
+        }
+    }
+    
+    // Initialize when component loads
+    document.addEventListener('DOMContentLoaded', () => {
+        if (document.querySelector('[data-component="report-controls"]')) {
+            window.reportControls = new ReportControls();
+        }
+    });
+</script>
