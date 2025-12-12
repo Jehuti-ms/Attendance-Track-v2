@@ -1,0 +1,130 @@
+<footer class="app-footer" data-component="footer">
+    <div class="footer-content">
+        <div class="footer-section">
+            <div class="footer-logo">
+                <img src="../assets/icons/icon.svg" alt="Attendance Track" class="footer-logo-img">
+                <span class="footer-app-name">Attendance Track v2</span>
+            </div>
+            <p class="footer-description">
+                A progressive web application for tracking attendance with offline capability.
+            </p>
+            <div class="footer-version">
+                <span class="version-badge">v2.0.0</span>
+                <span class="sync-status" id="sync-status">
+                    <i class="icon-sync"></i>
+                    <span>Synced</span>
+                </span>
+            </div>
+        </div>
+        
+        <div class="footer-section">
+            <h4 class="footer-heading">Quick Links</h4>
+            <ul class="footer-links">
+                <li><a href="/dashboard" data-navigate>Dashboard</a></li>
+                <li><a href="/attendance" data-navigate>Take Attendance</a></li>
+                <li><a href="/reports" data-navigate>Generate Reports</a></li>
+                <li><a href="/maintenance" data-navigate>Data Management</a></li>
+            </ul>
+        </div>
+        
+        <div class="footer-section">
+            <h4 class="footer-heading">Support</h4>
+            <ul class="footer-links">
+                <li><a href="#" id="help-guide">Help Guide</a></li>
+                <li><a href="#" id="faq-link">FAQ</a></li>
+                <li><a href="#" id="contact-support">Contact Support</a></li>
+                <li><a href="#" id="feedback-btn">Send Feedback</a></li>
+            </ul>
+        </div>
+        
+        <div class="footer-section">
+            <h4 class="footer-heading">System</h4>
+            <div class="system-info">
+                <div class="info-item">
+                    <span class="info-label">Storage:</span>
+                    <span class="info-value" id="storage-usage">0/500 MB</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Last Sync:</span>
+                    <span class="info-value" id="last-sync-time">Just now</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Status:</span>
+                    <span class="status-indicator online">
+                        <span class="status-dot"></span>
+                        Online
+                    </span>
+                </div>
+            </div>
+            <button class="btn btn-secondary btn-sm" id="clear-cache-btn">
+                <i class="icon-clear"></i>
+                Clear Cache
+            </button>
+        </div>
+    </div>
+    
+    <div class="footer-bottom">
+        <div class="copyright">
+            © <span id="current-year">2024</span> Attendance Track v2. All rights reserved.
+        </div>
+        <div class="footer-actions">
+            <button class="footer-action-btn" id="toggle-theme" title="Toggle theme">
+                <i class="icon-theme"></i>
+            </button>
+            <button class="footer-action-btn" id="print-btn" title="Print">
+                <i class="icon-print"></i>
+            </button>
+            <button class="footer-action-btn" id="fullscreen-btn" title="Toggle fullscreen">
+                <i class="icon-fullscreen"></i>
+            </button>
+        </div>
+    </div>
+</footer>
+
+<script>
+    // Set current year
+    document.getElementById('current-year').textContent = new Date().getFullYear();
+    
+    // Theme toggle
+    document.getElementById('toggle-theme').addEventListener('click', function() {
+        document.documentElement.classList.toggle('dark-theme');
+        localStorage.setItem('theme', document.documentElement.classList.contains('dark-theme') ? 'dark' : 'light');
+    });
+    
+    // Clear cache button
+    document.getElementById('clear-cache-btn').addEventListener('click', async function() {
+        if (confirm('Clear application cache? This will remove temporary data but preserve attendance records.')) {
+            try {
+                if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+                    navigator.serviceWorker.controller.postMessage({ type: 'CLEAR_CACHE' });
+                }
+                localStorage.removeItem('app_cache');
+                showNotification('Cache cleared successfully', 'success');
+            } catch (error) {
+                showNotification('Failed to clear cache', 'error');
+            }
+        }
+    });
+    
+    // Update storage usage
+    async function updateStorageUsage() {
+        if ('storage' in navigator && 'estimate' in navigator.storage) {
+            const estimate = await navigator.storage.estimate();
+            const usage = (estimate.usage / (1024 * 1024)).toFixed(2);
+            const quota = (estimate.quota / (1024 * 1024)).toFixed(2);
+            document.getElementById('storage-usage').textContent = `${usage}/${quota} MB`;
+        }
+    }
+    
+    // Initialize
+    updateStorageUsage();
+    
+    // Fullscreen toggle
+    document.getElementById('fullscreen-btn').addEventListener('click', function() {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen();
+        } else {
+            document.exitFullscreen();
+        }
+    });
+</script>
