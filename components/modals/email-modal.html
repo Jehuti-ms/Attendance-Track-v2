@@ -1,0 +1,702 @@
+<div class="modal-overlay" id="email-modal" data-component="email-modal" style="display: none;">
+    <div class="modal-container modal-lg">
+        <div class="modal-header">
+            <h3 class="modal-title">Send Report via Email</h3>
+            <button class="modal-close" id="email-modal-close">&times;</button>
+        </div>
+        
+        <div class="modal-body">
+            <form id="email-form" class="email-form">
+                <div class="form-section">
+                    <h4>Recipients</h4>
+                    <div class="recipients-input">
+                        <div class="email-tags" id="email-tags">
+                            <!-- Email tags will be added here -->
+                        </div>
+                        <input type="text" id="email-input" class="email-input" 
+                               placeholder="Enter email addresses (press Enter or comma to add)">
+                        <div class="input-hint">
+                            Separate multiple emails with commas or press Enter
+                        </div>
+                    </div>
+                    
+                    <div class="recipient-groups">
+                        <label class="checkbox">
+                            <input type="checkbox" id="include-admin">
+                            <span>Include Administrator</span>
+                        </label>
+                        <label class="checkbox">
+                            <input type="checkbox" id="include-managers">
+                            <span>Include Department Managers</span>
+                        </label>
+                        <label class="checkbox">
+                            <input type="checkbox" id="include-self">
+                            <span>Send copy to myself</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="form-section">
+                    <h4>Email Content</h4>
+                    <div class="form-group">
+                        <label for="email-subject-input">Subject *</label>
+                        <input type="text" id="email-subject-input" required 
+                               value="Attendance Report - {{date}}">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="email-message-input">Message *</label>
+                        <textarea id="email-message-input" rows="5" required>
+Dear Team,
+
+Please find attached the attendance report for the period {{dateFrom}} to {{dateTo}}.
+
+Key Highlights:
+• Total Records: {{totalRecords}}
+• Attendance Rate: {{attendanceRate}}%
+• Top Department: {{topDepartment}}
+
+For any questions or clarifications, please contact the HR department.
+
+Best regards,
+{{userName}}
+Attendance Track System
+                        </textarea>
+                        <div class="textarea-tools">
+                            <button type="button" class="btn-text" id="insert-template">
+                                <i class="icon-template"></i>
+                                Insert Template
+                            </button>
+                            <button type="button" class="btn-text" id="clear-message">
+                                <i class="icon-clear"></i>
+                                Clear
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-section">
+                    <h4>Attachments</h4>
+                    <div class="attachments-list" id="attachments-list">
+                        <div class="attachment-item">
+                            <i class="icon-pdf"></i>
+                            <div class="attachment-info">
+                                <span class="attachment-name">attendance_report.pdf</span>
+                                <span class="attachment-size">(2.4 MB)</span>
+                            </div>
+                            <button type="button" class="btn-icon btn-remove-attachment">
+                                <i class="icon-delete"></i>
+                            </button>
+                        </div>
+                        <div class="attachment-item">
+                            <i class="icon-excel"></i>
+                            <div class="attachment-info">
+                                <span class="attachment-name">detailed_data.xlsx</span>
+                                <span class="attachment-size">(1.1 MB)</span>
+                            </div>
+                            <button type="button" class="btn-icon btn-remove-attachment">
+                                <i class="icon-delete"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="attachment-options">
+                        <label class="checkbox">
+                            <input type="checkbox" id="include-pdf" checked>
+                            <span>Include PDF Report</span>
+                        </label>
+                        <label class="checkbox">
+                            <input type="checkbox" id="include-excel">
+                            <span>Include Excel Data</span>
+                        </label>
+                        <label class="checkbox">
+                            <input type="checkbox" id="include-summary">
+                            <span>Include Summary Text</span>
+                        </label>
+                    </div>
+                    
+                    <div class="attachment-upload">
+                        <button type="button" class="btn btn-secondary" id="add-attachment">
+                            <i class="icon-add"></i>
+                            Add Additional File
+                        </button>
+                        <input type="file" id="file-upload" multiple style="display: none;">
+                    </div>
+                </div>
+                
+                <div class="form-section">
+                    <h4>Delivery Options</h4>
+                    <div class="delivery-options-grid">
+                        <div class="option-card">
+                            <label class="radio">
+                                <input type="radio" name="delivery-time" value="now" checked>
+                                <span>Send Immediately</span>
+                            </label>
+                        </div>
+                        <div class="option-card">
+                            <label class="radio">
+                                <input type="radio" name="delivery-time" value="scheduled">
+                                <span>Schedule for Later</span>
+                            </label>
+                            <div class="schedule-input" id="schedule-input">
+                                <input type="datetime-local" id="schedule-datetime" 
+                                       min="{{minDate}}" value="{{defaultSchedule}}">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="priority-options">
+                        <label class="radio">
+                            <input type="radio" name="priority" value="normal" checked>
+                            <span>Normal Priority</span>
+                        </label>
+                        <label class="radio">
+                            <input type="radio" name="priority" value="high">
+                            <span>High Priority</span>
+                        </label>
+                    </div>
+                    
+                    <div class="confirmation-options">
+                        <label class="checkbox">
+                            <input type="checkbox" id="request-read-receipt">
+                            <span>Request read receipt</span>
+                        </label>
+                        <label class="checkbox">
+                            <input type="checkbox" id="save-sent-copy" checked>
+                            <span>Save copy in Sent folder</span>
+                        </label>
+                    </div>
+                </div>
+            </form>
+        </div>
+        
+        <div class="modal-footer">
+            <div class="footer-left">
+                <button class="btn btn-secondary" id="save-draft">
+                    <i class="icon-save"></i>
+                    Save as Draft
+                </button>
+                <button class="btn btn-secondary" id="test-email">
+                    <i class="icon-test"></i>
+                    Send Test
+                </button>
+            </div>
+            <div class="footer-right">
+                <button class="btn btn-secondary" id="cancel-email">
+                    Cancel
+                </button>
+                <button class="btn btn-primary" id="send-email" type="submit" form="email-form">
+                    <i class="icon-send"></i>
+                    Send Email
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Email Modal Component
+    class EmailModal {
+        constructor(options = {}) {
+            this.options = {
+                defaultRecipients: [],
+                defaultSubject: 'Attendance Report - {{date}}',
+                defaultMessage: '',
+                attachments: [],
+                ...options
+            };
+            
+            this.emails = new Set(this.options.defaultRecipients);
+            this.attachments = [...this.options.attachments];
+            this.isOpen = false;
+            
+            this.initializeElements();
+            this.bindEvents();
+            this.renderEmailTags();
+            this.renderAttachments();
+            this.toggleScheduleInput();
+        }
+        
+        initializeElements() {
+            this.elements = {
+                modal: document.getElementById('email-modal'),
+                closeBtn: document.getElementById('email-modal-close'),
+                emailInput: document.getElementById('email-input'),
+                emailTags: document.getElementById('email-tags'),
+                emailForm: document.getElementById('email-form'),
+                subjectInput: document.getElementById('email-subject-input'),
+                messageInput: document.getElementById('email-message-input'),
+                attachmentsList: document.getElementById('attachments-list'),
+                fileUpload: document.getElementById('file-upload'),
+                addAttachmentBtn: document.getElementById('add-attachment'),
+                deliveryTimeRadios: document.querySelectorAll('input[name="delivery-time"]'),
+                scheduleInput: document.getElementById('schedule-input'),
+                scheduleDatetime: document.getElementById('schedule-datetime'),
+                saveDraftBtn: document.getElementById('save-draft'),
+                testEmailBtn: document.getElementById('test-email'),
+                cancelBtn: document.getElementById('cancel-email'),
+                sendBtn: document.getElementById('send-email'),
+                insertTemplateBtn: document.getElementById('insert-template'),
+                clearMessageBtn: document.getElementById('clear-message')
+            };
+            
+            // Set minimum datetime for scheduling (current time + 5 minutes)
+            const now = new Date();
+            now.setMinutes(now.getMinutes() + 5);
+            this.elements.scheduleDatetime.min = now.toISOString().slice(0, 16);
+            
+            // Set default schedule time (current time + 30 minutes)
+            now.setMinutes(now.getMinutes() + 25);
+            this.elements.scheduleDatetime.value = now.toISOString().slice(0, 16);
+        }
+        
+        bindEvents() {
+            // Close modal
+            this.elements.closeBtn.addEventListener('click', () => this.close());
+            this.elements.cancelBtn.addEventListener('click', () => this.close());
+            
+            // Email input handling
+            this.elements.emailInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ',') {
+                    e.preventDefault();
+                    this.addEmail(this.elements.emailInput.value.trim());
+                    this.elements.emailInput.value = '';
+                }
+            });
+            
+            this.elements.emailInput.addEventListener('blur', () => {
+                const value = this.elements.emailInput.value.trim();
+                if (value) {
+                    this.addEmail(value);
+                    this.elements.emailInput.value = '';
+                }
+            });
+            
+            // Form submission
+            this.elements.emailForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                this.sendEmail();
+            });
+            
+            // Delivery time toggle
+            this.elements.deliveryTimeRadios.forEach(radio => {
+                radio.addEventListener('change', () => {
+                    this.toggleScheduleInput();
+                });
+            });
+            
+            // Attachment handling
+            this.elements.addAttachmentBtn.addEventListener('click', () => {
+                this.elements.fileUpload.click();
+            });
+            
+            this.elements.fileUpload.addEventListener('change', (e) => {
+                this.handleFileUpload(e.target.files);
+            });
+            
+            // Template and clear buttons
+            this.elements.insertTemplateBtn.addEventListener('click', () => {
+                this.insertTemplate();
+            });
+            
+            this.elements.clearMessageBtn.addEventListener('click', () => {
+                if (confirm('Clear the message?')) {
+                    this.elements.messageInput.value = '';
+                }
+            });
+            
+            // Save draft
+            this.elements.saveDraftBtn.addEventListener('click', () => {
+                this.saveDraft();
+            });
+            
+            // Test email
+            this.elements.testEmailBtn.addEventListener('click', () => {
+                this.sendTestEmail();
+            });
+            
+            // Close on overlay click
+            this.elements.modal.addEventListener('click', (e) => {
+                if (e.target === this.elements.modal) {
+                    this.close();
+                }
+            });
+            
+            // Escape key to close
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && this.isOpen) {
+                    this.close();
+                }
+            });
+        }
+        
+        open(options = {}) {
+            // Update options if provided
+            if (options.defaultRecipients) {
+                this.emails = new Set(options.defaultRecipients);
+                this.renderEmailTags();
+            }
+            
+            if (options.defaultSubject) {
+                this.elements.subjectInput.value = options.defaultSubject;
+            }
+            
+            if (options.defaultMessage) {
+                this.elements.messageInput.value = options.defaultMessage;
+            }
+            
+            if (options.attachments) {
+                this.attachments = [...options.attachments];
+                this.renderAttachments();
+            }
+            
+            // Show modal
+            this.elements.modal.style.display = 'block';
+            document.body.style.overflow = 'hidden';
+            this.isOpen = true;
+            
+            // Focus on first input
+            setTimeout(() => {
+                this.elements.emailInput.focus();
+            }, 100);
+        }
+        
+        close() {
+            if (this.emails.size > 0 || this.elements.subjectInput.value || 
+                this.elements.messageInput.value || this.attachments.length > 0) {
+                if (!confirm('You have unsaved changes. Close anyway?')) {
+                    return;
+                }
+            }
+            
+            this.elements.modal.style.display = 'none';
+            document.body.style.overflow = '';
+            this.isOpen = false;
+            this.resetForm();
+        }
+        
+        addEmail(email) {
+            if (!this.validateEmail(email)) {
+                this.showError('Please enter a valid email address');
+                return;
+            }
+            
+            this.emails.add(email.toLowerCase());
+            this.renderEmailTags();
+        }
+        
+        removeEmail(email) {
+            this.emails.delete(email);
+            this.renderEmailTags();
+        }
+        
+        renderEmailTags() {
+            const tags = Array.from(this.emails).map(email => `
+                <span class="email-tag">
+                    ${email}
+                    <button type="button" class="remove-tag" data-email="${email}">&times;</button>
+                </span>
+            `).join('');
+            
+            this.elements.emailTags.innerHTML = tags || 
+                '<span class="no-tags">No recipients added yet</span>';
+            
+            // Add event listeners to remove buttons
+            this.elements.emailTags.querySelectorAll('.remove-tag').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const email = e.target.dataset.email;
+                    this.removeEmail(email);
+                });
+            });
+        }
+        
+        handleFileUpload(files) {
+            for (let file of files) {
+                if (file.size > 10 * 1024 * 1024) { // 10MB limit
+                    this.showError(`File ${file.name} is too large (max 10MB)`);
+                    continue;
+                }
+                
+                this.attachments.push({
+                    name: file.name,
+                    size: file.size,
+                    type: file.type,
+                    file: file
+                });
+            }
+            
+            this.renderAttachments();
+            this.elements.fileUpload.value = ''; // Reset file input
+        }
+        
+        removeAttachment(index) {
+            this.attachments.splice(index, 1);
+            this.renderAttachments();
+        }
+        
+        renderAttachments() {
+            if (this.attachments.length === 0) {
+                this.elements.attachmentsList.innerHTML = 
+                    '<div class="no-attachments">No attachments</div>';
+                return;
+            }
+            
+            const items = this.attachments.map((attachment, index) => `
+                <div class="attachment-item">
+                    <i class="icon-${attachment.type.includes('pdf') ? 'pdf' : 
+                                     attachment.type.includes('excel') || attachment.type.includes('spreadsheet') ? 'excel' : 
+                                     attachment.type.includes('word') ? 'word' : 'file'}"></i>
+                    <div class="attachment-info">
+                        <span class="attachment-name">${this.escapeHtml(attachment.name)}</span>
+                        <span class="attachment-size">(${this.formatFileSize(attachment.size)})</span>
+                    </div>
+                    <button type="button" class="btn-icon btn-remove-attachment" data-index="${index}">
+                        <i class="icon-delete"></i>
+                    </button>
+                </div>
+            `).join('');
+            
+            this.elements.attachmentsList.innerHTML = items;
+            
+            // Add event listeners to remove buttons
+            this.elements.attachmentsList.querySelectorAll('.btn-remove-attachment').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const index = parseInt(e.target.closest('.btn-remove-attachment').dataset.index);
+                    this.removeAttachment(index);
+                });
+            });
+        }
+        
+        toggleScheduleInput() {
+            const scheduled = document.querySelector('input[name="delivery-time"]:checked').value === 'scheduled';
+            this.elements.scheduleInput.style.display = scheduled ? 'block' : 'none';
+        }
+        
+        insertTemplate() {
+            const templates = [
+                'Standard Report',
+                'Executive Summary',
+                'Detailed Analysis',
+                'Monthly Review'
+            ];
+            
+            const template = prompt(`Select template:\n${templates.map((t, i) => `${i + 1}. ${t}`).join('\n')}`);
+            
+            if (template) {
+                const index = parseInt(template) - 1;
+                if (index >= 0 && index < templates.length) {
+                    const templateMessages = {
+                        0: `Dear Team,\n\nPlease find attached the requested attendance report.\n\nBest regards,\n{{userName}}`,
+                        1: `To: Executive Team\n\nAttached is the executive summary of attendance data for your review.\n\nKey metrics and insights are highlighted in the report.\n\nRegards,\n{{userName}}`,
+                        2: `Dear Department Head,\n\nDetailed attendance analysis for your department is attached.\n\nPlease review and provide feedback if needed.\n\nSincerely,\n{{userName}}`,
+                        3: `Monthly Attendance Report\n\nPlease find the monthly attendance report attached.\n\nSummary:\n- Total Attendance: {{total}}\n- Average Rate: {{rate}}%\n- Highlights: {{highlights}}\n\nBest regards,\n{{userName}}`
+                    };
+                    
+                    this.elements.messageInput.value = templateMessages[index] || '';
+                }
+            }
+        }
+        
+        async sendEmail() {
+            // Validate form
+            if (this.emails.size === 0) {
+                this.showError('Please add at least one recipient');
+                return;
+            }
+            
+            if (!this.elements.subjectInput.value.trim()) {
+                this.showError('Please enter a subject');
+                return;
+            }
+            
+            if (!this.elements.messageInput.value.trim()) {
+                this.showError('Please enter a message');
+                return;
+            }
+            
+            // Collect form data
+            const formData = {
+                recipients: Array.from(this.emails),
+                subject: this.elements.subjectInput.value,
+                message: this.elements.messageInput.value,
+                attachments: this.attachments.map(a => a.name),
+                deliveryTime: document.querySelector('input[name="delivery-time"]:checked').value,
+                scheduleDatetime: this.elements.scheduleDatetime.value,
+                priority: document.querySelector('input[name="priority"]:checked').value,
+                options: {
+                    includeAdmin: document.getElementById('include-admin').checked,
+                    includeManagers: document.getElementById('include-managers').checked,
+                    includeSelf: document.getElementById('include-self').checked,
+                    includePdf: document.getElementById('include-pdf').checked,
+                    includeExcel: document.getElementById('include-excel').checked,
+                    includeSummary: document.getElementById('include-summary').checked,
+                    readReceipt: document.getElementById('request-read-receipt').checked,
+                    saveCopy: document.getElementById('save-sent-copy').checked
+                }
+            };
+            
+            // Show sending state
+            this.setSendingState(true);
+            
+            try {
+                // In a real app, this would make an API call
+                // For now, simulate sending
+                await this.simulateEmailSending(formData);
+                
+                this.showSuccess('Email sent successfully!');
+                setTimeout(() => {
+                    this.close();
+                    if (typeof this.options.onSuccess === 'function') {
+                        this.options.onSuccess(formData);
+                    }
+                }, 1500);
+                
+            } catch (error) {
+                this.showError('Failed to send email: ' + error.message);
+            } finally {
+                this.setSendingState(false);
+            }
+        }
+        
+        async sendTestEmail() {
+            const testEmail = prompt('Enter test email address:');
+            if (!testEmail || !this.validateEmail(testEmail)) {
+                this.showError('Please enter a valid email address');
+                return;
+            }
+            
+            this.setSendingState(true, 'Sending test email...');
+            
+            try {
+                await this.simulateEmailSending({
+                    recipients: [testEmail],
+                    subject: 'TEST: ' + this.elements.subjectInput.value,
+                    message: 'This is a test email.\n\n' + this.elements.messageInput.value,
+                    attachments: []
+                });
+                
+                this.showSuccess('Test email sent successfully!');
+            } catch (error) {
+                this.showError('Failed to send test email');
+            } finally {
+                this.setSendingState(false);
+            }
+        }
+        
+        saveDraft() {
+            const draft = {
+                recipients: Array.from(this.emails),
+                subject: this.elements.subjectInput.value,
+                message: this.elements.messageInput.value,
+                attachments: this.attachments,
+                timestamp: new Date().toISOString()
+            };
+            
+            const drafts = JSON.parse(localStorage.getItem('emailDrafts') || '[]');
+            drafts.push(draft);
+            localStorage.setItem('emailDrafts', JSON.stringify(drafts));
+            
+            this.showSuccess('Draft saved successfully');
+        }
+        
+        simulateEmailSending(formData) {
+            return new Promise((resolve, reject) => {
+                setTimeout(() => {
+                    // Simulate random success/failure
+                    if (Math.random() > 0.1) { // 90% success rate
+                        console.log('Email sent:', formData);
+                        resolve(formData);
+                    } else {
+                        reject(new Error('Network error'));
+                    }
+                }, 2000);
+            });
+        }
+        
+        setSendingState(isSending, text = 'Sending...') {
+            this.elements.sendBtn.disabled = isSending;
+            this.elements.sendBtn.innerHTML = isSending ? 
+                `<i class="icon-spinner"></i> ${text}` : 
+                `<i class="icon-send"></i> Send Email`;
+            
+            // Disable other buttons while sending
+            [this.elements.saveDraftBtn, this.elements.testEmailBtn, 
+             this.elements.cancelBtn].forEach(btn => {
+                btn.disabled = isSending;
+            });
+        }
+        
+        resetForm() {
+            this.emails.clear();
+            this.attachments = [];
+            this.elements.emailInput.value = '';
+            this.elements.subjectInput.value = this.options.defaultSubject;
+            this.elements.messageInput.value = this.options.defaultMessage || '';
+            this.renderEmailTags();
+            this.renderAttachments();
+            
+            // Reset checkboxes and radios to defaults
+            document.getElementById('include-admin').checked = false;
+            document.getElementById('include-managers').checked = false;
+            document.getElementById('include-self').checked = true;
+            document.getElementById('include-pdf').checked = true;
+            document.getElementById('include-excel').checked = false;
+            document.getElementById('include-summary').checked = true;
+            document.getElementById('request-read-receipt').checked = false;
+            document.getElementById('save-sent-copy').checked = true;
+            document.querySelector('input[name="delivery-time"][value="now"]').checked = true;
+            document.querySelector('input[name="priority"][value="normal"]').checked = true;
+            
+            this.toggleScheduleInput();
+        }
+        
+        // Utility methods
+        validateEmail(email) {
+            const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return re.test(email);
+        }
+        
+        formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+        
+        escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        showError(message) {
+            // Implement error notification
+            console.error('Error:', message);
+            alert(message);
+        }
+        
+        showSuccess(message) {
+            // Implement success notification
+            console.log('Success:', message);
+            alert(message);
+        }
+    }
+    
+    // Initialize when modal is present
+    document.addEventListener('DOMContentLoaded', () => {
+        if (document.getElementById('email-modal')) {
+            window.emailModal = new EmailModal();
+            
+            // Expose open method globally
+            window.openEmailModal = (options) => {
+                window.emailModal.open(options);
+            };
+            
+            // Close method
+            window.closeEmailModal = () => {
+                window.emailModal.close();
+            };
+        }
+    });
+</script>
