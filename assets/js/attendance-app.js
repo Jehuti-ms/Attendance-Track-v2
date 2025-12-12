@@ -93,4 +93,70 @@ class AttendanceApp {
             }
             
             // Logout
-            if (e.target.m
+            if (e.target.matches('#logout-btn')) {
+                this.modules.auth.logout();
+            }
+        });
+    }
+
+    toggleTheme() {
+        const currentTheme = document.documentElement.getAttribute('data-theme');
+        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        
+        document.documentElement.setAttribute('data-theme', newTheme);
+        Storage.set('gams_theme', newTheme);
+        
+        const themeToggle = document.querySelector('.theme-toggle');
+        if (themeToggle) {
+            themeToggle.textContent = newTheme === 'dark' ? '☀️' : '🌙';
+        }
+    }
+
+    async navigateTo(pageName) {
+        try {
+            // Update navigation state
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('data-page') === pageName) {
+                    link.classList.add('active');
+                }
+            });
+
+            // Update state
+            this.state.currentPage = pageName;
+            
+            // Load page content
+            await Utils.loadComponent(`pages/${pageName}.html`, 'app-container');
+            
+            // Initialize page module
+            if (this.modules[pageName]) {
+                await this.modules[pageName].init();
+            }
+        } catch (error) {
+            console.error(`Error navigating to ${pageName}:`, error);
+            Utils.showToast(`Error loading page: ${error.message}`, 'error');
+        }
+    }
+
+    // State management
+    updateState(key, value) {
+        this.state[key] = value;
+        Storage.set(`gams_${key}`, value);
+    }
+
+    // Shared methods for modules
+    showToast(message, type = 'info') {
+        Utils.showToast(message, type);
+    }
+
+    async syncDataFromSheets() {
+        // Implementation moved to SettingsModule
+        return await this.modules.settings.syncDataFromSheets();
+    }
+
+    async saveToSheets(dataType, data) {
+        // Implementation moved to respective modules
+    }
+}
+
+export default AttendanceApp;
