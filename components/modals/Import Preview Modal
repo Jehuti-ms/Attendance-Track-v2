@@ -1,0 +1,401 @@
+import React, { useState } from 'react';
+import { X, AlertCircle, CheckCircle, ChevronRight, Download, FileSpreadsheet, Filter } from 'lucide-react';
+
+// Types
+interface ImportRecord {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  company: string;
+  department: string;
+  status: 'valid' | 'warning' | 'error';
+  issues?: string[];
+}
+
+interface ImportSummary {
+  totalRecords: number;
+  validRecords: number;
+  warningRecords: number;
+  errorRecords: number;
+  duplicates: number;
+  newRecords: number;
+  existingUpdates: number;
+}
+
+interface ImportPreviewModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirmImport: (selectedRecords: ImportRecord[]) => void;
+  fileName: string;
+  fileSize: string;
+  importDate: string;
+}
+
+const ImportPreviewModal: React.FC<ImportPreviewModalProps> = ({
+  isOpen,
+  onClose,
+  onConfirmImport,
+  fileName,
+  fileSize,
+  importDate
+}) => {
+  const [selectedRecords, setSelectedRecords] = useState<Set<string>>(new Set());
+  const [filter, setFilter] = useState<'all' | 'valid' | 'warning' | 'error'>('all');
+  const [showDuplicates, setShowDuplicates] = useState(true);
+  const [autoFix, setAutoFix] = useState(false);
+  const [mappingConfirmed, setMappingConfirmed] = useState(false);
+
+  // Mock data for import preview
+  const [importRecords, setImportRecords] = useState<ImportRecord[]>([
+    { id: '1', firstName: 'John', lastName: 'Doe', email: 'john@example.com', company: 'Tech Corp', department: 'Engineering', status: 'valid' },
+    { id: '2', firstName: 'Jane', lastName: 'Smith', email: 'jane@example.com', company: 'Design Studio', department: 'Creative', status: 'warning', issues: ['Department not in system'] },
+    { id: '3', firstName: 'Robert', lastName: 'Johnson', email: 'robert@example.com', company: 'Marketing Inc', department: 'Sales', status: 'valid' },
+    { id: '4', firstName: '', lastName: 'Williams', email: 'invalid-email', company: 'Finance LLC', department: 'Accounting', status: 'error', issues: ['Missing first name', 'Invalid email format'] },
+    { id: '5', firstName: 'Michael', lastName: 'Brown', email: 'michael@example.com', company: 'Tech Corp', department: 'IT', status: 'valid' },
+    { id: '6', firstName: 'Sarah', lastName: 'Davis', email: 'sarah@example.com', company: 'Healthcare Plus', department: 'Medical', status: 'warning', issues: ['Company not found in directory'] },
+    { id: '7', firstName: 'David', lastName: 'Wilson', email: 'david@example.com', company: 'Consulting Group', department: 'Strategy', status: 'valid' },
+    { id: '8', firstName: 'Emily', lastName: 'Taylor', email: 'emily@example.com', company: 'Retail Chain', department: 'Operations', status: 'error', issues: ['Duplicate email detected'] },
+  ]);
+
+  const [importSummary, setImportSummary] = useState<ImportSummary>({
+    totalRecords: 150,
+    validRecords: 120,
+    warningRecords: 20,
+    errorRecords: 10,
+    duplicates: 5,
+    newRecords: 95,
+    existingUpdates: 55
+  });
+
+  // Column mapping configuration
+  const [columnMapping, setColumnMapping] = useState([
+    { fileColumn: 'First Name', systemField: 'firstName', status: 'matched' },
+    { fileColumn: 'Last Name', systemField: 'lastName', status: 'matched' },
+    { fileColumn: 'Email Address', systemField: 'email', status: 'matched' },
+    { fileColumn: 'Company Name', systemField: 'company', status: 'matched' },
+    { fileColumn: 'Dept', systemField: 'department', status: 'warning', note: 'Abbreviation detected' },
+    { fileColumn: 'Phone', systemField: 'unmapped', status: 'unmapped' },
+  ]);
+
+  const filteredRecords = importRecords.filter(record => {
+    if (filter === 'all') return true;
+    return record.status === filter;
+  });
+
+  const handleSelectAll = () => {
+    if (selectedRecords.size === filteredRecords.length) {
+      setSelectedRecords(new Set());
+    } else {
+      const allIds = new Set(filteredRecords.map(record => record.id));
+      setSelectedRecords(allIds);
+    }
+  };
+
+  const handleRecordSelect = (id: string) => {
+    const newSelected = new Set(selectedRecords);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedRecords(newSelected);
+  };
+
+  const handleFixIssue = (recordId: string, issue: string) => {
+    // Mock fix implementation
+    setImportRecords(prev => prev.map(record => {
+      if (record.id === recordId) {
+        const updatedIssues = record.issues?.filter(i => i !== issue);
+        const newStatus = updatedIssues?.length === 0 ? 'valid' : 
+                         updatedIssues?.some(i => i.includes('Invalid')) ? 'error' : 'warning';
+        return {
+          ...record,
+          issues: updatedIssues,
+          status: newStatus
+        };
+      }
+      return record;
+    }));
+  };
+
+  const handleApplyAutoFix = () => {
+    // Mock auto-fix implementation
+    setImportRecords(prev => prev.map(record => ({
+      ...record,
+      status: 'valid',
+      issues: []
+    })));
+    setAutoFix(true);
+  };
+
+  const handleConfirmImport = () => {
+    const recordsToImport = importRecords.filter(record => selectedRecords.has(record.id));
+    onConfirmImport(recordsToImport);
+    onClose();
+  };
+
+  const getStatusIcon = (status: ImportRecord['status']) => {
+    switch (status) {
+      case 'valid': return <CheckCircle className="w-4 h-4 text-green-500" />;
+      case 'warning': return <AlertCircle className="w-4 h-4 text-yellow-500" />;
+      case 'error': return <AlertCircle className="w-4 h-4 text-red-500" />;
+    }
+  };
+
+  const getStatusColor = (status: ImportRecord['status']) => {
+    switch (status) {
+      case 'valid': return 'bg-green-100 text-green-800';
+      case 'warning': return 'bg-yellow-100 text-yellow-800';
+      case 'error': return 'bg-red-100 text-red-800';
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-6xl max-h-[90vh] overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 border-b">
+          <div className="flex items-center space-x-3">
+            <FileSpreadsheet className="w-6 h-6 text-blue-600" />
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900">Import Preview</h2>
+              <p className="text-sm text-gray-500">
+                {fileName} • {fileSize} • Imported {importDate}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+          >
+            <X className="w-5 h-5 text-gray-500" />
+          </button>
+        </div>
+
+        {/* Main Content */}
+        <div className="flex flex-col h-[calc(90vh-8rem)]">
+          {/* Summary Bar */}
+          <div className="grid grid-cols-7 gap-4 p-4 bg-blue-50 border-b">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-gray-900">{importSummary.totalRecords}</div>
+              <div className="text-sm text-gray-600">Total Records</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-green-600">{importSummary.validRecords}</div>
+              <div className="text-sm text-gray-600">Valid</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-yellow-600">{importSummary.warningRecords}</div>
+              <div className="text-sm text-gray-600">Warnings</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-red-600">{importSummary.errorRecords}</div>
+              <div className="text-sm text-gray-600">Errors</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-purple-600">{importSummary.duplicates}</div>
+              <div className="text-sm text-gray-600">Duplicates</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-indigo-600">{importSummary.newRecords}</div>
+              <div className="text-sm text-gray-600">New Records</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-teal-600">{importSummary.existingUpdates}</div>
+              <div className="text-sm text-gray-600">Updates</div>
+            </div>
+          </div>
+
+          <div className="flex flex-1 overflow-hidden">
+            {/* Left Panel - Column Mapping */}
+            <div className="w-1/3 border-r p-4 overflow-y-auto">
+              <h3 className="font-medium text-gray-900 mb-4">Column Mapping</h3>
+              <div className="space-y-3">
+                {columnMapping.map((column, index) => (
+                  <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded">
+                    <div>
+                      <div className="font-medium text-gray-900">{column.fileColumn}</div>
+                      <div className={`text-sm ${column.status === 'matched' ? 'text-green-600' : 'text-gray-500'}`}>
+                        → {column.systemField}
+                      </div>
+                    </div>
+                    <span className={`px-2 py-1 rounded text-xs ${column.status === 'matched' ? 'bg-green-100 text-green-800' : column.status === 'warning' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800'}`}>
+                      {column.status}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              
+              <div className="mt-6">
+                <label className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    checked={mappingConfirmed}
+                    onChange={(e) => setMappingConfirmed(e.target.checked)}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="text-sm text-gray-700">Confirm column mapping is correct</span>
+                </label>
+              </div>
+
+              <div className="mt-6 p-4 bg-yellow-50 rounded">
+                <h4 className="font-medium text-gray-900 mb-2">Import Options</h4>
+                <div className="space-y-2">
+                  <label className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      checked={showDuplicates}
+                      onChange={(e) => setShowDuplicates(e.target.checked)}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <span className="text-sm text-gray-700">Show duplicate detection</span>
+                  </label>
+                  <label className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      checked={autoFix}
+                      onChange={(e) => setAutoFix(e.target.checked)}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <span className="text-sm text-gray-700">Auto-fix common issues</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Panel - Record Preview */}
+            <div className="flex-1 overflow-hidden flex flex-col">
+              {/* Filters */}
+              <div className="p-4 border-b flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Filter className="w-4 h-4 text-gray-400" />
+                  <select
+                    value={filter}
+                    onChange={(e) => setFilter(e.target.value as any)}
+                    className="border rounded px-3 py-1 text-sm"
+                  >
+                    <option value="all">All Records</option>
+                    <option value="valid">Valid Only</option>
+                    <option value="warning">Warnings Only</option>
+                    <option value="error">Errors Only</option>
+                  </select>
+                  <button
+                    onClick={handleApplyAutoFix}
+                    className="px-3 py-1 bg-blue-100 text-blue-700 rounded text-sm hover:bg-blue-200"
+                  >
+                    Apply Auto-fix
+                  </button>
+                </div>
+                <div className="text-sm text-gray-600">
+                  {selectedRecords.size} of {filteredRecords.length} selected
+                </div>
+              </div>
+
+              {/* Records Table */}
+              <div className="flex-1 overflow-y-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50 sticky top-0">
+                    <tr>
+                      <th className="p-3">
+                        <input
+                          type="checkbox"
+                          checked={selectedRecords.size === filteredRecords.length && filteredRecords.length > 0}
+                          onChange={handleSelectAll}
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                      </th>
+                      <th className="text-left p-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                      <th className="text-left p-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                      <th className="text-left p-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                      <th className="text-left p-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Company</th>
+                      <th className="text-left p-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
+                      <th className="text-left p-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Issues</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {filteredRecords.map((record) => (
+                      <tr key={record.id} className="hover:bg-gray-50">
+                        <td className="p-3">
+                          <input
+                            type="checkbox"
+                            checked={selectedRecords.has(record.id)}
+                            onChange={() => handleRecordSelect(record.id)}
+                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                          />
+                        </td>
+                        <td className="p-3">
+                          {getStatusIcon(record.status)}
+                        </td>
+                        <td className="p-3">
+                          <div className="font-medium text-gray-900">
+                            {record.firstName} {record.lastName}
+                          </div>
+                        </td>
+                        <td className="p-3 text-sm text-gray-900">{record.email}</td>
+                        <td className="p-3 text-sm text-gray-900">{record.company}</td>
+                        <td className="p-3 text-sm text-gray-900">{record.department}</td>
+                        <td className="p-3">
+                          {record.issues && record.issues.length > 0 ? (
+                            <div className="space-y-1">
+                              {record.issues.map((issue, idx) => (
+                                <div key={idx} className="flex items-center justify-between">
+                                  <span className="text-xs text-red-600">{issue}</span>
+                                  <button
+                                    onClick={() => handleFixIssue(record.id, issue)}
+                                    className="text-xs text-blue-600 hover:text-blue-800"
+                                  >
+                                    Fix
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="text-xs text-green-600">No issues</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-between p-6 border-t">
+          <div className="flex items-center space-x-2">
+            <button className="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-50 flex items-center space-x-2">
+              <Download className="w-4 h-4" />
+              <span>Export Issues</span>
+            </button>
+            <button className="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-50">
+              Save Mapping
+            </button>
+          </div>
+          <div className="flex items-center space-x-3">
+            <button
+              onClick={onClose}
+              className="px-6 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleConfirmImport}
+              disabled={selectedRecords.size === 0 || !mappingConfirmed}
+              className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+            >
+              <span>Import Selected ({selectedRecords.size})</span>
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default ImportPreviewModal;
