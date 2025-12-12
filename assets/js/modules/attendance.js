@@ -676,4 +676,22 @@ export class AttendanceModule {
     }
 }
 
+// Alternative: Pass app instance as parameter
+export function initializeAttendance(appInstance) {
+    if (!appInstance) {
+        // Try to get it from global scope as fallback
+        appInstance = window.app || window.appRouter?.app;
+    }
+    
+    if (appInstance) {
+        console.log('Initializing attendance module with app:', appInstance);
+        const attendanceModule = new AttendanceModule(appInstance);
+        attendanceModule.init();
+        return attendanceModule;
+    } else {
+        console.error('Attendance module requires an app instance');
+        return null;
+    }
+}
+
 export default AttendanceModule;
