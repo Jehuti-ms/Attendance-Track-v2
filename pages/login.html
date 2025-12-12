@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Attendance Track v2</title>
+    <link rel="stylesheet" href="../assets/css/main.css">
+    <link rel="stylesheet" href="../assets/css/components.css">
+    <link rel="stylesheet" href="../assets/css/theme.css">
+</head>
+<body class="auth-page">
+    <div id="app-container">
+        <!-- Header will be dynamically loaded -->
+        <main class="auth-container">
+            <div class="login-card">
+                <div class="app-logo">
+                    <img src="../assets/icons/icon.svg" alt="Attendance Track">
+                    <h1>Attendance Track v2</h1>
+                </div>
+                
+                <form id="login-form" class="auth-form">
+                    <div class="form-group">
+                        <label for="username">Username</label>
+                        <input type="text" id="username" name="username" required 
+                               placeholder="Enter your username">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <input type="password" id="password" name="password" required 
+                               placeholder="Enter your password">
+                    </div>
+                    
+                    <div class="form-options">
+                        <label class="checkbox">
+                            <input type="checkbox" id="remember-me">
+                            <span>Remember me</span>
+                        </label>
+                        <a href="#" class="forgot-password">Forgot password?</a>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary btn-block">Login</button>
+                </form>
+                
+                <div class="auth-footer">
+                    <p>Need help? <a href="#" class="support-link">Contact Support</a></p>
+                </div>
+            </div>
+        </main>
+        
+        <!-- Footer will be dynamically loaded -->
+    </div>
+    
+    <script type="module" src="../assets/js/modules/auth.js"></script>
+    <script type="module" src="../assets/js/main.js"></script>
+</body>
+</html>
