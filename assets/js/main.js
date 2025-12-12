@@ -277,3 +277,223 @@ window.debugApp = () => {
         state: window.app?.state
     };
 };
+
+// assets/js/main.js
+
+import { initializeAuth } from './modules/auth.js';
+import { initializeDashboard } from './modules/dashboard.js';
+import { initializeAttendance } from './modules/attendance.js';
+import { initializeReports } from './modules/reports.js';
+import { initializeSettings } from './modules/settings.js';
+import { loadComponent } from './modules/utils.js';
+
+class AppRouter {
+    constructor() {
+        this.routes = {
+            '/': 'pages/dashboard.html',
+            '/login': 'pages/login.html',
+            '/dashboard': 'pages/dashboard.html',
+            '/attendance': 'pages/attendance.html',
+            '/reports': 'pages/reports.html',
+            '/maintenance': 'pages/maintenance.html',
+            '/settings': 'pages/settings.html',
+            '/setup': 'pages/setup.html'
+        };
+        
+        this.currentPath = window.location.pathname;
+        this.init();
+    }
+    
+    init() {
+        // Load header and footer components
+        this.loadCommonComponents();
+        
+        // Handle navigation
+        this.setupNavigation();
+        
+        // Handle browser back/forward
+        window.addEventListener('popstate', () => this.handleRoute());
+        
+        // Initial route
+        this.handleRoute();
+    }
+    
+    async loadCommonComponents() {
+        try {
+            // Load header
+            const header = await loadComponent('components/header.html');
+            document.querySelector('header[data-component="header"]')?.replaceWith(header);
+            
+            // Load footer
+            const footer = await loadComponent('components/footer.html');
+            document.querySelector('footer[data-component="footer"]')?.replaceWith(footer);
+            
+            // Initialize header navigation events
+            this.setupHeaderEvents();
+        } catch (error) {
+            console.warn('Could not load common components:', error);
+        }
+    }
+    
+    setupNavigation() {
+        // Handle internal link clicks
+        document.addEventListener('click', (e) => {
+            const link = e.target.closest('a[data-navigate]');
+            if (link) {
+                e.preventDefault();
+                const path = link.getAttribute('href');
+                this.navigateTo(path);
+            }
+        });
+    }
+    
+    setupHeaderEvents() {
+        // Add event listeners for header navigation items
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const path = e.target.getAttribute('href');
+                this.navigateTo(path);
+            });
+        });
+        
+        // Handle logout button
+        const logoutBtn = document.getElementById('logout-btn');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                const auth = await import('./modules/auth.js');
+                await auth.logout();
+                this.navigateTo('/login');
+            });
+        }
+    }
+    
+    async navigateTo(path) {
+        if (this.routes[path]) {
+            // Update browser history
+            window.history.pushState({}, '', path);
+            
+            // Handle the route change
+            await this.handleRoute();
+            
+            // Update active nav item
+            this.updateActiveNav(path);
+        }
+    }
+    
+    async handleRoute() {
+        const path = window.location.pathname;
+        const route = this.routes[path] || this.routes['/'];
+        
+        try {
+            // Load the page content
+            const response = await fetch(route);
+            if (!response.ok) throw new Error('Page not found');
+            
+            const html = await response.text();
+            
+            // Parse the HTML and extract main content
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const mainContent = doc.querySelector('main');
+            
+            if (mainContent) {
+                // Replace main content
+                const currentMain = document.querySelector('main');
+                if (currentMain) {
+                    currentMain.replaceWith(mainContent);
+                } else {
+                    document.querySelector('#app-container').appendChild(mainContent);
+                }
+                
+                // Initialize module based on route
+                await this.initializeModule(path);
+                
+                // Update document title
+                const pageTitle = doc.querySelector('title')?.textContent || 'Attendance Track v2';
+                document.title = pageTitle;
+            }
+        } catch (error) {
+            console.error('Route loading error:', error);
+            this.navigateTo('/'); // Fallback to dashboard
+        }
+    }
+    
+    async initializeModule(path) {
+        // Check authentication for protected routes
+        const protectedRoutes = ['/', '/dashboard', '/attendance', '/reports', '/settings', '/maintenance'];
+        
+        if (protectedRoutes.includes(path)) {
+            const auth = await import('./modules/auth.js');
+            const isAuthenticated = await auth.checkAuth();
+            
+            if (!isAuthenticated) {
+                this.navigateTo('/login');
+                return;
+            }
+        }
+        
+        // Initialize specific module based on route
+        switch (path) {
+            case '/login':
+                initializeAuth();
+                break;
+            case '/':
+            case '/dashboard':
+                initializeDashboard();
+                break;
+            case '/attendance':
+                initializeAttendance();
+                break;
+            case '/reports':
+                initializeReports();
+                break;
+            case '/settings':
+                initializeSettings();
+                break;
+            case '/setup':
+                const { initializeSetup } = await import('./modules/setup.js');
+                initializeSetup();
+                break;
+            case '/maintenance':
+                const { initializeMaintenance } = await import('./modules/maintenance.js');
+                initializeMaintenance();
+                break;
+        }
+    }
+    
+    updateActiveNav(path) {
+        document.querySelectorAll('.nav-link').forEach(link => {
+            const linkPath = link.getAttribute('href');
+            if (linkPath === path) {
+                link.classList.add('active');
+            } else {
+                link.classList.remove('active');
+            }
+        });
+    }
+}
+
+// Initialize the app when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    // Check if app is running in a supported environment
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('../service-worker.js')
+                .then(registration => {
+                    console.log('ServiceWorker registration successful');
+                })
+                .catch(err => {
+                    console.log('ServiceWorker registration failed: ', err);
+                });
+        });
+    }
+    
+    // Initialize router
+    const router = new AppRouter();
+    window.appRouter = router; // Make accessible globally if needed
+});
+
+// Export for module usage if needed
+export { AppRouter };
