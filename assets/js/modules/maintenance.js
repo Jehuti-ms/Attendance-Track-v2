@@ -1,1015 +1,1924 @@
+// attendance-track-v2/assets/js/modules/maintenance.js - HYBRID VERSION
 import { Utils, Storage } from './utils.js';
 
 export class MaintenanceModule {
     constructor(app) {
         this.app = app;
+        this.terms = [];
+        this.settings = {};
+        this.backupHistory = [];
+        this.initialize();
     }
 
-    async init() {
-        await this.loadMaintenancePage();
+    async initialize() {
+        await this.loadTerms();
+        await this.loadSettings();
+        await this.loadBackupHistory();
         this.setupEventListeners();
+        this.updateBackupStatus();
+        this.setupAutoBackup();
+    }
+
+    async loadTerms() {
+        this.terms = await Storage.get('attendance_terms') || [
+            { id: 'term1', name: 'Term 1', startDate: '2024-01-15', endDate: '2024-04-05', weeks: 12, active: true },
+            { id: 'term2', name: 'Term 2', startDate: '2024-04-22', endDate: '2024-07-05', weeks: 11, active: true },
+            { id: 'term3', name: 'Term 3', startDate: '2024-07-22', endDate: '2024-10-04', weeks: 11, active: true }
+        ];
         this.renderTerms();
     }
 
-    async loadMaintenancePage() {
-        // Page is loaded via navigation, just ensure containers exist
+    async loadSettings() {
+        this.settings = await Storage.get('app_settings') || {
+            schoolName: 'Greenwood Academy',
+            syncEnabled: true,
+            autoBackup: true,
+            backupInterval: 7,
+            emailNotifications: true,
+            attendanceThreshold: 75,
+            lowAttendanceAlert: true,
+            dataRetention: 365 // days
+        };
+        this.renderSettings();
+    }
+
+    async loadBackupHistory() {
+        this.backupHistory = await Storage.get('backup_history') || [];
     }
 
     setupEventListeners() {
+        // Terms management
         document.addEventListener('click', (e) => {
             if (e.target.matches('#add-term-btn')) {
                 this.addTerm();
             } else if (e.target.matches('#save-terms-btn')) {
                 this.saveTerms();
+            } else if (e.target.matches('.delete-term-btn')) {
+                this.deleteTerm(e.target.closest('.term-card'));
             } else if (e.target.matches('#reset-terms-btn')) {
                 this.resetTerms();
-            } else if (e.target.matches('#export-data-btn')) {
-                this.exportAllData();
-            } else if (e.target.matches('#import-data-btn')) {
-                document.getElementById('import-file-input').click();
-            } else if (e.target.matches('#clear-attendance-data-btn')) {
-                this.clearAttendanceData();
-            } else if (e.target.matches('.remove-term')) {
-                this.removeTerm(e.target.closest('.term-input-group'));
+            } else if (e.target.matches('#validate-terms-btn')) {
+                this.validateTerms();
             }
         });
 
-        // File import handler
-        const fileInput = document.getElementById('import-file-input');
-        if (fileInput) {
-            fileInput.addEventListener('change', (e) => this.importData(e));
+        // Settings management
+        document.addEventListener('click', (e) => {
+            if (e.target.matches('#save-settings-btn')) {
+                this.saveSettings();
+            } else if (e.target.matches('#reset-settings-btn')) {
+                this.resetSettings();
+            } else if (e.target.matches('#compact-database-btn')) {
+                this.compactDatabase();
+            }
+        });
+
+        // Data management
+        document.addEventListener('click', (e) => {
+            if (e.target.matches('#export-data-btn')) {
+                this.exportAllData();
+            } else if (e.target.matches('#import-data-btn')) {
+                document.getElementById('import-file').click();
+            } else if (e.target.matches('#clear-old-data-btn')) {
+                this.cleanupOldData();
+            } else if (e.target.matches('#validate-data-btn')) {
+                this.validateData();
+            } else if (e.target.matches('#backup-now-btn')) {
+                this.createBackup();
+            } else if (e.target.matches('#system-report-btn')) {
+                this.generateSystemReport();
+            } else if (e.target.matches('#restore-backup-btn')) {
+                this.showBackupRestore();
+            }
+        });
+
+        // File import
+        const importFile = document.getElementById('import-file');
+        if (importFile) {
+            importFile.addEventListener('change', (e) => this.handleImportFile(e));
+        }
+
+        // Real-time validation
+        document.addEventListener('input', (e) => {
+            if (e.target.matches('.term-name, .term-start, .term-end, .term-weeks')) {
+                this.validateTermInput(e.target);
+            }
+        });
+
+        // Initialize tooltips
+        if (typeof bootstrap !== 'undefined') {
+            const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
         }
     }
 
+    setupAutoBackup() {
+        // Check if backup is due
+        if (this.settings.autoBackup) {
+            const lastBackup = this.backupHistory[0]?.timestamp;
+            if (lastBackup) {
+                const lastBackupDate = new Date(lastBackup);
+                const now = new Date();
+                const daysDiff = Math.floor((now - lastBackupDate) / (1000 * 60 * 60 * 24));
+                
+                if (daysDiff >= this.settings.backupInterval) {
+                    console.log('Auto-backup triggered');
+                    this.createBackup();
+                }
+            } else {
+                // No backup yet, create one
+                this.createBackup();
+            }
+        }
+    }
+
+    // ========== TERMS MANAGEMENT ==========
     renderTerms() {
         const container = document.getElementById('terms-container');
         if (!container) return;
 
-        let html = '';
-        
-        this.app.state.terms.forEach((term, index) => {
-            html += `
-                <div class="term-input-group">
-                    <input type="text" class="form-control term-name" 
-                           value="${term.name}" placeholder="Term Name" required>
-                    <input type="date" class="form-control term-start" 
-                           value="${term.startDate}" required>
-                    <input type="date" class="form-control term-end" 
-                           value="${term.endDate}" required>
-                    <input type="number" class="form-control term-weeks" 
-                           value="${term.weeks}" min="1" max="20" required>
-                    <label class="term-active-label">
-                        <input type="checkbox" class="term-active" ${term.isActive ? 'checked' : ''}>
-                        Active
-                    </label>
-                    <button type="button" class="btn btn-danger remove-term">
-                        <i class="fas fa-times"></i>
-                    </button>
+        if (this.terms.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-calendar-times"></i>
+                    <p>No terms configured. Add your first term to get started.</p>
                 </div>
             `;
+            return;
+        }
+
+        container.innerHTML = this.terms.map(term => `
+            <div class="term-card ${term.active ? 'active-term' : ''}" data-term-id="${term.id}">
+                <div class="term-header">
+                    <div class="term-title">
+                        <h4>${term.name}</h4>
+                        ${term.active ? '<span class="badge bg-success">Active</span>' : ''}
+                    </div>
+                    <div class="term-dates">
+                        <small>${Utils.formatDate(term.startDate)} - ${Utils.formatDate(term.endDate)}</small>
+                    </div>
+                </div>
+                <div class="term-stats">
+                    <div class="stat-item">
+                        <i class="fas fa-clock"></i>
+                        <span>${term.weeks} weeks</span>
+                    </div>
+                    <div class="stat-item">
+                        <i class="fas fa-chart-bar"></i>
+                        <span>${this.getTermAttendanceCount(term.id)} records</span>
+                    </div>
+                    <div class="stat-item">
+                        <i class="fas fa-percentage"></i>
+                        <span>${this.getTermAverageAttendance(term.id)}% avg</span>
+                    </div>
+                </div>
+                <div class="term-actions">
+                    <button class="btn btn-sm btn-outline-primary set-active-btn" 
+                            ${term.active ? 'disabled' : ''}
+                            data-bs-toggle="tooltip" title="Set as active term">
+                        <i class="fas fa-star"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-secondary edit-term-btn"
+                            data-bs-toggle="tooltip" title="Edit term">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger delete-term-btn"
+                            data-bs-toggle="tooltip" title="Delete term">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+        `).join('');
+
+        // Add event listeners for new buttons
+        container.querySelectorAll('.set-active-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const termCard = e.target.closest('.term-card');
+                this.setActiveTerm(termCard.dataset.termId);
+            });
         });
 
-        container.innerHTML = html;
+        container.querySelectorAll('.edit-term-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const termCard = e.target.closest('.term-card');
+                this.editTerm(termCard.dataset.termId);
+            });
+        });
+    }
+
+    getTermAttendanceCount(termId) {
+        const attendance = Storage.get('attendance_records') || [];
+        return attendance.filter(record => record.termId === termId).length;
+    }
+
+    getTermAverageAttendance(termId) {
+        const attendance = Storage.get('attendance_records') || [];
+        const termRecords = attendance.filter(record => record.termId === termId);
+        
+        if (termRecords.length === 0) return 0;
+        
+        const totalPresent = termRecords.reduce((sum, record) => sum + (record.present || 0), 0);
+        const totalStudents = termRecords.reduce((sum, record) => {
+            const classData = this.getClassById(record.classId);
+            return sum + (classData?.studentCount || 0);
+        }, 0);
+        
+        return totalStudents > 0 ? Math.round((totalPresent / totalStudents) * 100) : 0;
+    }
+
+    getClassById(classId) {
+        const classes = Storage.get('classes') || [];
+        return classes.find(cls => cls.id === classId);
     }
 
     addTerm() {
-        const container = document.getElementById('terms-container');
-        const termNumber = container.querySelectorAll('.term-input-group').length + 1;
-        
-        const html = `
-            <div class="term-input-group">
-                <input type="text" class="form-control term-name" 
-                       value="Term ${termNumber}" placeholder="Term Name" required>
-                <input type="date" class="form-control term-start" required>
-                <input type="date" class="form-control term-end" required>
-                <input type="number" class="form-control term-weeks" 
-                       value="14" min="1" max="20" required>
-                <label class="term-active-label">
-                    <input type="checkbox" class="term-active" checked>
-                    Active
-                </label>
-                <button type="button" class="btn btn-danger remove-term">
-                    <i class="fas fa-times"></i>
-                </button>
+        const modalContent = `
+            <div class="modal-form">
+                <form id="add-term-form">
+                    <div class="form-group">
+                        <label for="term-name">Term Name *</label>
+                        <input type="text" id="term-name" class="form-control" 
+                               placeholder="e.g., Term 1 2024" required>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="term-start">Start Date *</label>
+                                <input type="date" id="term-start" class="form-control" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="term-end">End Date *</label>
+                                <input type="date" id="term-end" class="form-control" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="term-weeks">Number of Weeks *</label>
+                        <input type="number" id="term-weeks" class="form-control" 
+                               min="1" max="20" value="12" required>
+                        <small class="form-text text-muted">Typically 10-14 weeks per term</small>
+                    </div>
+                    
+                    <div class="form-check">
+                        <input type="checkbox" id="term-active" class="form-check-input">
+                        <label class="form-check-label" for="term-active">
+                            Set as active term (only one term can be active at a time)
+                        </label>
+                    </div>
+                    
+                    <div class="form-group mt-3">
+                        <label for="term-description">Description (Optional)</label>
+                        <textarea id="term-description" class="form-control" rows="2"
+                                  placeholder="Add notes about this term..."></textarea>
+                    </div>
+                </form>
             </div>
         `;
 
-        container.insertAdjacentHTML('beforeend', html);
-    }
-
-    removeTerm(termGroup) {
-        if (confirm('Remove this term?')) {
-            termGroup.remove();
-        }
-    }
-
-    async saveTerms() {
-        const termInputs = document.querySelectorAll('#terms-container .term-input-group');
-        const newTerms = [];
-        
-        termInputs.forEach((input, index) => {
-            const name = input.querySelector('.term-name').value.trim();
-            const startDate = input.querySelector('.term-start').value;
-            const endDate = input.querySelector('.term-end').value;
-            const weeks = parseInt(input.querySelector('.term-weeks').value);
-            const isActive = input.querySelector('.term-active').checked;
-            
-            if (name && startDate && endDate && weeks) {
-                newTerms.push({
-                    id: `term${index + 1}`,
-                    name: name,
-                    startDate: startDate,
-                    endDate: endDate,
-                    weeks: weeks,
-                    isActive: isActive,
-                    updatedAt: new Date().toISOString()
+        Utils.showModal(modalContent, {
+            title: 'Add New Term',
+            size: 'modal-lg',
+            buttons: [
+                { text: 'Cancel', class: 'btn-secondary', action: 'cancel' },
+                { text: 'Add Term', class: 'btn-primary', action: 'submit' }
+            ],
+            onShow: (modal) => {
+                // Set default dates
+                const today = new Date();
+                const startDate = modal.querySelector('#term-start');
+                const endDate = modal.querySelector('#term-end');
+                
+                startDate.value = Utils.formatDate(today, 'YYYY-MM-DD');
+                today.setDate(today.getDate() + 84); // 12 weeks later
+                endDate.value = Utils.formatDate(today, 'YYYY-MM-DD');
+                
+                // Form submission
+                modal.querySelector('[data-action="submit"]').addEventListener('click', () => {
+                    if (this.saveNewTerm(modal)) {
+                        modal.remove();
+                    }
                 });
             }
         });
-        
-        if (newTerms.length === 0) {
-            this.app.showToast('Please add at least one term', 'error');
-            return;
-        }
-        
-        // Update app state
-        this.app.state.terms = newTerms;
-        Storage.set('gams_terms', newTerms);
-        
-        // Try to save to Google Sheets if online
-        if (this.app.state.isOnline) {
-            try {
-                await this.saveToGoogleSheets(newTerms);
-                this.app.showToast('Terms saved to Google Sheets!', 'success');
-            } catch (error) {
-                this.app.showToast(`Terms saved locally (${error.message})`, 'warning');
-            }
-        } else {
-            this.app.showToast('Terms saved successfully!', 'success');
-        }
-        
-        // Update dashboard if needed
-        if (this.app.modules.dashboard) {
-            this.app.modules.dashboard.updateWeekOptions();
-        }
     }
 
-    async saveToGoogleSheets(terms) {
-        if (!this.app.state.isOnline || !this.app.state.settings.webAppUrl) {
+    saveNewTerm(modal) {
+        const form = modal.querySelector('#add-term-form');
+        if (!form.checkValidity()) {
+            form.reportValidity();
             return false;
         }
+
+        const termName = modal.querySelector('#term-name').value.trim();
+        const startDate = modal.querySelector('#term-start').value;
+        const endDate = modal.querySelector('#term-end').value;
+        const weeks = parseInt(modal.querySelector('#term-weeks').value);
+        const active = modal.querySelector('#term-active').checked;
+        const description = modal.querySelector('#term-description')?.value.trim() || '';
+
+        // Validation
+        if (new Date(endDate) <= new Date(startDate)) {
+            Utils.showAlert('End date must be after start date', 'error');
+            return false;
+        }
+
+        // Check for overlapping terms
+        if (this.hasOverlappingTerm(startDate, endDate)) {
+            Utils.showAlert('This term overlaps with an existing term', 'error');
+            return false;
+        }
+
+        const newTerm = {
+            id: `term_${Date.now()}`,
+            name: termName,
+            startDate: startDate,
+            endDate: endDate,
+            weeks: weeks,
+            active: active,
+            description: description,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        };
+
+        this.terms.push(newTerm);
         
-        try {
-            const url = new URL(this.app.state.settings.webAppUrl);
-            url.searchParams.append('action', 'saveTerms');
-            url.searchParams.append('terms', JSON.stringify(terms));
+        // If this term is set as active, deactivate others
+        if (active) {
+            this.deactivateOtherTerms(newTerm.id);
+        }
+
+        Storage.set('attendance_terms', this.terms);
+        this.renderTerms();
+        
+        Utils.showAlert('Term added successfully', 'success');
+        this.app.emitEvent('terms:updated', { terms: this.terms });
+        
+        return true;
+    }
+
+    hasOverlappingTerm(startDate, endDate) {
+        const newStart = new Date(startDate);
+        const newEnd = new Date(endDate);
+        
+        return this.terms.some(term => {
+            const termStart = new Date(term.startDate);
+            const termEnd = new Date(term.endDate);
             
-            const response = await fetch(url.toString(), {
-                method: 'GET',
-                redirect: 'follow',
-                mode: 'cors'
+            return (newStart <= termEnd && newEnd >= termStart);
+        });
+    }
+
+    deactivateOtherTerms(activeTermId) {
+        this.terms.forEach(term => {
+            if (term.id !== activeTermId) {
+                term.active = false;
+            }
+        });
+    }
+
+    setActiveTerm(termId) {
+        this.terms.forEach(term => {
+            term.active = (term.id === termId);
+        });
+        
+        Storage.set('attendance_terms', this.terms);
+        this.renderTerms();
+        
+        Utils.showAlert('Active term updated', 'success');
+        this.app.emitEvent('terms:updated', { terms: this.terms });
+    }
+
+    editTerm(termId) {
+        const term = this.terms.find(t => t.id === termId);
+        if (!term) return;
+
+        const modalContent = `
+            <div class="modal-form">
+                <form id="edit-term-form">
+                    <div class="form-group">
+                        <label for="edit-term-name">Term Name *</label>
+                        <input type="text" id="edit-term-name" class="form-control" 
+                               value="${term.name}" required>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="edit-term-start">Start Date *</label>
+                                <input type="date" id="edit-term-start" class="form-control" 
+                                       value="${term.startDate}" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="edit-term-end">End Date *</label>
+                                <input type="date" id="edit-term-end" class="form-control" 
+                                       value="${term.endDate}" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="edit-term-weeks">Number of Weeks *</label>
+                        <input type="number" id="edit-term-weeks" class="form-control" 
+                               value="${term.weeks}" min="1" max="20" required>
+                    </div>
+                    
+                    <div class="form-check">
+                        <input type="checkbox" id="edit-term-active" class="form-check-input" 
+                               ${term.active ? 'checked' : ''}>
+                        <label class="form-check-label" for="edit-term-active">
+                            Set as active term
+                        </label>
+                    </div>
+                    
+                    <div class="form-group mt-3">
+                        <label for="edit-term-description">Description</label>
+                        <textarea id="edit-term-description" class="form-control" rows="2">${term.description || ''}</textarea>
+                    </div>
+                </form>
+            </div>
+        `;
+
+        Utils.showModal(modalContent, {
+            title: 'Edit Term',
+            size: 'modal-lg',
+            buttons: [
+                { text: 'Cancel', class: 'btn-secondary', action: 'cancel' },
+                { text: 'Save Changes', class: 'btn-primary', action: 'submit' }
+            ],
+            onShow: (modal) => {
+                modal.querySelector('[data-action="submit"]').addEventListener('click', () => {
+                    if (this.updateTerm(termId, modal)) {
+                        modal.remove();
+                    }
+                });
+            }
+        });
+    }
+
+    updateTerm(termId, modal) {
+        const term = this.terms.find(t => t.id === termId);
+        if (!term) return false;
+
+        const form = modal.querySelector('#edit-term-form');
+        if (!form.checkValidity()) {
+            form.reportValidity();
+            return false;
+        }
+
+        term.name = modal.querySelector('#edit-term-name').value.trim();
+        term.startDate = modal.querySelector('#edit-term-start').value;
+        term.endDate = modal.querySelector('#edit-term-end').value;
+        term.weeks = parseInt(modal.querySelector('#edit-term-weeks').value);
+        term.active = modal.querySelector('#edit-term-active').checked;
+        term.description = modal.querySelector('#edit-term-description')?.value.trim() || '';
+        term.updatedAt = new Date().toISOString();
+
+        // Validation
+        if (new Date(term.endDate) <= new Date(term.startDate)) {
+            Utils.showAlert('End date must be after start date', 'error');
+            return false;
+        }
+
+        // Check for overlapping terms (excluding current term)
+        const overlapping = this.terms.some(t => {
+            if (t.id === termId) return false;
+            const tStart = new Date(t.startDate);
+            const tEnd = new Date(t.endDate);
+            const newStart = new Date(term.startDate);
+            const newEnd = new Date(term.endDate);
+            return (newStart <= tEnd && newEnd >= tStart);
+        });
+
+        if (overlapping) {
+            Utils.showAlert('This term overlaps with another term', 'error');
+            return false;
+        }
+
+        // If this term is set as active, deactivate others
+        if (term.active) {
+            this.deactivateOtherTerms(termId);
+        }
+
+        Storage.set('attendance_terms', this.terms);
+        this.renderTerms();
+        
+        Utils.showAlert('Term updated successfully', 'success');
+        this.app.emitEvent('terms:updated', { terms: this.terms });
+        
+        return true;
+    }
+
+    deleteTerm(termCard) {
+        const termId = termCard.dataset.termId;
+        const term = this.terms.find(t => t.id === termId);
+        
+        if (!term) return;
+
+        Utils.showConfirm(
+            `Delete "${term.name}"?`,
+            'This will remove the term from the system. Associated attendance records will not be deleted but will no longer be linked to a term.',
+            'Delete Term',
+            'Cancel'
+        ).then((confirmed) => {
+            if (confirmed) {
+                this.terms = this.terms.filter(t => t.id !== termId);
+                Storage.set('attendance_terms', this.terms);
+                this.renderTerms();
+                
+                Utils.showAlert('Term deleted successfully', 'success');
+                this.app.emitEvent('terms:updated', { terms: this.terms });
+            }
+        });
+    }
+
+    validateTerms() {
+        const issues = [];
+        
+        this.terms.forEach((term, index) => {
+            const termIssues = [];
+            
+            if (!term.name?.trim()) {
+                termIssues.push('Missing term name');
+            }
+            
+            if (!term.startDate) {
+                termIssues.push('Missing start date');
+            }
+            
+            if (!term.endDate) {
+                termIssues.push('Missing end date');
+            } else if (new Date(term.endDate) <= new Date(term.startDate)) {
+                termIssues.push('End date must be after start date');
+            }
+            
+            if (!term.weeks || term.weeks < 1 || term.weeks > 20) {
+                termIssues.push('Invalid number of weeks (1-20)');
+            }
+            
+            // Check for overlapping terms
+            const overlappingTerm = this.terms.find((t, i) => {
+                if (i === index) return false;
+                const tStart = new Date(t.startDate);
+                const tEnd = new Date(t.endDate);
+                const termStart = new Date(term.startDate);
+                const termEnd = new Date(term.endDate);
+                return (termStart <= tEnd && termEnd >= tStart);
             });
             
-            if (!response.ok) {
-                throw new Error(`HTTP error: ${response.status}`);
+            if (overlappingTerm) {
+                termIssues.push(`Overlaps with "${overlappingTerm.name}"`);
             }
             
-            const data = await response.json();
-            
-            if (!data.success) {
-                throw new Error(data.error || 'Failed to save terms');
+            if (termIssues.length > 0) {
+                issues.push({
+                    term: term.name,
+                    issues: termIssues
+                });
             }
-            
-            return data;
-        } catch (error) {
-            console.error('Google Sheets save error:', error);
-            throw error;
+        });
+
+        if (issues.length === 0) {
+            Utils.showAlert('All terms are valid!', 'success');
+        } else {
+            this.showValidationResults('Terms Validation', issues);
         }
     }
 
-    resetTerms() {
-        if (confirm('Reset terms to default values?')) {
-            const defaultTerms = [
-                { id: 'term1', name: 'Term 1', startDate: '2024-09-08', endDate: '2024-12-15', weeks: 14, isActive: true },
-                { id: 'term2', name: 'Term 2', startDate: '2025-01-08', endDate: '2025-04-15', weeks: 14, isActive: true },
-                { id: 'term3', name: 'Term 3', startDate: '2025-04-22', endDate: '2025-07-15', weeks: 12, isActive: true }
-            ];
-            
-            this.app.state.terms = defaultTerms;
-            Storage.set('gams_terms', defaultTerms);
-            this.renderTerms();
-            
-            this.app.showToast('Terms reset to default values', 'warning');
+    // ========== SETTINGS MANAGEMENT ==========
+    renderSettings() {
+        const container = document.getElementById('settings-container');
+        if (!container) return;
+
+        container.innerHTML = `
+            <div class="settings-card">
+                <h4><i class="fas fa-school"></i> School Information</h4>
+                <div class="form-group">
+                    <label for="school-name">School Name</label>
+                    <input type="text" id="school-name" class="form-control" 
+                           value="${this.settings.schoolName || ''}" placeholder="Enter school name">
+                </div>
+                <div class="form-group">
+                    <label for="school-code">School Code</label>
+                    <input type="text" id="school-code" class="form-control" 
+                           value="${this.settings.schoolCode || ''}" placeholder="Optional">
+                </div>
+            </div>
+
+            <div class="settings-card">
+                <h4><i class="fas fa-sync"></i> Sync & Backup</h4>
+                <div class="form-check mb-2">
+                    <input type="checkbox" id="sync-enabled" class="form-check-input" 
+                           ${this.settings.syncEnabled ? 'checked' : ''}>
+                    <label class="form-check-label" for="sync-enabled">
+                        Enable cloud sync
+                    </label>
+                </div>
+                
+                <div class="form-check mb-2">
+                    <input type="checkbox" id="auto-backup" class="form-check-input" 
+                           ${this.settings.autoBackup ? 'checked' : ''}>
+                    <label class="form-check-label" for="auto-backup">
+                        Automatic backups
+                    </label>
+                </div>
+                
+                <div class="form-group">
+                    <label for="backup-interval">Backup Interval (days)</label>
+                    <input type="number" id="backup-interval" class="form-control" 
+                           min="1" max="30" value="${this.settings.backupInterval || 7}"
+                           ${!this.settings.autoBackup ? 'disabled' : ''}>
+                </div>
+                
+                <div class="form-group">
+                    <label for="data-retention">Data Retention (days)</label>
+                    <input type="number" id="data-retention" class="form-control" 
+                           min="30" max="1095" value="${this.settings.dataRetention || 365}">
+                    <small class="form-text text-muted">How long to keep attendance records (1-3 years)</small>
+                </div>
+            </div>
+
+            <div class="settings-card">
+                <h4><i class="fas fa-bell"></i> Notifications</h4>
+                <div class="form-check mb-2">
+                    <input type="checkbox" id="email-notifications" class="form-check-input" 
+                           ${this.settings.emailNotifications ? 'checked' : ''}>
+                    <label class="form-check-label" for="email-notifications">
+                        Email notifications
+                    </label>
+                </div>
+                
+                <div class="form-check mb-2">
+                    <input type="checkbox" id="low-attendance-alert" class="form-check-input" 
+                           ${this.settings.lowAttendanceAlert ? 'checked' : ''}>
+                    <label class="form-check-label" for="low-attendance-alert">
+                        Low attendance alerts
+                    </label>
+                </div>
+                
+                <div class="form-group">
+                    <label for="attendance-threshold">Low Attendance Threshold (%)</label>
+                    <input type="number" id="attendance-threshold" class="form-control" 
+                           min="1" max="100" value="${this.settings.attendanceThreshold || 75}">
+                    <small class="form-text text-muted">Alert when attendance drops below this percentage</small>
+                </div>
+            </div>
+
+            <div class="settings-card">
+                <h4><i class="fas fa-chart-line"></i> Reporting</h4>
+                <div class="form-group">
+                    <label for="report-period">Default Report Period</label>
+                    <select id="report-period" class="form-control">
+                        <option value="week" ${this.settings.reportPeriod === 'week' ? 'selected' : ''}>Weekly</option>
+                        <option value="month" ${this.settings.reportPeriod === 'month' ? 'selected' : ''}>Monthly</option>
+                        <option value="term" ${this.settings.reportPeriod === 'term' ? 'selected' : ''}>Term</option>
+                        <option value="year" ${this.settings.reportPeriod === 'year' ? 'selected' : ''}>Yearly</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="default-export-format">Default Export Format</label>
+                    <select id="default-export-format" class="form-control">
+                        <option value="pdf" ${this.settings.exportFormat === 'pdf' ? 'selected' : ''}>PDF</option>
+                        <option value="excel" ${this.settings.exportFormat === 'excel' ? 'selected' : ''}>Excel</option>
+                        <option value="csv" ${this.settings.exportFormat === 'csv' ? 'selected' : ''}>CSV</option>
+                    </select>
+                </div>
+            </div>
+        `;
+
+        // Add event listeners for dependent fields
+        const autoBackup = container.querySelector('#auto-backup');
+        if (autoBackup) {
+            autoBackup.addEventListener('change', (e) => {
+                container.querySelector('#backup-interval').disabled = !e.target.checked;
+            });
         }
     }
 
-    exportAllData() {
-        const exportData = {
-            app: 'Attendance Track v2',
-            version: '2.0.0',
-            exportDate: new Date().toISOString(),
-            data: {
-                classes: this.app.state.classes,
-                attendanceRecords: this.app.state.attendanceRecords,
-                terms: this.app.state.terms,
-                cumulativeData: this.app.state.cumulativeData,
-                historicalAverages: this.app.state.historicalAverages,
-                settings: this.app.state.settings
-            },
-            metadata: {
-                totalClasses: this.app.state.classes.length,
-                totalRecords: this.app.state.attendanceRecords.length,
-                totalTerms: this.app.state.terms.length,
-                generatedBy: this.app.state.currentUser?.name || 'Unknown'
-            }
+    saveSettings() {
+        const newSettings = {
+            schoolName: document.getElementById('school-name')?.value || 'Greenwood Academy',
+            schoolCode: document.getElementById('school-code')?.value || '',
+            syncEnabled: document.getElementById('sync-enabled')?.checked || false,
+            autoBackup: document.getElementById('auto-backup')?.checked || false,
+            backupInterval: parseInt(document.getElementById('backup-interval')?.value) || 7,
+            dataRetention: parseInt(document.getElementById('data-retention')?.value) || 365,
+            emailNotifications: document.getElementById('email-notifications')?.checked || false,
+            lowAttendanceAlert: document.getElementById('low-attendance-alert')?.checked || false,
+            attendanceThreshold: parseInt(document.getElementById('attendance-threshold')?.value) || 75,
+            reportPeriod: document.getElementById('report-period')?.value || 'term',
+            exportFormat: document.getElementById('default-export-format')?.value || 'pdf',
+            updatedAt: new Date().toISOString()
         };
+
+        this.settings = newSettings;
+        Storage.set('app_settings', newSettings);
         
-        const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `attendance-backup-${Utils.formatDate(new Date())}.json`;
-        link.click();
-        URL.revokeObjectURL(url);
+        // Update auto-backup if enabled
+        if (newSettings.autoBackup) {
+            this.setupAutoBackup();
+        }
         
-        this.app.showToast('All data exported successfully', 'success');
+        Utils.showAlert('Settings saved successfully', 'success');
+        this.app.emitEvent('settings:updated', { settings: newSettings });
     }
 
-    importData(event) {
+    resetSettings() {
+        Utils.showConfirm(
+            'Reset All Settings?',
+            'This will restore all settings to their default values. Your data will not be affected.',
+            'Reset Settings',
+            'Cancel'
+        ).then((confirmed) => {
+            if (confirmed) {
+                this.settings = {
+                    schoolName: 'Greenwood Academy',
+                    syncEnabled: true,
+                    autoBackup: true,
+                    backupInterval: 7,
+                    dataRetention: 365,
+                    emailNotifications: true,
+                    lowAttendanceAlert: true,
+                    attendanceThreshold: 75,
+                    reportPeriod: 'term',
+                    exportFormat: 'pdf'
+                };
+                Storage.set('app_settings', this.settings);
+                this.renderSettings();
+                Utils.showAlert('Settings reset to default values', 'success');
+                this.app.emitEvent('settings:updated', { settings: this.settings });
+            }
+        });
+    }
+
+    // ========== DATA MANAGEMENT ==========
+    async exportAllData() {
+        try {
+            // Gather all data
+            const exportData = {
+                app: 'Attendance Track v2',
+                version: '2.0.0',
+                exportDate: new Date().toISOString(),
+                data: {
+                    classes: await Storage.get('classes') || [],
+                    attendance: await Storage.get('attendance_records') || [],
+                    terms: this.terms,
+                    settings: this.settings,
+                    students: await Storage.get('students') || [],
+                    teachers: await Storage.get('teachers') || [],
+                    cumulative: await Storage.get('cumulative_data') || {}
+                },
+                statistics: await this.generateStatistics(),
+                metadata: {
+                    totalClasses: (await Storage.get('classes') || []).length,
+                    totalAttendance: (await Storage.get('attendance_records') || []).length,
+                    totalStudents: (await Storage.get('students') || []).length,
+                    exportType: 'full_backup'
+                }
+            };
+
+            // Create and download file
+            const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `attendance_backup_${Utils.formatDate(new Date(), 'YYYY-MM-DD_HH-mm')}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            Utils.showAlert('Data exported successfully', 'success');
+            
+        } catch (error) {
+            console.error('Export error:', error);
+            Utils.showAlert('Failed to export data', 'error');
+        }
+    }
+
+    async generateStatistics() {
+        const classes = await Storage.get('classes') || [];
+        const attendance = await Storage.get('attendance_records') || [];
+        
+        return {
+            totalClasses: classes.length,
+            totalAttendanceRecords: attendance.length,
+            averageAttendance: this.calculateOverallAverage(attendance, classes),
+            recordsByMonth: this.getRecordsByMonth(attendance),
+            classesBySubject: this.groupClassesBySubject(classes),
+            classesByYear: this.groupClassesByYear(classes)
+        };
+    }
+
+    calculateOverallAverage(attendance, classes) {
+        if (attendance.length === 0) return 0;
+        
+        let totalPresent = 0;
+        let totalPossible = 0;
+        
+        attendance.forEach(record => {
+            totalPresent += record.present || 0;
+            const classData = classes.find(c => c.id === record.classId);
+            totalPossible += (classData?.studentCount || 0) * (record.session === 'Both' ? 2 : 1);
+        });
+        
+        return totalPossible > 0 ? Math.round((totalPresent / totalPossible) * 100) : 0;
+    }
+
+    getRecordsByMonth(attendance) {
+        const months = {};
+        attendance.forEach(record => {
+            if (record.date) {
+                const month = record.date.substring(0, 7); // YYYY-MM
+                months[month] = (months[month] || 0) + 1;
+            }
+        });
+        return months;
+    }
+
+    groupClassesBySubject(classes) {
+        const subjects = {};
+        classes.forEach(cls => {
+            const subject = cls.subject || 'Unknown';
+            subjects[subject] = (subjects[subject] || 0) + 1;
+        });
+        return subjects;
+    }
+
+    groupClassesByYear(classes) {
+        const years = {};
+        classes.forEach(cls => {
+            const year = cls.yearGroup || 'Unknown';
+            years[year] = (years[year] || 0) + 1;
+        });
+        return years;
+    }
+
+    handleImportFile(event) {
         const file = event.target.files[0];
         if (!file) return;
-        
+
+        // Check file size (max 10MB)
+        if (file.size > 10 * 1024 * 1024) {
+            Utils.showAlert('File size too large (max 10MB)', 'error');
+            return;
+        }
+
         const reader = new FileReader();
         
-        reader.onload = (e) => {
+        reader.onload = async (e) => {
             try {
                 const importedData = JSON.parse(e.target.result);
                 
-                // Validate the imported data structure
-                if (!importedData.data || typeof importedData.data !== 'object') {
-                    throw new Error('Invalid data format');
+                // Validate import file
+                if (!this.validateImportData(importedData)) {
+                    Utils.showAlert('Invalid import file format', 'error');
+                    return;
                 }
-                
-                // Ask for import options
-                this.showImportOptions(importedData.data);
+
+                // Show import preview
+                this.showImportPreview(importedData);
                 
             } catch (error) {
                 console.error('Import error:', error);
-                this.app.showToast('Failed to import data: Invalid file format', 'error');
+                Utils.showAlert('Failed to read import file. Please check the file format.', 'error');
             }
         };
         
         reader.onerror = () => {
-            this.app.showToast('Failed to read file', 'error');
+            Utils.showAlert('Failed to read file', 'error');
         };
         
         reader.readAsText(file);
+        
+        // Reset file input
+        event.target.value = '';
     }
 
-    showImportOptions(importedData) {
+    validateImportData(data) {
+        return data && 
+               data.app === 'Attendance Track v2' && 
+               data.data && 
+               typeof data.data === 'object';
+    }
+
+    showImportPreview(importedData) {
+        const stats = importedData.statistics || {};
+        
         const modalContent = `
-            <div class="import-options">
-                <h4>Import Data</h4>
-                <p>Select what to import from the backup file:</p>
-                
-                <div class="import-option">
-                    <label>
-                        <input type="checkbox" id="import-classes" checked>
-                        Classes (${importedData.classes?.length || 0} classes)
-                    </label>
+            <div class="import-preview">
+                <div class="preview-header">
+                    <h4><i class="fas fa-file-import"></i> Import Data Preview</h4>
+                    <div class="preview-meta">
+                        <small>Exported: ${Utils.formatDate(new Date(importedData.exportDate))}</small>
+                        <small>Version: ${importedData.version || 'Unknown'}</small>
+                    </div>
                 </div>
                 
-                <div class="import-option">
-                    <label>
-                        <input type="checkbox" id="import-attendance" checked>
-                        Attendance Records (${importedData.attendanceRecords?.length || 0} records)
-                    </label>
+                <div class="preview-stats">
+                    <div class="stat-grid">
+                        <div class="stat-card">
+                            <div class="stat-value">${stats.totalClasses || importedData.data.classes?.length || 0}</div>
+                            <div class="stat-label">Classes</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">${stats.totalAttendanceRecords || importedData.data.attendance?.length || 0}</div>
+                            <div class="stat-label">Records</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">${importedData.data.terms?.length || 0}</div>
+                            <div class="stat-label">Terms</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">${stats.averageAttendance || 0}%</div>
+                            <div class="stat-label">Avg Attendance</div>
+                        </div>
+                    </div>
                 </div>
                 
-                <div class="import-option">
-                    <label>
-                        <input type="checkbox" id="import-terms" checked>
-                        Terms (${importedData.terms?.length || 0} terms)
-                    </label>
+                <div class="import-options">
+                    <h5>Select Data to Import:</h5>
+                    
+                    <div class="option-group">
+                        <div class="form-check">
+                            <input type="checkbox" id="import-classes" class="form-check-input" checked>
+                            <label class="form-check-label" for="import-classes">
+                                <strong>Classes</strong> (${importedData.data.classes?.length || 0})
+                                <small class="d-block text-muted">Class lists and schedules</small>
+                            </label>
+                        </div>
+                        
+                        <div class="form-check">
+                            <input type="checkbox" id="import-attendance" class="form-check-input" checked>
+                            <label class="form-check-label" for="import-attendance">
+                                <strong>Attendance Records</strong> (${importedData.data.attendance?.length || 0})
+                                <small class="d-block text-muted">Historical attendance data</small>
+                            </label>
+                        </div>
+                        
+                        <div class="form-check">
+                            <input type="checkbox" id="import-terms" class="form-check-input" checked>
+                            <label class="form-check-label" for="import-terms">
+                                <strong>Terms</strong> (${importedData.data.terms?.length || 0})
+                                <small class="d-block text-muted">Academic terms and dates</small>
+                            </label>
+                        </div>
+                        
+                        <div class="form-check">
+                            <input type="checkbox" id="import-settings" class="form-check-input">
+                            <label class="form-check-label" for="import-settings">
+                                <strong>Settings</strong>
+                                <small class="d-block text-muted">Application configuration</small>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="import-mode mt-3">
+                        <label for="import-mode">Import Strategy:</label>
+                        <select id="import-mode" class="form-control">
+                            <option value="merge">Merge - Combine with existing data</option>
+                            <option value="replace">Replace - Overwrite existing data</option>
+                            <option value="append">Append - Only add new items</option>
+                            <option value="update">Update - Only update existing items</option>
+                        </select>
+                        <small class="form-text text-muted">
+                            <i class="fas fa-info-circle"></i> 
+                            <strong>Merge</strong> will combine data, updating existing items.<br>
+                            <strong>Replace</strong> will delete all current data first.<br>
+                            <strong>Append</strong> will only add items that don't already exist.<br>
+                            <strong>Update</strong> will only update items that already exist.
+                        </small>
+                    </div>
                 </div>
                 
-                <div class="import-option">
-                    <label>
-                        <input type="checkbox" id="import-settings">
-                        Settings
-                    </label>
-                </div>
-                
-                <div class="import-strategy">
-                    <label>Import Strategy:</label>
-                    <select id="import-strategy" class="form-control">
-                        <option value="merge">Merge with existing data</option>
-                        <option value="replace">Replace all data</option>
-                        <option value="add">Add only new items</option>
-                    </select>
-                </div>
-                
-                <div class="import-warning">
-                    <p><i class="fas fa-exclamation-triangle"></i> This action cannot be undone. Please backup your current data first.</p>
-                </div>
-                
-                <div class="import-actions">
-                    <button type="button" class="btn btn-secondary" id="cancel-import">Cancel</button>
-                    <button type="button" class="btn btn-primary" id="confirm-import">Import Selected Data</button>
+                <div class="import-warning alert alert-warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <strong>Important:</strong> Consider creating a backup before importing.
                 </div>
             </div>
         `;
 
-        const modal = Utils.showModal(modalContent, { title: 'Import Data Options' });
-        
-        modal.querySelector('#confirm-import').addEventListener('click', () => {
-            const strategy = modal.querySelector('#import-strategy').value;
-            const importClasses = modal.querySelector('#import-classes').checked;
-            const importAttendance = modal.querySelector('#import-attendance').checked;
-            const importTerms = modal.querySelector('#import-terms').checked;
-            const importSettings = modal.querySelector('#import-settings').checked;
-            
-            this.performImport(importedData, {
-                strategy,
-                importClasses,
-                importAttendance,
-                importTerms,
-                importSettings
-            });
-            
-            modal.remove();
-        });
-        
-        modal.querySelector('#cancel-import').addEventListener('click', () => {
-            modal.remove();
+        Utils.showModal(modalContent, {
+            title: 'Import Data',
+            size: 'modal-lg',
+            buttons: [
+                { text: 'Cancel', class: 'btn-secondary', action: 'cancel' },
+                { text: 'Preview Changes', class: 'btn-info', action: 'preview' },
+                { text: 'Start Import', class: 'btn-primary', action: 'import' }
+            ],
+            onShow: (modal) => {
+                modal.querySelector('[data-action="preview"]').addEventListener('click', () => {
+                    this.previewImportChanges(importedData, modal);
+                });
+                
+                modal.querySelector('[data-action="import"]').addEventListener('click', () => {
+                    this.executeImport(importedData, modal);
+                });
+                
+                modal.querySelector('[data-action="cancel"]').addEventListener('click', () => {
+                    modal.remove();
+                });
+            }
         });
     }
 
-    performImport(importedData, options) {
-        let importedCount = 0;
-        let skippedCount = 0;
-        let replacedCount = 0;
+    previewImportChanges(importedData, modal) {
+        const importMode = modal.querySelector('#import-mode').value;
+        const changes = this.calculateImportChanges(importedData, importMode);
         
-        // Import classes
-        if (options.importClasses && importedData.classes) {
-            switch (options.strategy) {
-                case 'replace':
-                    this.app.state.classes = importedData.classes;
-                    replacedCount += this.app.state.classes.length;
-                    break;
-                    
-                case 'merge':
-                    importedData.classes.forEach(importedClass => {
-                        const existingIndex = this.app.state.classes.findIndex(
-                            c => c.classCode === importedClass.classCode && 
-                                 c.yearGroup === importedClass.yearGroup
-                        );
-                        
-                        if (existingIndex >= 0) {
-                            this.app.state.classes[existingIndex] = importedClass;
-                            replacedCount++;
-                        } else {
-                            this.app.state.classes.push(importedClass);
-                            importedCount++;
-                        }
-                    });
-                    break;
-                    
-                case 'add':
-                    importedData.classes.forEach(importedClass => {
-                        const exists = this.app.state.classes.some(
-                            c => c.classCode === importedClass.classCode && 
-                                 c.yearGroup === importedClass.yearGroup
-                        );
-                        
-                        if (!exists) {
-                            this.app.state.classes.push(importedClass);
-                            importedCount++;
-                        } else {
-                            skippedCount++;
-                        }
-                    });
-                    break;
+        const previewContent = `
+            <div class="changes-preview">
+                <h5>Import Changes Preview</h5>
+                <div class="changes-summary">
+                    <div class="change-item ${changes.classes.added > 0 ? 'has-changes' : ''}">
+                        <span>Classes:</span>
+                        <span class="change-count">
+                            +${changes.classes.added} / ↑${changes.classes.updated} / -${changes.classes.removed}
+                        </span>
+                    </div>
+                    <div class="change-item ${changes.attendance.added > 0 ? 'has-changes' : ''}">
+                        <span>Attendance:</span>
+                        <span class="change-count">
+                            +${changes.attendance.added} / ↑${changes.attendance.updated} / -${changes.attendance.removed}
+                        </span>
+                    </div>
+                    <div class="change-item ${changes.terms.added > 0 ? 'has-changes' : ''}">
+                        <span>Terms:</span>
+                        <span class="change-count">
+                            +${changes.terms.added} / ↑${changes.terms.updated} / -${changes.terms.removed}
+                        </span>
+                    </div>
+                </div>
+                
+                ${importMode === 'replace' ? `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <strong>Warning:</strong> This will DELETE all existing data before importing!
+                    </div>
+                ` : ''}
+                
+                <div class="changes-details mt-3">
+                    <h6>Detailed Changes:</h6>
+                    <pre class="changes-json">${JSON.stringify(changes, null, 2)}</pre>
+                </div>
+            </div>
+        `;
+
+        Utils.showModal(previewContent, {
+            title: 'Import Changes Preview',
+            size: 'modal-lg',
+            buttons: [
+                { text: 'Back', class: 'btn-secondary', action: 'back' },
+                { text: 'Proceed with Import', class: 'btn-primary', action: 'proceed' }
+            ],
+            onShow: (previewModal) => {
+                previewModal.querySelector('[data-action="back"]').addEventListener('click', () => {
+                    previewModal.remove();
+                });
+                
+                previewModal.querySelector('[data-action="proceed"]').addEventListener('click', () => {
+                    previewModal.remove();
+                    this.executeImport(importedData, modal);
+                });
             }
-            
-            Storage.set('gams_classes', this.app.state.classes);
+        });
+    }
+
+    calculateImportChanges(importedData, importMode) {
+        const changes = {
+            classes: { added: 0, updated: 0, removed: 0 },
+            attendance: { added: 0, updated: 0, removed: 0 },
+            terms: { added: 0, updated: 0, removed: 0 }
+        };
+
+        const currentClasses = Storage.get('classes') || [];
+        const currentAttendance = Storage.get('attendance_records') || [];
+        const currentTerms = this.terms;
+
+        switch (importMode) {
+            case 'replace':
+                changes.classes.removed = currentClasses.length;
+                changes.classes.added = importedData.data.classes?.length || 0;
+                
+                changes.attendance.removed = currentAttendance.length;
+                changes.attendance.added = importedData.data.attendance?.length || 0;
+                
+                changes.terms.removed = currentTerms.length;
+                changes.terms.added = importedData.data.terms?.length || 0;
+                break;
+
+            case 'merge':
+                // Calculate class changes
+                importedData.data.classes?.forEach(impClass => {
+                    const existingIndex = currentClasses.findIndex(c => c.id === impClass.id);
+                    if (existingIndex >= 0) {
+                        changes.classes.updated++;
+                    } else {
+                        changes.classes.added++;
+                    }
+                });
+                break;
+
+            case 'append':
+                importedData.data.classes?.forEach(impClass => {
+                    if (!currentClasses.some(c => c.id === impClass.id)) {
+                        changes.classes.added++;
+                    }
+                });
+                break;
         }
-        
-        // Import attendance records
-        if (options.importAttendance && importedData.attendanceRecords) {
-            switch (options.strategy) {
-                case 'replace':
-                    this.app.state.attendanceRecords = importedData.attendanceRecords;
-                    replacedCount += this.app.state.attendanceRecords.length;
-                    break;
-                    
-                case 'merge':
-                    importedData.attendanceRecords.forEach(importedRecord => {
-                        const existingIndex = this.app.state.attendanceRecords.findIndex(
-                            r => r.date === importedRecord.date && 
-                                 r.session === importedRecord.session &&
-                                 r.classId === importedRecord.classId
-                        );
-                        
-                        if (existingIndex >= 0) {
-                            this.app.state.attendanceRecords[existingIndex] = importedRecord;
-                            replacedCount++;
-                        } else {
-                            this.app.state.attendanceRecords.push(importedRecord);
-                            importedCount++;
-                        }
-                    });
-                    break;
-                    
-                case 'add':
-                    importedData.attendanceRecords.forEach(importedRecord => {
-                        const exists = this.app.state.attendanceRecords.some(
-                            r => r.date === importedRecord.date && 
-                                 r.session === importedRecord.session &&
-                                 r.classId === importedRecord.classId
-                        );
-                        
-                        if (!exists) {
-                            this.app.state.attendanceRecords.push(importedRecord);
-                            importedCount++;
-                        } else {
-                            skippedCount++;
-                        }
-                    });
-                    break;
-            }
-            
-            Storage.set('gams_attendance', this.app.state.attendanceRecords);
-            
-            // Recalculate cumulative data
-            if (this.app.modules.attendance) {
-                this.app.modules.attendance.calculateCumulativeData();
-            }
-        }
-        
-        // Import terms
-        if (options.importTerms && importedData.terms) {
-            switch (options.strategy) {
-                case 'replace':
-                    this.app.state.terms = importedData.terms;
-                    replacedCount += this.app.state.terms.length;
-                    break;
-                    
-                case 'merge':
-                    importedData.terms.forEach(importedTerm => {
-                        const existingIndex = this.app.state.terms.findIndex(
-                            t => t.id === importedTerm.id
-                        );
-                        
-                        if (existingIndex >= 0) {
-                            this.app.state.terms[existingIndex] = importedTerm;
-                            replacedCount++;
-                        } else {
-                            this.app.state.terms.push(importedTerm);
-                            importedCount++;
-                        }
-                    });
-                    break;
-                    
-                case 'add':
-                    importedData.terms.forEach(importedTerm => {
-                        const exists = this.app.state.terms.some(t => t.id === importedTerm.id);
-                        
-                        if (!exists) {
-                            this.app.state.terms.push(importedTerm);
-                            importedCount++;
-                        } else {
-                            skippedCount++;
-                        }
-                    });
-                    break;
-            }
-            
-            Storage.set('gams_terms', this.app.state.terms);
-        }
-        
-        // Import settings
-        if (options.importSettings && importedData.settings) {
-            this.app.state.settings = { ...this.app.state.settings, ...importedData.settings };
-            Storage.set('gams_settings', this.app.state.settings);
-            importedCount++;
-        }
-        
-        // Import cumulative data
-        if (importedData.cumulativeData) {
-            this.app.state.cumulativeData = { 
-                ...this.app.state.cumulativeData, 
-                ...importedData.cumulativeData 
+
+        return changes;
+    }
+
+    async executeImport(importedData, modal) {
+        const importClasses = modal.querySelector('#import-classes').checked;
+        const importAttendance = modal.querySelector('#import-attendance').checked;
+        const importTerms = modal.querySelector('#import-terms').checked;
+        const importSettings = modal.querySelector('#import-settings').checked;
+        const importMode = modal.querySelector('#import-mode').value;
+
+        try {
+            // Create backup before import
+            await this.createBackup();
+
+            let results = {
+                imported: 0,
+                updated: 0,
+                skipped: 0,
+                errors: []
             };
-            Storage.set('gams_cumulative', this.app.state.cumulativeData);
+
+            // Import based on mode
+            switch (importMode) {
+                case 'replace':
+                    results = await this.importReplace(importedData, {
+                        importClasses, importAttendance, importTerms, importSettings
+                    });
+                    break;
+
+                case 'merge':
+                    results = await this.importMerge(importedData, {
+                        importClasses, importAttendance, importTerms, importSettings
+                    });
+                    break;
+
+                case 'append':
+                    results = await this.importAppend(importedData, {
+                        importClasses, importAttendance, importTerms, importSettings
+                    });
+                    break;
+
+                case 'update':
+                    results = await this.importUpdate(importedData, {
+                        importClasses, importAttendance, importTerms, importSettings
+                    });
+                    break;
+            }
+
+            modal.remove();
+            this.showImportResults(results);
+            
+        } catch (error) {
+            console.error('Import error:', error);
+            Utils.showAlert('Import failed: ' + error.message, 'error');
         }
-        
-        // Import historical averages
-        if (importedData.historicalAverages) {
-            this.app.state.historicalAverages = { 
-                ...this.app.state.historicalAverages, 
-                ...importedData.historicalAverages 
-            };
-            Storage.set('gams_averages', this.app.state.historicalAverages);
+    }
+
+    async importReplace(importedData, options) {
+        const results = { imported: 0, updated: 0, skipped: 0, errors: [] };
+
+        // Clear existing data first
+        if (options.importClasses) {
+            Storage.set('classes', []);
         }
-        
-        // Show import summary
-        const summary = [];
-        if (importedCount > 0) summary.push(`${importedCount} imported`);
-        if (replacedCount > 0) summary.push(`${replacedCount} replaced`);
-        if (skippedCount > 0) summary.push(`${skippedCount} skipped`);
-        
-        this.app.showToast(`Import completed: ${summary.join(', ')}`, 'success');
-        
-        // Refresh affected pages
-        if (options.importClasses && this.app.modules.setup) {
-            this.app.modules.setup.renderClasses();
+        if (options.importAttendance) {
+            Storage.set('attendance_records', []);
         }
-        
         if (options.importTerms) {
+            this.terms = [];
+        }
+
+        // Import new data
+        if (options.importClasses && importedData.data.classes) {
+            Storage.set('classes', importedData.data.classes);
+            results.imported += importedData.data.classes.length;
+        }
+
+        if (options.importAttendance && importedData.data.attendance) {
+            Storage.set('attendance_records', importedData.data.attendance);
+            results.imported += importedData.data.attendance.length;
+        }
+
+        if (options.importTerms && importedData.data.terms) {
+            this.terms = importedData.data.terms;
+            Storage.set('attendance_terms', this.terms);
+            results.imported += importedData.data.terms.length;
             this.renderTerms();
         }
-    }
 
-    clearAttendanceData() {
-        if (confirm('Are you sure you want to clear all attendance history? This action cannot be undone.')) {
-            this.app.state.attendanceRecords = [];
-            this.app.state.cumulativeData = {};
-            this.app.state.historicalAverages = {};
-            
-            Storage.set('gams_attendance', []);
-            Storage.set('gams_cumulative', {});
-            Storage.set('gams_averages', {});
-            
-            // Also clear daily attendance from localStorage
-            const today = Utils.formatDate(new Date());
-            Storage.remove(`gams_att_am_${today}`);
-            Storage.remove(`gams_att_pm_${today}`);
-            
-            this.app.showToast('Attendance history cleared', 'warning');
+        if (options.importSettings && importedData.data.settings) {
+            this.settings = { ...this.settings, ...importedData.data.settings };
+            Storage.set('app_settings', this.settings);
+            results.updated++;
+            this.renderSettings();
         }
+
+        return results;
     }
 
-    // Database maintenance functions
-    async compactDatabase() {
-        // Remove duplicate records
-        const uniqueRecords = [];
-        const seen = new Set();
+    async importMerge(importedData, options) {
+        const results = { imported: 0, updated: 0, skipped: 0, errors: [] };
+
+        if (options.importClasses && importedData.data.classes) {
+            const currentClasses = Storage.get('classes') || [];
+            const merged = this.mergeArrays(currentClasses, importedData.data.classes, 'id');
+            Storage.set('classes', merged);
+            results.imported = merged.length - currentClasses.length;
+            results.updated = currentClasses.length - results.imported;
+        }
+
+        if (options.importAttendance && importedData.data.attendance) {
+            const currentAttendance = Storage.get('attendance_records') || [];
+            const merged = this.mergeArrays(currentAttendance, importedData.data.attendance, 'id');
+            Storage.set('attendance_records', merged);
+            results.imported += merged.length - currentAttendance.length;
+            results.updated += currentAttendance.length - (merged.length - currentAttendance.length);
+        }
+
+        if (options.importTerms && importedData.data.terms) {
+            const merged = this.mergeArrays(this.terms, importedData.data.terms, 'id');
+            this.terms = merged;
+            Storage.set('attendance_terms', this.terms);
+            results.imported += merged.length - this.terms.length;
+            results.updated += this.terms.length - (merged.length - this.terms.length);
+            this.renderTerms();
+        }
+
+        if (options.importSettings && importedData.data.settings) {
+            this.settings = { ...this.settings, ...importedData.data.settings };
+            Storage.set('app_settings', this.settings);
+            results.updated++;
+            this.renderSettings();
+        }
+
+        return results;
+    }
+
+    mergeArrays(current, imported, key) {
+        const merged = [...current];
+        const existingKeys = new Set(current.map(item => item[key]));
         
-        this.app.state.attendanceRecords.forEach(record => {
-            const key = `${record.date}-${record.session}-${record.classId}`;
-            if (!seen.has(key)) {
-                seen.add(key);
-                uniqueRecords.push(record);
+        imported.forEach(item => {
+            const index = merged.findIndex(i => i[key] === item[key]);
+            if (index >= 0) {
+                merged[index] = { ...merged[index], ...item };
+            } else {
+                merged.push(item);
             }
         });
         
-        this.app.state.attendanceRecords = uniqueRecords;
-        Storage.set('gams_attendance', uniqueRecords);
-        
-        this.app.showToast(`Database compacted: ${this.app.state.attendanceRecords.length} unique records`, 'success');
+        return merged;
     }
 
-        async validateData() {
-        const issues = [];
-        let classesChecked = 0;
-        let recordsChecked = 0;
-        let termsChecked = 0;
-
-        // Validate classes
-        this.app.state.classes.forEach((cls, index) => {
-            classesChecked++;
-            const errors = [];
+    showImportResults(results) {
+        const message = `
+            Import completed successfully!
             
-            if (!cls.classCode?.trim()) {
-                errors.push('Missing class code');
+            Summary:
+            • ${results.imported} items imported
+            • ${results.updated} items updated
+            • ${results.skipped} items skipped
+            ${results.errors.length > 0 ? `• ${results.errors.length} errors` : ''}
+        `;
+
+        if (results.errors.length > 0) {
+            Utils.showAlert(message, 'warning');
+            console.error('Import errors:', results.errors);
+        } else {
+            Utils.showAlert(message, 'success');
+        }
+
+        this.app.emitEvent('data:imported', results);
+    }
+
+    // ========== DATA VALIDATION & CLEANUP ==========
+    async validateData() {
+        const issues = [];
+        
+        // Validate classes
+        const classes = Storage.get('classes') || [];
+        classes.forEach((cls, index) => {
+            const classIssues = [];
+            
+            if (!cls.name?.trim()) {
+                classIssues.push('Missing class name');
+            }
+            
+            if (!cls.teacher?.trim()) {
+                classIssues.push('Missing teacher');
             }
             
             if (!cls.subject?.trim()) {
-                errors.push('Missing subject');
+                classIssues.push('Missing subject');
             }
             
-            if (!cls.yearGroup || cls.yearGroup < 1 || cls.yearGroup > 13) {
-                errors.push('Invalid year group');
+            if (!cls.yearGroup) {
+                classIssues.push('Missing year group');
             }
             
-            if (!cls.teacherName?.trim()) {
-                errors.push('Missing teacher name');
+            if (!cls.studentCount || cls.studentCount < 0) {
+                classIssues.push('Invalid student count');
             }
             
-            if (cls.studentCount < 0 || cls.studentCount > 100) {
-                errors.push('Invalid student count');
-            }
-            
-            if (!cls.room?.trim()) {
-                errors.push('Missing room');
-            }
-            
-            if (errors.length > 0) {
+            if (classIssues.length > 0) {
                 issues.push({
                     type: 'class',
-                    index: index,
-                    id: cls.classCode,
-                    errors: errors,
-                    data: cls
+                    id: cls.id || `class_${index}`,
+                    name: cls.name,
+                    issues: classIssues
                 });
             }
         });
 
         // Validate attendance records
-        this.app.state.attendanceRecords.forEach((record, index) => {
-            recordsChecked++;
-            const errors = [];
+        const attendance = Storage.get('attendance_records') || [];
+        const validClassIds = new Set(classes.map(c => c.id));
+        
+        attendance.forEach((record, index) => {
+            const recordIssues = [];
             
-            if (!record.date || !Utils.isValidDate(record.date)) {
-                errors.push('Invalid date');
+            if (!record.date) {
+                recordIssues.push('Missing date');
             }
             
-            if (!['AM', 'PM'].includes(record.session)) {
-                errors.push('Invalid session');
-            }
-            
-            if (!record.classId || typeof record.classId !== 'string') {
-                errors.push('Invalid class ID');
+            if (!record.classId) {
+                recordIssues.push('Missing class ID');
+            } else if (!validClassIds.has(record.classId)) {
+                recordIssues.push('Invalid class reference');
             }
             
             if (typeof record.present !== 'number' || record.present < 0) {
-                errors.push('Invalid present count');
+                recordIssues.push('Invalid present count');
             }
             
             if (typeof record.absent !== 'number' || record.absent < 0) {
-                errors.push('Invalid absent count');
+                recordIssues.push('Invalid absent count');
             }
             
             if (typeof record.late !== 'number' || record.late < 0) {
-                errors.push('Invalid late count');
+                recordIssues.push('Invalid late count');
             }
             
-            // Check if class exists
-            const classExists = this.app.state.classes.some(cls => cls.id === record.classId);
-            if (!classExists) {
-                errors.push('Referenced class not found');
+            // Check date validity
+            if (record.date) {
+                const recordDate = new Date(record.date);
+                if (isNaN(recordDate.getTime())) {
+                    recordIssues.push('Invalid date format');
+                } else if (recordDate > new Date()) {
+                    recordIssues.push('Date in future');
+                }
             }
             
-            // Check if date is in future
-            const recordDate = new Date(record.date);
-            if (recordDate > new Date()) {
-                errors.push('Date is in future');
-            }
-            
-            if (errors.length > 0) {
+            if (recordIssues.length > 0) {
                 issues.push({
                     type: 'attendance',
-                    index: index,
+                    id: record.id || `record_${index}`,
                     date: record.date,
                     classId: record.classId,
-                    errors: errors,
-                    data: record
+                    issues: recordIssues
                 });
             }
         });
 
-        // Validate terms
-        this.app.state.terms.forEach((term, index) => {
-            termsChecked++;
-            const errors = [];
-            
-            if (!term.id || !term.name?.trim()) {
-                errors.push('Missing term ID or name');
-            }
-            
-            if (!term.startDate || !Utils.isValidDate(term.startDate)) {
-                errors.push('Invalid start date');
-            }
-            
-            if (!term.endDate || !Utils.isValidDate(term.endDate)) {
-                errors.push('Invalid end date');
-            }
-            
-            const startDate = new Date(term.startDate);
-            const endDate = new Date(term.endDate);
-            
-            if (endDate <= startDate) {
-                errors.push('End date must be after start date');
-            }
-            
-            if (typeof term.weeks !== 'number' || term.weeks < 1 || term.weeks > 20) {
-                errors.push('Invalid number of weeks');
+        // Validate terms (already done in validateTerms)
+        const termIssues = [];
+        this.terms.forEach((term, index) => {
+            if (new Date(term.endDate) <= new Date(term.startDate)) {
+                termIssues.push(`Term "${term.name}" has invalid dates`);
             }
             
             // Check for overlapping terms
-            const overlappingTerm = this.app.state.terms.find((t, i) => {
+            const overlapping = this.terms.find((t, i) => {
                 if (i === index) return false;
                 const tStart = new Date(t.startDate);
                 const tEnd = new Date(t.endDate);
-                return (startDate <= tEnd && endDate >= tStart);
+                const termStart = new Date(term.startDate);
+                const termEnd = new Date(term.endDate);
+                return (termStart <= tEnd && termEnd >= tStart);
             });
             
-            if (overlappingTerm) {
-                errors.push(`Overlaps with ${overlappingTerm.name}`);
-            }
-            
-            if (errors.length > 0) {
-                issues.push({
-                    type: 'term',
-                    index: index,
-                    name: term.name,
-                    errors: errors,
-                    data: term
-                });
+            if (overlapping) {
+                termIssues.push(`Term "${term.name}" overlaps with "${overlapping.name}"`);
             }
         });
 
-        // Validate cumulative data structure
-        if (this.app.state.cumulativeData) {
-            Object.entries(this.app.state.cumulativeData).forEach(([classId, data]) => {
-                if (!this.app.state.classes.some(cls => cls.id === classId)) {
-                    issues.push({
-                        type: 'cumulative',
-                        classId: classId,
-                        errors: ['Referenced class not found'],
-                        data: data
-                    });
-                }
+        if (termIssues.length > 0) {
+            issues.push({
+                type: 'terms',
+                issues: termIssues
             });
         }
 
-        // Show validation results
+        if (issues.length === 0) {
+            Utils.showAlert('All data is valid! No issues found.', 'success');
+        } else {
+            this.showValidationResults('Data Validation', issues);
+        }
+    }
+
+    showValidationResults(title, issues) {
         const modalContent = `
             <div class="validation-results">
-                <h4>Data Validation Results</h4>
+                <h4>${title}</h4>
+                <p class="text-muted">Found ${issues.length} issue${issues.length !== 1 ? 's' : ''}</p>
                 
-                <div class="validation-summary">
-                    <div class="summary-item">
-                        <span class="summary-label">Classes checked:</span>
-                        <span class="summary-value ${issues.filter(i => i.type === 'class').length === 0 ? 'valid' : 'invalid'}">
-                            ${classesChecked} (${issues.filter(i => i.type === 'class').length} issues)
-                        </span>
-                    </div>
-                    
-                    <div class="summary-item">
-                        <span class="summary-label">Records checked:</span>
-                        <span class="summary-value ${issues.filter(i => i.type === 'attendance').length === 0 ? 'valid' : 'invalid'}">
-                            ${recordsChecked} (${issues.filter(i => i.type === 'attendance').length} issues)
-                        </span>
-                    </div>
-                    
-                    <div class="summary-item">
-                        <span class="summary-label">Terms checked:</span>
-                        <span class="summary-value ${issues.filter(i => i.type === 'term').length === 0 ? 'valid' : 'invalid'}">
-                            ${termsChecked} (${issues.filter(i => i.type === 'term').length} issues)
-                        </span>
-                    </div>
-                    
-                    <div class="summary-total ${issues.length === 0 ? 'all-valid' : 'has-issues'}">
-                        <i class="fas ${issues.length === 0 ? 'fa-check-circle' : 'fa-exclamation-triangle'}"></i>
-                        ${issues.length === 0 ? 'All data is valid!' : `Found ${issues.length} issues`}
-                    </div>
+                <div class="issues-list">
+                    ${issues.map((issue, idx) => `
+                        <div class="issue-card ${issue.type}">
+                            <div class="issue-header">
+                                <span class="issue-type">${issue.type.toUpperCase()}</span>
+                                <span class="issue-id">${issue.name || issue.id || `#${idx + 1}`}</span>
+                            </div>
+                            <div class="issue-details">
+                                ${issue.issues.map(item => `
+                                    <div class="issue-item">
+                                        <i class="fas fa-exclamation-circle"></i>
+                                        <span>${item}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                            ${issue.date ? `<div class="issue-meta">Date: ${issue.date}</div>` : ''}
+                        </div>
+                    `).join('')}
                 </div>
                 
-                ${issues.length > 0 ? `
-                    <div class="issues-list">
-                        <h5>Issues Found:</h5>
-                        ${issues.map((issue, idx) => `
-                            <div class="issue-item">
-                                <div class="issue-header">
-                                    <span class="issue-type">${issue.type.toUpperCase()}</span>
-                                    <span class="issue-id">${issue.name || issue.classId || issue.id || `#${idx + 1}`}</span>
-                                </div>
-                                <div class="issue-errors">
-                                    ${issue.errors.map(error => `
-                                        <div class="error-item">
-                                            <i class="fas fa-exclamation-circle"></i>
-                                            ${error}
-                                        </div>
-                                    `).join('')}
-                                </div>
-                                ${issue.data ? `
-                                    <div class="issue-data">
-                                        <small>Data: ${JSON.stringify(issue.data).substring(0, 100)}...</small>
-                                    </div>
-                                ` : ''}
-                            </div>
-                        `).join('')}
-                    </div>
-                    
-                    <div class="validation-actions">
-                        <button type="button" class="btn btn-danger" id="auto-fix-issues">
-                            <i class="fas fa-magic"></i> Auto-fix Common Issues
-                        </button>
-                        <button type="button" class="btn btn-warning" id="export-issues">
-                            <i class="fas fa-download"></i> Export Issues Report
-                        </button>
-                    </div>
-                ` : ''}
-                
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" id="close-validation">Close</button>
+                <div class="validation-actions">
+                    <button type="button" class="btn btn-outline-danger" id="auto-fix-issues">
+                        <i class="fas fa-magic"></i> Auto-fix Issues
+                    </button>
+                    <button type="button" class="btn btn-outline-primary" id="export-issues">
+                        <i class="fas fa-download"></i> Export Report
+                    </button>
                 </div>
             </div>
         `;
 
-        const modal = Utils.showModal(modalContent, { title: 'Data Validation', width: '800px' });
-        
-        if (issues.length > 0) {
-            modal.querySelector('#auto-fix-issues').addEventListener('click', () => {
-                this.autoFixIssues(issues);
-                modal.remove();
-            });
-            
-            modal.querySelector('#export-issues').addEventListener('click', () => {
-                this.exportIssuesReport(issues, { classesChecked, recordsChecked, termsChecked });
-            });
-        }
-        
-        modal.querySelector('#close-validation').addEventListener('click', () => {
-            modal.remove();
+        Utils.showModal(modalContent, {
+            title: title,
+            size: 'modal-lg',
+            buttons: [
+                { text: 'Close', class: 'btn-secondary', action: 'close' }
+            ],
+            onShow: (modal) => {
+                modal.querySelector('#auto-fix-issues').addEventListener('click', () => {
+                    this.autoFixIssues(issues);
+                    modal.remove();
+                });
+                
+                modal.querySelector('#export-issues').addEventListener('click', () => {
+                    this.exportValidationReport(issues);
+                });
+            }
         });
     }
 
     autoFixIssues(issues) {
         let fixedCount = 0;
-        let removedCount = 0;
         
-        // Fix class issues
-        const classIssues = issues.filter(i => i.type === 'class');
-        classIssues.forEach(issue => {
-            const cls = this.app.state.classes[issue.index];
-            if (cls) {
-                // Fix common issues
-                if (!cls.classCode?.trim()) {
-                    cls.classCode = `CLASS_${Date.now()}`;
-                    fixedCount++;
-                }
-                
-                if (!cls.subject?.trim()) {
-                    cls.subject = 'Unknown';
-                    fixedCount++;
-                }
-                
-                if (!cls.teacherName?.trim()) {
-                    cls.teacherName = 'Unknown Teacher';
-                    fixedCount++;
-                }
-                
-                if (cls.studentCount < 0) {
-                    cls.studentCount = 0;
-                    fixedCount++;
-                } else if (cls.studentCount > 100) {
-                    cls.studentCount = 100;
-                    fixedCount++;
-                }
-                
-                if (!cls.room?.trim()) {
-                    cls.room = 'TBA';
-                    fixedCount++;
-                }
+        issues.forEach(issue => {
+            if (issue.type === 'class') {
+                fixedCount += this.fixClassIssues(issue);
+            } else if (issue.type === 'attendance') {
+                fixedCount += this.fixAttendanceIssues(issue);
             }
         });
         
-        // Fix attendance record issues
-        const attendanceIssues = issues.filter(i => i.type === 'attendance');
-        const recordsToKeep = [];
-        
-        this.app.state.attendanceRecords.forEach((record, index) => {
-            const issue = attendanceIssues.find(i => i.index === index);
-            
-            if (issue) {
-                // Check if it's a fixable issue
-                const isFixable = !issue.errors.some(error => 
-                    error.includes('Referenced class not found') || 
-                    error.includes('Date is in future')
-                );
-                
-                if (isFixable) {
-                    // Fix common issues
-                    if (!['AM', 'PM'].includes(record.session)) {
-                        record.session = 'AM';
-                        fixedCount++;
-                    }
-                    
-                    if (record.present < 0) record.present = 0;
-                    if (record.absent < 0) record.absent = 0;
-                    if (record.late < 0) record.late = 0;
-                    
-                    recordsToKeep.push(record);
-                    fixedCount++;
-                } else {
-                    removedCount++;
-                }
-            } else {
-                recordsToKeep.push(record);
-            }
-        });
-        
-        this.app.state.attendanceRecords = recordsToKeep;
-        
-        // Fix term issues
-        const termIssues = issues.filter(i => i.type === 'term');
-        termIssues.forEach(issue => {
-            const term = this.app.state.terms[issue.index];
-            if (term) {
-                if (!term.name?.trim()) {
-                    term.name = `Term ${issue.index + 1}`;
-                    fixedCount++;
-                }
-                
-                if (term.weeks < 1) {
-                    term.weeks = 14;
-                    fixedCount++;
-                } else if (term.weeks > 20) {
-                    term.weeks = 20;
-                    fixedCount++;
-                }
-            }
-        });
-        
-        // Save all changes
-        Storage.set('gams_classes', this.app.state.classes);
-        Storage.set('gams_attendance', this.app.state.attendanceRecords);
-        Storage.set('gams_terms', this.app.state.terms);
-        
-        // Recalculate cumulative data
-        if (this.app.modules.attendance) {
-            this.app.modules.attendance.calculateCumulativeData();
+        if (fixedCount > 0) {
+            Utils.showAlert(`Auto-fixed ${fixedCount} issues`, 'success');
+            this.app.emitEvent('data:updated');
+        } else {
+            Utils.showAlert('No issues could be auto-fixed', 'info');
         }
-        
-        // Show results
-        const results = [];
-        if (fixedCount > 0) results.push(`${fixedCount} issues fixed`);
-        if (removedCount > 0) results.push(`${removedCount} invalid records removed`);
-        
-        this.app.showToast(`Auto-fix completed: ${results.join(', ')}`, 'success');
     }
 
-    exportIssuesReport(issues, stats) {
+    fixClassIssues(issue) {
+        const classes = Storage.get('classes') || [];
+        const classIndex = classes.findIndex(c => c.id === issue.id);
+        
+        if (classIndex >= 0) {
+            const cls = classes[classIndex];
+            
+            // Fix common issues
+            if (!cls.name?.trim()) {
+                cls.name = 'Unnamed Class';
+            }
+            
+            if (!cls.teacher?.trim()) {
+                cls.teacher = 'Unknown Teacher';
+            }
+            
+            if (!cls.subject?.trim()) {
+                cls.subject = 'General';
+            }
+            
+            if (!cls.yearGroup) {
+                cls.yearGroup = 7; // Default year
+            }
+            
+            if (!cls.studentCount || cls.studentCount < 0) {
+                cls.studentCount = 0;
+            }
+            
+            Storage.set('classes', classes);
+            return 1;
+        }
+        
+        return 0;
+    }
+
+    exportValidationReport(issues) {
         const report = {
-            title: 'Attendance System Data Validation Report',
             generated: new Date().toISOString(),
-            statistics: stats,
-            issues: issues.map(issue => ({
-                type: issue.type,
-                identifier: issue.name || issue.classId || issue.id,
-                errors: issue.errors,
-                data: issue.data
-            })),
+            totalIssues: issues.length,
+            issues: issues,
             summary: {
-                totalIssues: issues.length,
                 byType: {
                     class: issues.filter(i => i.type === 'class').length,
                     attendance: issues.filter(i => i.type === 'attendance').length,
-                    term: issues.filter(i => i.type === 'term').length
+                    terms: issues.filter(i => i.type === 'terms').length
                 }
             }
         };
         
         const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `validation-report-${Utils.formatDate(new Date())}.json`;
-        link.click();
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `validation_report_${Utils.formatDate(new Date(), 'YYYY-MM-DD_HH-mm')}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
         URL.revokeObjectURL(url);
         
-        this.app.showToast('Issues report exported', 'success');
+        Utils.showAlert('Validation report exported', 'success');
     }
 
-    // Statistics and reporting
-    async generateSystemReport() {
-        const report = {
-            generated: new Date().toISOString(),
-            system: {
-                version: '2.0.0',
-                lastSync: this.app.state.lastSync || 'Never',
-                isOnline: this.app.state.isOnline,
-                storageUsed: await this.calculateStorageUsage()
-            },
-            data: {
-                classes: {
-                    total: this.app.state.classes.length,
-                    byYearGroup: this.groupByYearGroup(),
-                    bySubject: this.groupBySubject()
+    // ========== BACKUP SYSTEM ==========
+    async createBackup() {
+        try {
+            const backupData = {
+                timestamp: new Date().toISOString(),
+                data: {
+                    classes: Storage.get('classes') || [],
+                    attendance: Storage.get('attendance_records') || [],
+                    terms: this.terms,
+                    settings: this.settings,
+                    students: Storage.get('students') || [],
+                    teachers: Storage.get('teachers') || []
                 },
-                attendance: {
-                    totalRecords: this.app.state.attendanceRecords.length,
-                    recordsByMonth: this.getRecordsByMonth(),
-                    averageAttendance: this.calculateOverallAverage()
-                },
-                terms: {
-                    total: this.app.state.terms.length,
-                    active: this.app.state.terms.filter(t => t.isActive).length,
-                    upcoming: this.getUpcomingTerms()
-                }
-            },
-            performance: {
-                databaseSize: this.app.state.attendanceRecords.length * 100, // Approximate
-                lastBackup: Storage.get('last_backup_date') || 'Never',
-                syncStatus: this.checkSyncStatus()
+                statistics: await this.generateStatistics(),
+                size: 0
+            };
+
+            // Calculate size
+            const dataStr = JSON.stringify(backupData);
+            backupData.size = new Blob([dataStr]).size;
+
+            // Save backup
+            const backupKey = `backup_${Date.now()}`;
+            Storage.set(backupKey, backupData);
+
+            // Update backup history
+            this.backupHistory.unshift({
+                key: backupKey,
+                timestamp: backupData.timestamp,
+                size: backupData.size,
+                stats: backupData.statistics
+            });
+
+            // Keep only last 10 backups
+            if (this.backupHistory.length > 10) {
+                const oldBackup = this.backupHistory.pop();
+                Storage.remove(oldBackup.key);
             }
-        };
-        
-        // Show report in modal
-        this.showSystemReport(report);
+
+            Storage.set('backup_history', this.backupHistory);
+            
+            // Update UI
+            this.updateBackupStatus();
+            
+            Utils.showAlert('Backup created successfully', 'success');
+            
+            return backupKey;
+            
+        } catch (error) {
+            console.error('Backup creation error:', error);
+            Utils.showAlert('Failed to create backup', 'error');
+            throw error;
+        }
+    }
+
+    showBackupRestore() {
+        if (this.backupHistory.length === 0) {
+            Utils.showAlert('No backups available', 'info');
+            return;
+        }
+
+        const modalContent = `
+            <div class="backup-restore">
+                <h4>Restore from Backup</h4>
+                <p class="text-muted">Select a backup to restore:</p>
+                
+                <div class="backup-list">
+                    ${this.backupHistory.map((backup, index) => `
+                        <div class="backup-item" data-backup-key="${backup.key}">
+                            <div class="backup-info">
+                                <div class="backup-title">
+                                    <strong>Backup ${index + 1}</strong>
+                                    <span class="backup-date">${Utils.formatDate(new Date(backup.timestamp), 'relative')}</span>
+                                </div>
+                                <div class="backup-details">
+                                    <small>
+                                        ${backup.stats?.totalClasses || 0} classes • 
+                                        ${backup.stats?.totalAttendanceRecords || 0} records • 
+                                        ${Math.round(backup.size / 1024)} KB
+                                    </small>
+                                </div>
+                            </div>
+                            <button class="btn btn-sm btn-outline-primary restore-btn">
+                                <i class="fas fa-undo"></i> Restore
+                            </button>
+                        </div>
+                    `).join('')}
+                </div>
+                
+                <div class="restore-options mt-3">
+                    <h5>Restore Options:</h5>
+                    <div class="form-check">
+                        <input type="checkbox" id="restore-overwrite" class="form-check-input" checked>
+                        <label class="form-check-label" for="restore-overwrite">
+                            Overwrite existing data
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input type="checkbox" id="restore-settings" class="form-check-input">
+                        <label class="form-check-label" for="restore-settings">
+                            Restore settings
+                        </label>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        Utils.showModal(modalContent, {
+            title: 'Restore Backup',
+            size: 'modal-lg',
+            buttons: [
+                { text: 'Cancel', class: 'btn-secondary', action: 'cancel' }
+            ],
+            onShow: (modal) => {
+                modal.querySelectorAll('.restore-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const backupItem = e.target.closest('.backup-item');
+                        const backupKey = backupItem.dataset.backupKey;
+                        const overwrite = modal.querySelector('#restore-overwrite').checked;
+                        const restoreSettings = modal.querySelector('#restore-settings').checked;
+                        
+                        this.restoreBackup(backupKey, { overwrite, restoreSettings });
+                        modal.remove();
+                    });
+                });
+            }
+        });
+    }
+
+    async restoreBackup(backupKey, options) {
+        try {
+            const backupData = Storage.get(backupKey);
+            if (!backupData) {
+                throw new Error('Backup not found');
+            }
+
+            Utils.showConfirm(
+                'Restore Backup?',
+                `This will ${options.overwrite ? 'overwrite' : 'merge with'} your current data.`,
+                'Restore',
+                'Cancel'
+            ).then(async (confirmed) => {
+                if (confirmed) {
+                    // Create backup before restoring
+                    await this.createBackup();
+
+                    if (options.overwrite) {
+                        // Replace all data
+                        Storage.set('classes', backupData.data.classes || []);
+                        Storage.set('attendance_records', backupData.data.attendance || []);
+                        
+                        if (backupData.data.terms) {
+                            this.terms = backupData.data.terms;
+                            Storage.set('attendance_terms', this.terms);
+                            this.renderTerms();
+                        }
+                    } else {
+                        // Merge data
+                        this.importMerge(backupData, {
+                            importClasses: true,
+                            importAttendance: true,
+                            importTerms: true,
+                            importSettings: options.restoreSettings
+                        });
+                    }
+
+                    if (options.restoreSettings && backupData.data.settings) {
+                        this.settings = backupData.data.settings;
+                        Storage.set('app_settings', this.settings);
+                        this.renderSettings();
+                    }
+
+                    Utils.showAlert('Backup restored successfully', 'success');
+                    this.app.emitEvent('data:restored');
+                }
+            });
+            
+        } catch (error) {
+            console.error('Restore error:', error);
+            Utils.showAlert('Failed to restore backup: ' + error.message, 'error');
+        }
+    }
+
+    updateBackupStatus() {
+        const statusElement = document.getElementById('backup-status');
+        if (!statusElement) return;
+
+        if (this.backupHistory.length === 0) {
+            statusElement.innerHTML = `
+                <span class="text-danger">
+                    <i class="fas fa-exclamation-circle"></i> No backups found
+                </span>
+            `;
+            return;
+        }
+
+        const latestBackup = this.backupHistory[0];
+        const backupDate = new Date(latestBackup.timestamp);
+        const now = new Date();
+        const daysDiff = Math.floor((now - backupDate) / (1000 * 60 * 60 * 24));
+
+        let statusClass = 'text-success';
+        let icon = 'fa-check-circle';
+        let statusText = `Last backup: ${Utils.formatDate(backupDate, 'relative')}`;
+
+        if (daysDiff > 7) {
+            statusClass = 'text-danger';
+            icon = 'fa-exclamation-circle';
+            statusText += ' (Overdue)';
+        } else if (daysDiff > 3) {
+            statusClass = 'text-warning';
+            icon = 'fa-exclamation-triangle';
+            statusText += ' (Due soon)';
+        }
+
+        statusElement.innerHTML = `
+            <span class="${statusClass}">
+                <i class="fas ${icon}"></i> ${statusText}
+            </span>
+        `;
+    }
+
+    // ========== DATA CLEANUP ==========
+    async cleanupOldData() {
+        const retentionDays = this.settings.dataRetention || 365;
+        const cutoffDate = new Date();
+        cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
+
+        const attendance = Storage.get('attendance_records') || [];
+        const oldRecords = attendance.filter(record => {
+            if (!record.date) return false;
+            const recordDate = new Date(record.date);
+            return recordDate < cutoffDate;
+        });
+
+        if (oldRecords.length === 0) {
+            Utils.showAlert('No old data to clean up', 'info');
+            return;
+        }
+
+        Utils.showConfirm(
+            'Clean Up Old Data?',
+            `This will remove ${oldRecords.length} attendance records older than ${retentionDays} days.`,
+            'Clean Up',
+            'Cancel'
+        ).then((confirmed) => {
+            if (confirmed) {
+                const newAttendance = attendance.filter(record => {
+                    if (!record.date) return true;
+                    const recordDate = new Date(record.date);
+                    return recordDate >= cutoffDate;
+                });
+
+                Storage.set('attendance_records', newAttendance);
+                
+                Utils.showAlert(`Removed ${oldRecords.length} old records`, 'success');
+                this.app.emitEvent('data:cleaned', { removed: oldRecords.length });
+            }
+        });
+    }
+
+    async compactDatabase() {
+        try {
+            const attendance = Storage.get('attendance_records') || [];
+            const classes = Storage.get('classes') || [];
+            
+            let removedDuplicates = 0;
+            let removedInvalid = 0;
+            
+            // Remove duplicate attendance records
+            const uniqueRecords = [];
+            const seen = new Set();
+            
+            attendance.forEach(record => {
+                const key = `${record.date}-${record.session}-${record.classId}`;
+                if (!seen.has(key)) {
+                    seen.add(key);
+                    uniqueRecords.push(record);
+                } else {
+                    removedDuplicates++;
+                }
+            });
+            
+            // Remove invalid records
+            const validClassIds = new Set(classes.map(c => c.id));
+            const validRecords = uniqueRecords.filter(record => {
+                if (!record.date || !record.classId || !validClassIds.has(record.classId)) {
+                    removedInvalid++;
+                    return false;
+                }
+                return true;
+            });
+            
+            // Save compacted data
+            Storage.set('attendance_records', validRecords);
+            
+            const totalRemoved = removedDuplicates + removedInvalid;
+            
+            if (totalRemoved > 0) {
+                Utils.showAlert(
+                    `Database compacted: ${totalRemoved} records removed (${removedDuplicates} duplicates, ${removedInvalid} invalid)`,
+                    'success'
+                );
+                this.app.emitEvent('database:compacted', { removed: totalRemoved });
+            } else {
+                Utils.showAlert('Database is already optimized', 'info');
+            }
+            
+        } catch (error) {
+            console.error('Database compaction error:', error);
+            Utils.showAlert('Failed to compact database', 'error');
+        }
+    }
+
+    // ========== SYSTEM REPORT ==========
+    async generateSystemReport() {
+        try {
+            const report = {
+                generated: new Date().toISOString(),
+                system: {
+                    version: '2.0.0',
+                    userAgent: navigator.userAgent,
+                    online: navigator.onLine,
+                    storage: await this.calculateStorageUsage()
+                },
+                data: await this.generateStatistics(),
+                settings: this.settings,
+                terms: this.terms.map(t => ({
+                    name: t.name,
+                    dates: `${t.startDate} to ${t.endDate}`,
+                    weeks: t.weeks,
+                    active: t.active,
+                    records: this.getTermAttendanceCount(t.id)
+                })),
+                backups: {
+                    total: this.backupHistory.length,
+                    latest: this.backupHistory[0]?.timestamp,
+                    totalSize: this.backupHistory.reduce((sum, b) => sum + b.size, 0)
+                }
+            };
+
+            this.showSystemReport(report);
+            
+        } catch (error) {
+            console.error('System report error:', error);
+            Utils.showAlert('Failed to generate system report', 'error');
+        }
     }
 
     async calculateStorageUsage() {
@@ -1019,7 +1928,7 @@ export class MaintenanceModule {
                 return {
                     usage: estimate.usage,
                     quota: estimate.quota,
-                    percentage: (estimate.usage / estimate.quota * 100).toFixed(2)
+                    percentage: estimate.quota ? Math.round((estimate.usage / estimate.quota) * 100) : 0
                 };
             } catch (error) {
                 console.error('Storage estimate error:', error);
@@ -1028,418 +1937,265 @@ export class MaintenanceModule {
         return null;
     }
 
-    groupByYearGroup() {
-        const groups = {};
-        this.app.state.classes.forEach(cls => {
-            const year = cls.yearGroup || 'Unknown';
-            groups[year] = (groups[year] || 0) + 1;
-        });
-        return groups;
-    }
-
-    groupBySubject() {
-        const subjects = {};
-        this.app.state.classes.forEach(cls => {
-            const subject = cls.subject || 'Unknown';
-            subjects[subject] = (subjects[subject] || 0) + 1;
-        });
-        return subjects;
-    }
-
-    getRecordsByMonth() {
-        const months = {};
-        this.app.state.attendanceRecords.forEach(record => {
-            if (record.date) {
-                const month = record.date.substring(0, 7); // YYYY-MM
-                months[month] = (months[month] || 0) + 1;
-            }
-        });
-        return months;
-    }
-
-    calculateOverallAverage() {
-        if (this.app.state.attendanceRecords.length === 0) return 0;
-        
-        let totalPresent = 0;
-        let totalPossible = 0;
-        
-        this.app.state.attendanceRecords.forEach(record => {
-            totalPresent += record.present || 0;
-            totalPossible += (record.present || 0) + (record.absent || 0);
-        });
-        
-        return totalPossible > 0 ? (totalPresent / totalPossible * 100).toFixed(1) : 0;
-    }
-
-    getUpcomingTerms() {
-        const now = new Date();
-        return this.app.state.terms.filter(term => {
-            const startDate = new Date(term.startDate);
-            return startDate > now;
-        }).map(term => ({
-            name: term.name,
-            startDate: term.startDate,
-            weeks: term.weeks
-        }));
-    }
-
-    checkSyncStatus() {
-        const lastSync = this.app.state.lastSync;
-        if (!lastSync) return 'never';
-        
-        const lastSyncDate = new Date(lastSync);
-        const now = new Date();
-        const hoursDiff = (now - lastSyncDate) / (1000 * 60 * 60);
-        
-        if (hoursDiff < 1) return 'recent';
-        if (hoursDiff < 24) return 'today';
-        if (hoursDiff < 168) return 'this_week';
-        return 'old';
-    }
-
     showSystemReport(report) {
         const modalContent = `
             <div class="system-report">
-                <h4>System Report</h4>
-                <p class="report-date">Generated: ${Utils.formatDate(new Date(report.generated))}</p>
+                <div class="report-header">
+                    <h4><i class="fas fa-chart-pie"></i> System Report</h4>
+                    <small class="text-muted">Generated: ${Utils.formatDate(new Date(report.generated))}</small>
+                </div>
                 
                 <div class="report-section">
-                    <h5><i class="fas fa-server"></i> System Status</h5>
+                    <h5>System Status</h5>
                     <div class="status-grid">
-                        <div class="status-item ${report.system.isOnline ? 'online' : 'offline'}">
+                        <div class="status-item ${report.system.online ? 'online' : 'offline'}">
                             <span>Connection:</span>
-                            <strong>${report.system.isOnline ? 'Online' : 'Offline'}</strong>
+                            <strong>${report.system.online ? 'Online' : 'Offline'}</strong>
                         </div>
                         <div class="status-item">
-                            <span>Last Sync:</span>
-                            <strong>${report.system.lastSync === 'Never' ? 'Never' : Utils.formatDate(new Date(report.system.lastSync))}</strong>
+                            <span>Storage Usage:</span>
+                            <strong>
+                                ${report.system.storage ? 
+                                    `${Math.round(report.system.storage.percentage)}%` : 
+                                    'N/A'}
+                            </strong>
+                        </div>
+                        <div class="status-item">
+                            <span>Backups:</span>
+                            <strong>${report.backups.total}</strong>
+                        </div>
+                        <div class="status-item">
+                            <span>Active Term:</span>
+                            <strong>${this.terms.find(t => t.active)?.name || 'None'}</strong>
                         </div>
                     </div>
                 </div>
                 
                 <div class="report-section">
-                    <h5><i class="fas fa-chart-bar"></i> Data Statistics</h5>
+                    <h5>Data Statistics</h5>
                     <div class="stats-grid">
                         <div class="stat-card">
-                            <div class="stat-value">${report.data.classes.total}</div>
+                            <div class="stat-value">${report.data.totalClasses}</div>
                             <div class="stat-label">Classes</div>
                         </div>
                         <div class="stat-card">
-                            <div class="stat-value">${report.data.attendance.totalRecords}</div>
+                            <div class="stat-value">${report.data.totalAttendanceRecords}</div>
                             <div class="stat-label">Records</div>
                         </div>
                         <div class="stat-card">
-                            <div class="stat-value">${report.data.terms.active}</div>
-                            <div class="stat-label">Active Terms</div>
+                            <div class="stat-value">${report.data.averageAttendance}%</div>
+                            <div class="stat-label">Avg. Attendance</div>
                         </div>
                         <div class="stat-card">
-                            <div class="stat-value">${report.data.attendance.averageAttendance}%</div>
-                            <div class="stat-label">Avg. Attendance</div>
+                            <div class="stat-value">${this.terms.length}</div>
+                            <div class="stat-label">Terms</div>
                         </div>
                     </div>
                 </div>
                 
                 <div class="report-section">
-                    <h5><i class="fas fa-database"></i> Storage</h5>
-                    ${report.system.storageUsed ? `
+                    <h5>Storage Information</h5>
+                    ${report.system.storage ? `
                         <div class="storage-info">
                             <div class="storage-bar">
-                                <div class="storage-fill" style="width: ${report.system.storageUsed.percentage}%"></div>
+                                <div class="storage-fill" style="width: ${report.system.storage.percentage}%"></div>
                             </div>
                             <div class="storage-text">
-                                ${(report.system.storageUsed.usage / 1024 / 1024).toFixed(2)} MB / 
-                                ${(report.system.storageUsed.quota / 1024 / 1024).toFixed(2)} MB
-                                (${report.system.storageUsed.percentage}%)
+                                ${Math.round(report.system.storage.usage / 1024 / 1024)} MB / 
+                                ${Math.round(report.system.storage.quota / 1024 / 1024)} MB
+                                (${report.system.storage.percentage}%)
                             </div>
                         </div>
-                    ` : '<p>Storage information not available</p>'}
+                    ` : '<p class="text-muted">Storage information not available</p>'}
                 </div>
                 
-                <div class="report-actions">
-                    <button type="button" class="btn btn-primary" id="export-report">
-                        <i class="fas fa-download"></i> Export Report
-                    </button>
-                    <button type="button" class="btn btn-secondary" id="close-report">
-                        Close
-                    </button>
+                <div class="report-section">
+                    <h5>Term Summary</h5>
+                    <div class="terms-summary">
+                        ${report.terms.map(term => `
+                            <div class="term-summary-item ${term.active ? 'active' : ''}">
+                                <div class="term-name">${term.name}</div>
+                                <div class="term-stats">
+                                    <span class="badge">${term.weeks}w</span>
+                                    <span class="badge">${term.records} rec</span>
+                                    ${term.active ? '<span class="badge bg-success">Active</span>' : ''}
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
                 </div>
             </div>
         `;
 
-        const modal = Utils.showModal(modalContent, { title: 'System Report', width: '600px' });
-        
-        modal.querySelector('#export-report').addEventListener('click', () => {
-            this.exportReport(report);
-        });
-        
-        modal.querySelector('#close-report').addEventListener('click', () => {
-            modal.remove();
+        Utils.showModal(modalContent, {
+            title: 'System Report',
+            size: 'modal-lg',
+            buttons: [
+                { text: 'Export Report', class: 'btn-primary', action: 'export' },
+                { text: 'Close', class: 'btn-secondary', action: 'close' }
+            ],
+            onShow: (modal) => {
+                modal.querySelector('[data-action="export"]').addEventListener('click', () => {
+                    this.exportSystemReport(report);
+                });
+            }
         });
     }
 
-    exportReport(report) {
+    exportSystemReport(report) {
         const formattedReport = {
             ...report,
             generated: Utils.formatDate(new Date(report.generated), 'full'),
-            formattedData: {
-                ...report.data,
-                attendance: {
-                    ...report.data.attendance,
-                    averageAttendance: `${report.data.attendance.averageAttendance}%`
-                }
-            }
+            school: this.settings.schoolName
         };
         
         const blob = new Blob([JSON.stringify(formattedReport, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `system-report-${Utils.formatDate(new Date())}.json`;
-        link.click();
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `system_report_${Utils.formatDate(new Date(), 'YYYY-MM-DD_HH-mm')}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
         URL.revokeObjectURL(url);
         
-        this.app.showToast('System report exported', 'success');
+        Utils.showAlert('System report exported', 'success');
     }
 
-    // Clean up old data
-    async cleanupOldData() {
-        const modalContent = `
-            <div class="cleanup-options">
-                <h4>Data Cleanup</h4>
-                <p>Select which old data to clean up:</p>
-                
-                <div class="cleanup-option">
-                    <label>
-                        <input type="checkbox" id="cleanup-old-records" checked>
-                        Remove attendance records older than 3 years
-                        <small>(${this.getOldRecordsCount(3)} records)</small>
-                    </label>
-                </div>
-                
-                <div class="cleanup-option">
-                    <label>
-                        <input type="checkbox" id="cleanup-inactive-classes">
-                        Remove classes that haven't had attendance in 2 years
-                        <small>(${this.getInactiveClassesCount(2)} classes)</small>
-                    </label>
-                </div>
-                
-                <div class="cleanup-option">
-                    <label>
-                        <input type="checkbox" id="cleanup-completed-terms">
-                        Archive completed terms
-                        <small>(${this.getCompletedTermsCount()} terms)</small>
-                    </label>
-                </div>
-                
-                <div class="cleanup-option">
-                    <label>
-                        <input type="checkbox" id="cleanup-temp-files">
-                        Clear temporary files and cache
-                    </label>
-                </div>
-                
-                <div class="cleanup-preview">
-                    <h5>What will be removed:</h5>
-                    <div id="cleanup-preview-content"></div>
-                </div>
-                
-                <div class="cleanup-warning">
-                    <p><i class="fas fa-exclamation-triangle"></i> This action cannot be undone. Make sure to backup your data first.</p>
-                </div>
-                
-                <div class="cleanup-actions">
-                    <button type="button" class="btn btn-secondary" id="cancel-cleanup">Cancel</button>
-                    <button type="button" class="btn btn-warning" id="preview-cleanup">Preview</button>
-                    <button type="button" class="btn btn-danger" id="execute-cleanup">Execute Cleanup</button>
-                </div>
-            </div>
-        `;
-
-        const modal = Utils.showModal(modalContent, { title: 'Data Cleanup' });
-        
-        const previewContent = modal.querySelector('#cleanup-preview-content');
-        
-        modal.querySelector('#preview-cleanup').addEventListener('click', () => {
-            this.previewCleanup(modal, previewContent);
-        });
-        
-        modal.querySelector('#execute-cleanup').addEventListener('click', () => {
-            if (confirm('Are you sure you want to execute the cleanup? This cannot be undone.')) {
-                this.executeCleanup(modal);
-                modal.remove();
-            }
-        });
-        
-        modal.querySelector('#cancel-cleanup').addEventListener('click', () => {
-            modal.remove();
-        });
+    // ========== UTILITY METHODS ==========
+    getActiveTerm() {
+        return this.terms.find(term => term.active) || this.terms[0];
     }
 
-    getOldRecordsCount(years) {
-        const cutoffDate = new Date();
-        cutoffDate.setFullYear(cutoffDate.getFullYear() - years);
+    isDateInTerm(date, termId = null) {
+        const term = termId ? 
+            this.terms.find(t => t.id === termId) : 
+            this.getActiveTerm();
         
-        return this.app.state.attendanceRecords.filter(record => {
-            const recordDate = new Date(record.date);
-            return recordDate < cutoffDate;
-        }).length;
+        if (!term) return false;
+        
+        const checkDate = new Date(date);
+        const startDate = new Date(term.startDate);
+        const endDate = new Date(term.endDate);
+        
+        return checkDate >= startDate && checkDate <= endDate;
     }
 
-    getInactiveClassesCount(years) {
-        const cutoffDate = new Date();
-        cutoffDate.setFullYear(cutoffDate.getFullYear() - years);
-        
-        const activeClassIds = new Set(
-            this.app.state.attendanceRecords
-                .filter(record => {
-                    const recordDate = new Date(record.date);
-                    return recordDate >= cutoffDate;
-                })
-                .map(record => record.classId)
-        );
-        
-        return this.app.state.classes.filter(cls => !activeClassIds.has(cls.id)).length;
-    }
-
-    getCompletedTermsCount() {
-        const now = new Date();
-        return this.app.state.terms.filter(term => {
+    getTermByDate(date) {
+        const checkDate = new Date(date);
+        return this.terms.find(term => {
+            const startDate = new Date(term.startDate);
             const endDate = new Date(term.endDate);
-            return endDate < now;
-        }).length;
+            return checkDate >= startDate && checkDate <= endDate;
+        });
     }
 
-    previewCleanup(modal, previewElement) {
-        const cleanupOldRecords = modal.querySelector('#cleanup-old-records').checked;
-        const cleanupInactiveClasses = modal.querySelector('#cleanup-inactive-classes').checked;
-        const cleanupCompletedTerms = modal.querySelector('#cleanup-completed-terms').checked;
-        const cleanupTempFiles = modal.querySelector('#cleanup-temp-files').checked;
+    getWeekNumber(date, termId = null) {
+        const term = termId ? 
+            this.terms.find(t => t.id === termId) : 
+            this.getTermByDate(date);
         
-        let preview = '<ul>';
+        if (!term) return null;
         
-        if (cleanupOldRecords) {
-            const oldRecordsCount = this.getOldRecordsCount(3);
-            preview += `<li>Remove ${oldRecordsCount} attendance records older than 3 years</li>`;
-        }
+        const checkDate = new Date(date);
+        const startDate = new Date(term.startDate);
         
-        if (cleanupInactiveClasses) {
-            const inactiveClassesCount = this.getInactiveClassesCount(2);
-            preview += `<li>Remove ${inactiveClassesCount} inactive classes</li>`;
-        }
+        // Calculate days difference
+        const diffTime = Math.abs(checkDate - startDate);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         
-        if (cleanupCompletedTerms) {
-            const completedTermsCount = this.getCompletedTermsCount();
-            preview += `<li>Archive ${completedTermsCount} completed terms</li>`;
-        }
+        // Calculate week number (starting from 1)
+        const weekNumber = Math.floor(diffDays / 7) + 1;
         
-        if (cleanupTempFiles) {
-            preview += `<li>Clear temporary files and cache</li>`;
-        }
-        
-        preview += '</ul>';
-        
-        previewElement.innerHTML = preview;
+        // Ensure week number doesn't exceed term weeks
+        return Math.min(weekNumber, term.weeks);
     }
 
-    executeCleanup(modal) {
-        let removedRecords = 0;
-        let removedClasses = 0;
-        let archivedTerms = 0;
-        
-        const cleanupOldRecords = modal.querySelector('#cleanup-old-records').checked;
-        const cleanupInactiveClasses = modal.querySelector('#cleanup-inactive-classes').checked;
-        const cleanupCompletedTerms = modal.querySelector('#cleanup-completed-terms').checked;
-        const cleanupTempFiles = modal.querySelector('#cleanup-temp-files').checked;
-        
-        // Remove old records
-        if (cleanupOldRecords) {
-            const cutoffDate = new Date();
-            cutoffDate.setFullYear(cutoffDate.getFullYear() - 3);
-            
-            const oldRecords = this.app.state.attendanceRecords.filter(record => {
-                const recordDate = new Date(record.date);
-                return recordDate >= cutoffDate;
-            });
-            
-            removedRecords = this.app.state.attendanceRecords.length - oldRecords.length;
-            this.app.state.attendanceRecords = oldRecords;
-            Storage.set('gams_attendance', oldRecords);
+    validateTermInput(input) {
+        const termGroup = input.closest('.term-input-group');
+        if (!termGroup) return true;
+
+        const name = termGroup.querySelector('.term-name')?.value.trim();
+        const startDate = termGroup.querySelector('.term-start')?.value;
+        const endDate = termGroup.querySelector('.term-end')?.value;
+        const weeks = termGroup.querySelector('.term-weeks')?.value;
+
+        let isValid = true;
+        const errors = [];
+
+        if (name && name.length < 2) {
+            errors.push('Term name too short');
+            isValid = false;
         }
-        
-        // Remove inactive classes
-        if (cleanupInactiveClasses) {
-            const cutoffDate = new Date();
-            cutoffDate.setFullYear(cutoffDate.getFullYear() - 2);
-            
-            const activeClassIds = new Set(
-                this.app.state.attendanceRecords
-                    .filter(record => {
-                        const recordDate = new Date(record.date);
-                        return recordDate >= cutoffDate;
-                    })
-                    .map(record => record.classId)
-            );
-            
-            const activeClasses = this.app.state.classes.filter(cls => activeClassIds.has(cls.id));
-            
-            removedClasses = this.app.state.classes.length - activeClasses.length;
-            this.app.state.classes = activeClasses;
-            Storage.set('gams_classes', activeClasses);
+
+        if (startDate && endDate && new Date(endDate) <= new Date(startDate)) {
+            errors.push('End date must be after start date');
+            isValid = false;
         }
-        
-        // Archive completed terms
-        if (cleanupCompletedTerms) {
-            const now = new Date();
-            const archivedTerms = [];
-            const activeTerms = [];
-            
-            this.app.state.terms.forEach(term => {
-                const endDate = new Date(term.endDate);
-                if (endDate < now) {
-                    term.isActive = false;
-                    archivedTerms.push(term);
-                    archivedTerms++;
-                } else {
-                    activeTerms.push(term);
-                }
-            });
-            
-            // Optionally move archived terms to separate storage
-            const existingArchived = Storage.get('gams_archived_terms') || [];
-            Storage.set('gams_archived_terms', [...existingArchived, ...archivedTerms]);
-            
-            this.app.state.terms = activeTerms;
-            Storage.set('gams_terms', activeTerms);
+
+        if (weeks && (weeks < 1 || weeks > 20)) {
+            errors.push('Weeks must be between 1 and 20');
+            isValid = false;
         }
-        
-        // Clear temporary files
-        if (cleanupTempFiles) {
-            // Clear localStorage items that start with 'temp_' or 'cache_'
-            Object.keys(localStorage).forEach(key => {
-                if (key.startsWith('temp_') || key.startsWith('cache_')) {
-                    localStorage.removeItem(key);
-                }
-            });
-            
-            // Clear sessionStorage
-            sessionStorage.clear();
+
+        // Update validation UI
+        const errorElement = termGroup.querySelector('.validation-errors') || 
+                           (() => {
+                               const div = document.createElement('div');
+                               div.className = 'validation-errors mt-1';
+                               termGroup.appendChild(div);
+                               return div;
+                           })();
+
+        if (errors.length > 0) {
+            errorElement.innerHTML = errors.map(err => 
+                `<small class="text-danger"><i class="fas fa-exclamation-circle"></i> ${err}</small>`
+            ).join('<br>');
+            errorElement.style.display = 'block';
+        } else {
+            errorElement.style.display = 'none';
         }
-        
-        // Recalculate cumulative data
-        if (this.app.modules.attendance) {
-            this.app.modules.attendance.calculateCumulativeData();
-        }
-        
-        // Show results
-        const results = [];
-        if (removedRecords > 0) results.push(`${removedRecords} old records removed`);
-        if (removedClasses > 0) results.push(`${removedClasses} inactive classes removed`);
-        if (archivedTerms > 0) results.push(`${archivedTerms} terms archived`);
-        if (cleanupTempFiles) results.push('Temporary files cleared');
-        
-        this.app.showToast(`Cleanup completed: ${results.join(', ')}`, 'success');
+
+        return isValid;
+    }
+
+    // ========== EVENT HANDLERS ==========
+    onTermsUpdated(data) {
+        this.terms = data.terms;
+        this.renderTerms();
+    }
+
+    onSettingsUpdated(data) {
+        this.settings = data.settings;
+        this.renderSettings();
+    }
+
+    onDataImported(data) {
+        // Refresh data after import
+        this.loadTerms();
+        this.loadSettings();
+        this.updateBackupStatus();
+    }
+
+    // ========== PUBLIC API ==========
+    getTerms() {
+        return [...this.terms];
+    }
+
+    getSettings() {
+        return { ...this.settings };
+    }
+
+    async refresh() {
+        await this.loadTerms();
+        await this.loadSettings();
+        await this.loadBackupHistory();
+        this.updateBackupStatus();
+    }
+
+    // Clean up method
+    destroy() {
+        // Remove event listeners if needed
+        document.removeEventListener('click', this.boundEventHandlers);
     }
 }
-        
-       
