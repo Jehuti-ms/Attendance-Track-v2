@@ -1,0 +1,484 @@
+import React, { useState, useEffect } from 'react';
+import { X, FileSpreadsheet, Check, Search, AlertCircle, Info } from 'lucide-react';
+
+// Types
+interface SheetData {
+  id: string;
+  name: string;
+  index: number;
+  rowCount: number;
+  columnCount: number;
+  hasHeaders: boolean;
+  previewData: string[][];
+  estimatedSize: string;
+  lastModified?: string;
+  containsData: boolean;
+  dataTypes: {
+    string: number;
+    number: number;
+    date: number;
+    boolean: number;
+    empty: number;
+  };
+}
+
+interface DocumentInfo {
+  fileName: string;
+  fileSize: string;
+  fileType: string;
+  createdDate: string;
+  lastOpened?: string;
+}
+
+interface SheetSelectionModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSheetsSelected: (selectedSheets: SheetData[]) => void;
+  documentInfo: DocumentInfo;
+}
+
+const SheetSelectionModal: React.FC<SheetSelectionModalProps> = ({
+  isOpen,
+  onClose,
+  onSheetsSelected,
+  documentInfo
+}) => {
+  const [selectedSheets, setSelectedSheets] = useState<Set<string>>(new Set());
+  const [sheets, setSheets] = useState<SheetData[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [importMode, setImportMode] = useState<'merge' | 'separate' | 'combine'>('merge');
+  const [showEmptySheets, setShowEmptySheets] = useState(false);
+  const [previewSheetId, setPreviewSheetId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Mock data for sheets
+  useEffect(() => {
+    // Simulate loading
+    setTimeout(() => {
+      const mockSheets: SheetData[] = [
+        {
+          id: '1',
+          name: 'Customers',
+          index: 0,
+          rowCount: 1250,
+          columnCount: 12,
+          hasHeaders: true,
+          estimatedSize: '2.4 MB',
+          lastModified: '2024-01-15',
+          containsData: true,
+          previewData: [
+            ['ID', 'Name', 'Email', 'Company', 'Status', 'Join Date'],
+            ['001', 'John Smith', 'john@example.com', 'Tech Corp', 'Active', '2023-01-15'],
+            ['002', 'Emma Johnson', 'emma@example.com', 'Design Co', 'Active', '2023-02-20'],
+            ['003', 'Michael Chen', 'michael@example.com', 'Consulting LLC', 'Inactive', '2023-03-10'],
+            ['004', 'Sarah Wilson', 'sarah@example.com', 'Retail Group', 'Active', '2023-04-05'],
+          ],
+          dataTypes: { string: 60, number: 25, date: 10, boolean: 5, empty: 0 }
+        },
+        {
+          id: '2',
+          name: 'Orders_2024',
+          index: 1,
+          rowCount: 8450,
+          columnCount: 8,
+          hasHeaders: true,
+          estimatedSize: '4.1 MB',
+          lastModified: '2024-01-10',
+          containsData: true,
+          previewData: [
+            ['Order ID', 'Customer ID', 'Product', 'Quantity', 'Amount', 'Order Date'],
+            ['ORD-001', 'CUST-001', 'Laptop Pro', '1', '$1,299.00', '2024-01-15'],
+            ['ORD-002', 'CUST-002', 'Mouse Wireless', '2', '$49.98', '2024-01-16'],
+            ['ORD-003', 'CUST-003', 'Keyboard Mech', '1', '$89.99', '2024-01-17'],
+          ],
+          dataTypes: { string: 30, number: 60, date: 5, boolean: 0, empty: 5 }
+        },
+        {
+          id: '3',
+          name: 'Products',
+          index: 2,
+          rowCount: 250,
+          columnCount: 6,
+          hasHeaders: true,
+          estimatedSize: '0.8 MB',
+          lastModified: '2024-01-05',
+          containsData: true,
+          previewData: [
+            ['Product ID', 'Name', 'Category', 'Price', 'Stock', 'SKU'],
+            ['P-001', 'Laptop Pro', 'Electronics', '$1,299.00', '45', 'LP-2024'],
+            ['P-002', 'Office Chair', 'Furniture', '$299.00', '120', 'OC-PRO'],
+            ['P-003', 'Desk Lamp', 'Home', '$49.99', '200', 'DL-LED'],
+          ],
+          dataTypes: { string: 40, number: 50, date: 0, boolean: 5, empty: 5 }
+        },
+        {
+          id: '4',
+          name: 'Archive_2023',
+          index: 3,
+          rowCount: 0,
+          columnCount: 0,
+          hasHeaders: false,
+          estimatedSize: '0 KB',
+          containsData: false,
+          previewData: [],
+          dataTypes: { string: 0, number: 0, date: 0, boolean: 0, empty: 100 }
+        },
+        {
+          id: '5',
+          name: 'Settings',
+          index: 4,
+          rowCount: 15,
+          columnCount: 3,
+          hasHeaders: false,
+          estimatedSize: '0.1 MB',
+          containsData: true,
+          previewData: [
+            ['Setting', 'Value', 'Description'],
+            ['Version', '2.4.1', 'Current version'],
+            ['Currency', 'USD', 'Default currency'],
+            ['Timezone', 'UTC', 'System timezone'],
+          ],
+          dataTypes: { string: 90, number: 5, date: 0, boolean: 5, empty: 0 }
+        },
+        {
+          id: '6',
+          name: 'Calculations',
+          index: 5,
+          rowCount: 100,
+          columnCount: 20,
+          hasHeaders: true,
+          estimatedSize: '1.2 MB',
+          lastModified: '2024-01-12',
+          containsData: true,
+          previewData: [
+            ['Month', 'Revenue', 'Expenses', 'Profit', 'Growth %'],
+            ['Jan 2024', '$125,000', '$85,000', '$40,000', '12.5%'],
+            ['Feb 2024', '$132,000', '$88,000', '$44,000', '10.0%'],
+            ['Mar 2024', '$140,000', '$90,000', '$50,000', '13.6%'],
+          ],
+          dataTypes: { string: 20, number: 75, date: 0, boolean: 0, empty: 5 }
+        },
+      ];
+      setSheets(mockSheets);
+      setLoading(false);
+    }, 1000);
+  }, []);
+
+  const filteredSheets = sheets.filter(sheet => {
+    if (!showEmptySheets && !sheet.containsData) return false;
+    if (searchQuery) {
+      return sheet.name.toLowerCase().includes(searchQuery.toLowerCase());
+    }
+    return true;
+  });
+
+  const handleSheetSelect = (sheetId: string) => {
+    const newSelected = new Set(selectedSheets);
+    if (newSelected.has(sheetId)) {
+      newSelected.delete(sheetId);
+    } else {
+      newSelected.add(sheetId);
+    }
+    setSelectedSheets(newSelected);
+  };
+
+  const handleSelectAllDataSheets = () => {
+    const dataSheets = sheets.filter(sheet => sheet.containsData);
+    const allDataSheetIds = new Set(dataSheets.map(sheet => sheet.id));
+    setSelectedSheets(allDataSheetIds);
+  };
+
+  const handleDeselectAll = () => {
+    setSelectedSheets(new Set());
+  };
+
+  const handleConfirmSelection = () => {
+    const selected = sheets.filter(sheet => selectedSheets.has(sheet.id));
+    onSheetsSelected(selected);
+    onClose();
+  };
+
+  const previewSheet = previewSheetId ? sheets.find(s => s.id === previewSheetId) : null;
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-6xl max-h-[90vh] overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 border-b">
+          <div className="flex items-center space-x-3">
+            <FileSpreadsheet className="w-6 h-6 text-green-600" />
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900">Select Sheets to Import</h2>
+              <p className="text-sm text-gray-500">
+                {documentInfo.fileName} • {documentInfo.fileSize} • {documentInfo.fileType}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+          >
+            <X className="w-5 h-5 text-gray-500" />
+          </button>
+        </div>
+
+        {/* Main Content */}
+        <div className="flex flex-col h-[calc(90vh-8rem)]">
+          {/* Filters and Controls */}
+          <div className="p-4 border-b space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <div className="relative flex-1 max-w-md">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search sheets..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10 pr-4 py-2 border rounded w-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+                <label className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    checked={showEmptySheets}
+                    onChange={(e) => setShowEmptySheets(e.target.checked)}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="text-sm text-gray-700">Show empty sheets</span>
+                </label>
+              </div>
+              <div className="text-sm text-gray-600">
+                {selectedSheets.size} of {sheets.filter(s => s.containsData).length} data sheets selected
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Import Mode</label>
+                <div className="flex space-x-2">
+                  {[
+                    { id: 'merge', label: 'Merge Data', description: 'Combine all sheets into one dataset' },
+                    { id: 'separate', label: 'Separate Tables', description: 'Import each sheet as separate table' },
+                    { id: 'combine', label: 'Smart Combine', description: 'Auto-detect and combine related data' },
+                  ].map((mode) => (
+                    <button
+                      key={mode.id}
+                      onClick={() => setImportMode(mode.id as any)}
+                      className={`px-4 py-2 rounded border ${importMode === mode.id ? 'bg-blue-50 border-blue-500 text-blue-700' : 'border-gray-300 text-gray-700 hover:bg-gray-50'}`}
+                    >
+                      <div className="font-medium">{mode.label}</div>
+                      <div className="text-xs opacity-75">{mode.description}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-1 overflow-hidden">
+            {/* Left Panel - Sheet List */}
+            <div className="w-1/3 border-r overflow-y-auto">
+              <div className="p-4 border-b">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="font-medium text-gray-900">Available Sheets</h3>
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={handleSelectAllDataSheets}
+                      className="text-sm text-blue-600 hover:text-blue-800"
+                    >
+                      Select All Data
+                    </button>
+                    <button
+                      onClick={handleDeselectAll}
+                      className="text-sm text-gray-600 hover:text-gray-800"
+                    >
+                      Clear All
+                    </button>
+                  </div>
+                </div>
+                {loading ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                    <p className="mt-2 text-gray-600">Loading sheets...</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {filteredSheets.map((sheet) => (
+                      <div
+                        key={sheet.id}
+                        className={`p-3 rounded border cursor-pointer transition-all ${selectedSheets.has(sheet.id) ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:bg-gray-50'} ${previewSheetId === sheet.id ? 'ring-2 ring-blue-500' : ''}`}
+                        onClick={() => {
+                          if (sheet.containsData) {
+                            handleSheetSelect(sheet.id);
+                          }
+                        }}
+                        onDoubleClick={() => setPreviewSheetId(sheet.id)}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-3">
+                            <div className={`w-2 h-2 rounded-full ${sheet.containsData ? 'bg-green-500' : 'bg-gray-300'}`} />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center space-x-2">
+                                <span className="font-medium text-gray-900 truncate">{sheet.name}</span>
+                                {!sheet.hasHeaders && (
+                                  <span className="px-2 py-0.5 bg-yellow-100 text-yellow-800 rounded text-xs">
+                                    No Headers
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-xs text-gray-500 mt-1">
+                                {sheet.rowCount} rows × {sheet.columnCount} cols • {sheet.estimatedSize}
+                                {sheet.lastModified && ` • Modified ${sheet.lastModified}`}
+                              </div>
+                            </div>
+                          </div>
+                          {selectedSheets.has(sheet.id) && (
+                            <Check className="w-5 h-5 text-blue-600" />
+                          )}
+                        </div>
+                        {sheet.dataTypes && (
+                          <div className="mt-2">
+                            <div className="flex h-1 rounded-full overflow-hidden">
+                              {Object.entries(sheet.dataTypes).map(([type, percent]) => (
+                                <div
+                                  key={type}
+                                  style={{ width: `${percent}%` }}
+                                  className={`h-full ${
+                                    type === 'string' ? 'bg-blue-500' :
+                                    type === 'number' ? 'bg-green-500' :
+                                    type === 'date' ? 'bg-purple-500' :
+                                    type === 'boolean' ? 'bg-yellow-500' : 'bg-gray-300'
+                                  }`}
+                                  title={`${type}: ${percent}%`}
+                                />
+                              ))}
+                            </div>
+                            <div className="flex justify-between text-xs text-gray-500 mt-1">
+                              <span>Data types distribution</span>
+                              <span>{sheet.containsData ? 'Contains data' : 'Empty'}</span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Right Panel - Preview */}
+            <div className="flex-1 overflow-hidden flex flex-col">
+              {previewSheet ? (
+                <>
+                  <div className="p-4 border-b">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="font-medium text-gray-900">{previewSheet.name} Preview</h3>
+                        <p className="text-sm text-gray-500">
+                          First {previewSheet.previewData.length} rows of {previewSheet.rowCount} total
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => setPreviewSheetId(null)}
+                        className="text-sm text-gray-600 hover:text-gray-800"
+                      >
+                        Close Preview
+                      </button>
+                    </div>
+                  </div>
+                  <div className="flex-1 overflow-auto p-4">
+                    <div className="inline-block min-w-full align-middle">
+                      <table className="min-w-full divide-y divide-gray-200 border">
+                        <thead>
+                          <tr className="bg-gray-50">
+                            {previewSheet.previewData[0]?.map((header, idx) => (
+                              <th
+                                key={idx}
+                                className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border"
+                              >
+                                <div className="flex items-center space-x-1">
+                                  <span>{header}</span>
+                                  {previewSheet.hasHeaders && idx === 0 && (
+                                    <span className="px-1 bg-green-100 text-green-800 text-xs rounded">Header</span>
+                                  )}
+                                </div>
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          {previewSheet.previewData.slice(1).map((row, rowIdx) => (
+                            <tr key={rowIdx} className="hover:bg-gray-50">
+                              {row.map((cell, cellIdx) => (
+                                <td
+                                  key={cellIdx}
+                                  className="px-3 py-2 whitespace-nowrap text-sm text-gray-900 border"
+                                >
+                                  {cell || <span className="text-gray-400 italic">empty</span>}
+                                </td>
+                              ))}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    {previewSheet.previewData.length === 0 && (
+                      <div className="text-center py-12 text-gray-500">
+                        <AlertCircle className="w-12 h-12 mx-auto text-gray-300 mb-4" />
+                        <p>This sheet appears to be empty</p>
+                        <p className="text-sm mt-1">No data available for preview</p>
+                      </div>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <div className="flex-1 flex items-center justify-center text-gray-500">
+                  <div className="text-center">
+                    <FileSpreadsheet className="w-16 h-16 mx-auto text-gray-300 mb-4" />
+                    <p>Double-click a sheet to preview its contents</p>
+                    <p className="text-sm mt-1">Select sheets you want to import from the list</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-between p-6 border-t">
+          <div className="flex items-center space-x-2 text-sm text-gray-600">
+            <Info className="w-4 h-4" />
+            <span>
+              {importMode === 'merge' && 'Sheets will be merged based on common columns'}
+              {importMode === 'separate' && 'Each sheet will be imported as a separate table'}
+              {importMode === 'combine' && 'Related data will be automatically combined'}
+            </span>
+          </div>
+          <div className="flex items-center space-x-3">
+            <button
+              onClick={onClose}
+              className="px-6 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleConfirmSelection}
+              disabled={selectedSheets.size === 0}
+              className="px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+            >
+              <Check className="w-4 h-4" />
+              <span>
+                Import {selectedSheets.size} Sheet{selectedSheets.size !== 1 ? 's' : ''}
+              </span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default SheetSelectionModal;
