@@ -1,31 +1,67 @@
-// modules/utils.js
-export async function loadComponent(url, elementId) {
-    try {
-        const response = await fetch(url);
-        const html = await response.text();
-        document.getElementById(elementId).innerHTML = html;
-    } catch (error) {
-        console.error(`Failed to load component ${url}:`, error);
-    }
-}
-
+// utils.js - Basic utility functions
 export function showNotification(message, type = 'info') {
-    // Create notification element
-    const notification = document.createElement('div');
-    notification.className = `notification ${type}`;
-    notification.textContent = message;
+    console.log(`Notification [${type}]: ${message}`);
     
-    // Add to DOM
-    document.body.appendChild(notification);
+    // Create a simple toast notification
+    const toast = document.createElement('div');
+    toast.textContent = message;
+    toast.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 12px 24px;
+        background: ${type === 'error' ? '#dc3545' : type === 'success' ? '#28a745' : '#007bff'};
+        color: white;
+        border-radius: 5px;
+        z-index: 1000;
+        animation: slideIn 0.3s ease;
+    `;
     
-    // Remove after 3 seconds
+    document.body.appendChild(toast);
+    
     setTimeout(() => {
-        notification.remove();
+        toast.remove();
     }, 3000);
 }
 
 export async function checkAuth() {
-    // Check if user is logged in
-    const user = localStorage.getItem('user');
-    return !!user;
+    try {
+        const user = localStorage.getItem('user');
+        return !!user;
+    } catch (error) {
+        console.warn('Auth check failed:', error);
+        return false;
+    }
+}
+
+export async function loadComponent(url, containerId) {
+    try {
+        const response = await fetch(url);
+        const html = await response.text();
+        const container = document.getElementById(containerId);
+        if (container) {
+            container.innerHTML = html;
+            return true;
+        }
+        return false;
+    } catch (error) {
+        console.error(`Failed to load component ${url}:`, error);
+        return false;
+    }
+}
+
+export function formatDate(date) {
+    return new Date(date).toLocaleDateString();
+}
+
+export function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
 }
