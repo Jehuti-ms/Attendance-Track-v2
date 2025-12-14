@@ -1044,3 +1044,13 @@ window.startDemoMode = function() {
 window.initializeApp = initializeApp;
 
 console.log("✅ main.js setup complete - Ready to initialize");
+
+// Add this to your main.js to debug
+console.log('=== DEBUG INFO ===');
+console.log('Current URL:', window.location.href);
+console.log('Pathname:', window.location.pathname);
+console.log('goToAttendance function:', typeof window.goToAttendance);
+
+// Test what path will be used
+const testPath = 'pages/attendance.html';
+console.log('Test path resolves to:', new URL(testPath, window.location.href).href);
