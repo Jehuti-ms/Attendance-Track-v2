@@ -1,83 +1,103 @@
-// assets/js/main.js - CORRECTED VERSION
-console.log("🎯 main.js loading...");
+// assets/js/main.js - COMPLETE FILE (NO EXPORTS)
+console.log("🎯 Attendance Track v2 - main.js loading");
 
-// Global app state
+// ==================== GLOBAL APP STATE ====================
 window.appState = {
     user: null,
     theme: 'light',
     isOnline: navigator.onLine,
-    isLoading: true
+    isLoading: true,
+    currentPage: window.location.pathname.split('/').pop() || 'index.html'
 };
 
-// Initialize app when DOM is ready
+// ==================== INITIALIZATION ====================
 document.addEventListener('DOMContentLoaded', function() {
-    console.log("📄 DOMContentLoaded fired");
-    initializeApp();
+    console.log("📄 DOM ready");
+    
+    // Update loading status
+    updateStatus('Initializing application...');
+    
+    // Initialize the app
+    setTimeout(function() {
+        try {
+            initializeApp();
+        } catch (error) {
+            console.error("❌ Initialization error:", error);
+            updateStatus('Error: ' + error.message, 'error');
+            showError(error.message);
+        }
+    }, 100);
 });
 
+// ==================== MAIN APP FUNCTIONS ====================
 function initializeApp() {
     console.log("🚀 Initializing Attendance Track v2");
     
-    try {
-        // Update loading status
-        updateStatus('Checking authentication...');
-        
-        // 1. Check authentication
-        checkAuth();
-        
-        // 2. Load header
-        loadHeader();
-        
-        // 3. Setup event listeners
-        setupEventListeners();
-        
-        // 4. Load main content
-        loadMainContent();
-        
-        // 5. Update UI
-        updateUI();
-        
-        // 6. Initialize service worker
-        initServiceWorker();
-        
-        window.appState.isLoading = false;
-        console.log("✅ App initialized successfully");
-        updateStatus('Ready!', 'success');
-        
-    } catch (error) {
-        console.error("❌ Error initializing app:", error);
-        updateStatus('Error: ' + error.message, 'error');
-        showError(error.message);
-    }
+    // 1. Check authentication
+    checkAuth();
+    
+    // 2. Load header
+    loadHeader();
+    
+    // 3. Load main content
+    loadMainContent();
+    
+    // 4. Setup event listeners
+    setupEventListeners();
+    
+    // 5. Initialize service worker
+    initServiceWorker();
+    
+    // 6. Update UI
+    updateUI();
+    
+    window.appState.isLoading = false;
+    console.log("✅ App initialized successfully");
+    updateStatus('Ready!', 'success');
+    
+    // Hide loading after delay
+    setTimeout(function() {
+        const loadingContent = document.getElementById('loading-content');
+        if (loadingContent) {
+            loadingContent.style.opacity = '0';
+            setTimeout(function() {
+                loadingContent.style.display = 'none';
+            }, 300);
+        }
+    }, 500);
 }
 
-function updateStatus(message, type = 'info') {
+function updateStatus(message, type) {
     const statusEl = document.getElementById('load-status');
     if (statusEl) {
         statusEl.textContent = message;
         if (type === 'success') {
-            statusEl.style.color = 'green';
+            statusEl.style.color = '#28a745';
         } else if (type === 'error') {
-            statusEl.style.color = 'red';
+            statusEl.style.color = '#dc3545';
         } else if (type === 'warning') {
-            statusEl.style.color = 'orange';
+            statusEl.style.color = '#ffc107';
+        } else {
+            statusEl.style.color = '#405dde';
         }
     }
     console.log("Status:", message);
 }
 
 function checkAuth() {
-    const userData = localStorage.getItem('attendance_user');
-    if (userData) {
-        try {
+    console.log("🔐 Checking authentication...");
+    
+    try {
+        const userData = localStorage.getItem('attendance_user');
+        if (userData) {
             window.appState.user = JSON.parse(userData);
             console.log("👤 User found:", window.appState.user.name);
-        } catch (e) {
-            console.warn("Invalid user data in storage");
-            localStorage.removeItem('attendance_user');
+        } else {
+            console.log("👤 No user logged in");
         }
-    } else {
-        console.log("👤 No user logged in");
+    } catch (error) {
+        console.warn("⚠️ Error parsing user data:", error);
+        localStorage.removeItem('attendance_user');
     }
 }
 
@@ -90,93 +110,104 @@ function loadHeader() {
         return;
     }
     
-    // Try to load header component
-    fetch('components/header.html')
-        .then(response => {
-            if (!response.ok) throw new Error('Header not found');
-            return response.text();
-        })
-        .then(html => {
-            headerContainer.innerHTML = html;
-            console.log("✅ Header loaded from component");
-        })
-        .catch(error => {
-            console.warn("⚠️ Using fallback header:", error);
-            // Create fallback header
-            headerContainer.innerHTML = `
-                <header style="
-                    background: #405dde;
-                    color: white;
-                    padding: 15px 30px;
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-                ">
-                    <div style="display: flex; align-items: center; gap: 15px;">
-                        <i class="fas fa-clipboard-check fa-lg"></i>
-                        <h1 style="margin: 0; font-size: 1.5rem; font-weight: 600;">
-                            Attendance Track v2
-                        </h1>
+    // Create header HTML
+    headerContainer.innerHTML = `
+        <header style="
+            background: #405dde;
+            color: white;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: relative;
+            z-index: 1000;
+        ">
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <div style="font-size: 1.5rem;">
+                    <i class="fas fa-clipboard-check"></i>
+                </div>
+                <div>
+                    <h1 style="margin: 0; font-size: 1.3rem; font-weight: 600;">
+                        Attendance Track v2
+                    </h1>
+                    <div style="font-size: 0.8rem; opacity: 0.8; margin-top: 2px;">
+                        <span id="online-status" style="color: ${window.appState.isOnline ? '#90ee90' : '#ff6b6b'};">
+                            <i class="fas fa-circle fa-xs"></i> ${window.appState.isOnline ? 'Online' : 'Offline'}
+                        </span>
                     </div>
-                    <div style="display: flex; gap: 10px;">
-                        ${window.appState.user ? `
-                            <span style="padding: 8px 16px; background: rgba(255,255,255,0.2); border-radius: 4px;">
-                                <i class="fas fa-user"></i> ${window.appState.user.name}
-                            </span>
-                            <button onclick="logout()" style="
-                                padding: 8px 16px;
-                                background: white;
-                                color: #405dde;
-                                border: none;
-                                border-radius: 4px;
-                                cursor: pointer;
-                                font-weight: 500;
-                            ">
-                                <i class="fas fa-sign-out-alt"></i> Logout
-                            </button>
-                        ` : `
-                            <button onclick="window.location.href='pages/login.html'" style="
-                                padding: 8px 16px;
-                                background: white;
-                                color: #405dde;
-                                border: none;
-                                border-radius: 4px;
-                                cursor: pointer;
-                                font-weight: 500;
-                            ">
-                                <i class="fas fa-sign-in-alt"></i> Login
-                            </button>
-                            <button onclick="startDemoMode()" style="
-                                padding: 8px 16px;
-                                background: rgba(255,255,255,0.2);
-                                color: white;
-                                border: 1px solid rgba(255,255,255,0.3);
-                                border-radius: 4px;
-                                cursor: pointer;
-                            ">
-                                <i class="fas fa-play-circle"></i> Demo
-                            </button>
-                        `}
+                </div>
+            </div>
+            
+            <div style="display: flex; align-items: center; gap: 15px;">
+                ${window.appState.user ? `
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <div style="
+                            width: 36px;
+                            height: 36px;
+                            background: rgba(255,255,255,0.2);
+                            border-radius: 50%;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                        ">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <div>
+                            <div style="font-weight: 500; font-size: 0.9rem;">
+                                ${window.appState.user.name}
+                            </div>
+                            <div style="font-size: 0.8rem; opacity: 0.8;">
+                                ${window.appState.user.role || 'User'}
+                            </div>
+                        </div>
                     </div>
-                </header>
-            `;
-        });
-}
-
-function setupEventListeners() {
-    console.log("🔧 Setting up event listeners...");
-    
-    // Online/offline detection
-    window.addEventListener('online', function() {
-        window.appState.isOnline = true;
-        showNotification('Back online', 'success');
-    });
-    
-    window.addEventListener('offline', function() {
-        window.appState.isOnline = false;
-        showNotification('You are offline', 'warning');
-    });
+                    <button onclick="logout()" style="
+                        padding: 8px 16px;
+                        background: rgba(255,255,255,0.9);
+                        color: #405dde;
+                        border: none;
+                        border-radius: 4px;
+                        cursor: pointer;
+                        font-weight: 500;
+                        font-size: 0.9rem;
+                        transition: all 0.2s ease;
+                    " onmouseover="this.style.background='white'"
+                     onmouseout="this.style.background='rgba(255,255,255,0.9)'">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </button>
+                ` : `
+                    <button onclick="goToLogin()" style="
+                        padding: 8px 16px;
+                        background: rgba(255,255,255,0.9);
+                        color: #405dde;
+                        border: none;
+                        border-radius: 4px;
+                        cursor: pointer;
+                        font-weight: 500;
+                        font-size: 0.9rem;
+                        transition: all 0.2s ease;
+                    " onmouseover="this.style.background='white'"
+                     onmouseout="this.style.background='rgba(255,255,255,0.9)'">
+                        <i class="fas fa-sign-in-alt"></i> Login
+                    </button>
+                    <button onclick="startDemoMode()" style="
+                        padding: 8px 16px;
+                        background: transparent;
+                        color: white;
+                        border: 1px solid rgba(255,255,255,0.3);
+                        border-radius: 4px;
+                        cursor: pointer;
+                        font-size: 0.9rem;
+                        transition: all 0.2s ease;
+                    " onmouseover="this.style.background='rgba(255,255,255,0.1)'"
+                     onmouseout="this.style.background='transparent'">
+                        <i class="fas fa-play-circle"></i> Try Demo
+                    </button>
+                `}
+            </div>
+        </header>
+    `;
 }
 
 function loadMainContent() {
@@ -188,189 +219,506 @@ function loadMainContent() {
         return;
     }
     
-    // Remove loading content
+    // Remove loading indicator
     const loadingContent = document.getElementById('loading-content');
     if (loadingContent) {
-        loadingContent.style.display = 'none';
+        loadingContent.style.transition = 'opacity 0.3s ease';
+        loadingContent.style.opacity = '0';
+        setTimeout(function() {
+            loadingContent.style.display = 'none';
+        }, 300);
     }
     
-    // Load appropriate content based on auth
+    // Load content based on authentication
     if (window.appState.user) {
-        // User is logged in - show dashboard
-        appContainer.innerHTML = `
-            <div class="dashboard" style="padding: 30px;">
-                <div style="margin-bottom: 40px;">
-                    <h2 style="color: #333; margin-bottom: 10px;">
-                        Welcome back, ${window.appState.user.name}!
-                    </h2>
-                    <p style="color: #666;">
-                        ${window.appState.user.role === 'teacher' ? 'Teacher' : 'Administrator'} • 
-                        <span style="color: ${window.appState.isOnline ? '#28a745' : '#dc3545'};">
-                            <i class="fas fa-circle fa-xs"></i> ${window.appState.isOnline ? 'Online' : 'Offline'}
-                        </span>
-                    </p>
+        loadDashboardContent(appContainer);
+    } else {
+        loadLandingContent(appContainer);
+    }
+}
+
+function loadDashboardContent(container) {
+    container.innerHTML = `
+        <div style="padding: 30px; max-width: 1200px; margin: 0 auto;">
+            <!-- Welcome section -->
+            <div style="
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                padding: 30px;
+                border-radius: 10px;
+                margin-bottom: 30px;
+                box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            ">
+                <h2 style="margin: 0 0 10px 0; font-size: 1.8rem;">
+                    Welcome back, ${window.appState.user.name}!
+                </h2>
+                <p style="margin: 0; opacity: 0.9;">
+                    ${window.appState.user.role === 'teacher' ? 'Teacher Dashboard' : 'Administrator Dashboard'} • 
+                    Last login: Today
+                </p>
+            </div>
+            
+            <!-- Quick Stats -->
+            <div style="
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 20px;
+                margin-bottom: 30px;
+            ">
+                <div style="
+                    background: white;
+                    padding: 20px;
+                    border-radius: 8px;
+                    box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+                    text-align: center;
+                ">
+                    <div style="font-size: 2rem; color: #405dde; margin-bottom: 10px;">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div style="font-size: 1.8rem; font-weight: 600; color: #333;">
+                        24
+                    </div>
+                    <div style="color: #666; font-size: 0.9rem;">
+                        Total Students
+                    </div>
                 </div>
                 
+                <div style="
+                    background: white;
+                    padding: 20px;
+                    border-radius: 8px;
+                    box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+                    text-align: center;
+                ">
+                    <div style="font-size: 2rem; color: #28a745; margin-bottom: 10px;">
+                        <i class="fas fa-clipboard-check"></i>
+                    </div>
+                    <div style="font-size: 1.8rem; font-weight: 600; color: #333;">
+                        92%
+                    </div>
+                    <div style="color: #666; font-size: 0.9rem;">
+                        Attendance Rate
+                    </div>
+                </div>
+                
+                <div style="
+                    background: white;
+                    padding: 20px;
+                    border-radius: 8px;
+                    box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+                    text-align: center;
+                ">
+                    <div style="font-size: 2rem; color: #ffc107; margin-bottom: 10px;">
+                        <i class="fas fa-calendar-alt"></i>
+                    </div>
+                    <div style="font-size: 1.8rem; font-weight: 600; color: #333;">
+                        5
+                    </div>
+                    <div style="color: #666; font-size: 0.9rem;">
+                        Classes Today
+                    </div>
+                </div>
+                
+                <div style="
+                    background: white;
+                    padding: 20px;
+                    border-radius: 8px;
+                    box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+                    text-align: center;
+                ">
+                    <div style="font-size: 2rem; color: #dc3545; margin-bottom: 10px;">
+                        <i class="fas fa-exclamation-circle"></i>
+                    </div>
+                    <div style="font-size: 1.8rem; font-weight: 600; color: #333;">
+                        3
+                    </div>
+                    <div style="color: #666; font-size: 0.9rem;">
+                        Pending Actions
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Quick Actions -->
+            <div style="margin-bottom: 40px;">
+                <h3 style="color: #333; margin-bottom: 20px;">Quick Actions</h3>
                 <div style="
                     display: grid;
                     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
                     gap: 20px;
-                    margin-bottom: 40px;
                 ">
-                    <div class="card" style="
+                    <button onclick="goToAttendance()" style="
                         background: white;
+                        border: none;
                         padding: 25px;
-                        border-radius: 10px;
-                        box-shadow: 0 3px 10px rgba(0,0,0,0.1);
-                        text-align: center;
-                    ">
-                        <div style="font-size: 2rem; color: #405dde; margin-bottom: 15px;">
+                        border-radius: 8px;
+                        cursor: pointer;
+                        text-align: left;
+                        box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+                        transition: all 0.3s ease;
+                        display: flex;
+                        align-items: center;
+                        gap: 15px;
+                    " onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 8px 25px rgba(0,0,0,0.12)'"
+                     onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 3px 10px rgba(0,0,0,0.08)'">
+                        <div style="
+                            width: 50px;
+                            height: 50px;
+                            background: #405dde;
+                            border-radius: 10px;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            color: white;
+                            font-size: 1.3rem;
+                        ">
                             <i class="fas fa-clipboard-check"></i>
                         </div>
-                        <h3 style="margin-bottom: 10px;">Take Attendance</h3>
-                        <p style="color: #666; margin-bottom: 20px;">Record today's attendance</p>
-                        <button onclick="window.location.href='pages/attendance.html'" style="
-                            padding: 10px 20px;
-                            background: #405dde;
-                            color: white;
-                            border: none;
-                            border-radius: 5px;
-                            cursor: pointer;
-                            width: 100%;
-                        ">
-                            Start Attendance
-                        </button>
-                    </div>
+                        <div>
+                            <div style="font-weight: 600; color: #333; margin-bottom: 5px;">
+                                Take Attendance
+                            </div>
+                            <div style="color: #666; font-size: 0.9rem;">
+                                Record today's attendance
+                            </div>
+                        </div>
+                    </button>
                     
-                    <div class="card" style="
+                    <button onclick="goToReports()" style="
                         background: white;
+                        border: none;
                         padding: 25px;
-                        border-radius: 10px;
-                        box-shadow: 0 3px 10px rgba(0,0,0,0.1);
-                        text-align: center;
-                    ">
-                        <div style="font-size: 2rem; color: #28a745; margin-bottom: 15px;">
+                        border-radius: 8px;
+                        cursor: pointer;
+                        text-align: left;
+                        box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+                        transition: all 0.3s ease;
+                        display: flex;
+                        align-items: center;
+                        gap: 15px;
+                    " onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 8px 25px rgba(0,0,0,0.12)'"
+                     onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 3px 10px rgba(0,0,0,0.08)'">
+                        <div style="
+                            width: 50px;
+                            height: 50px;
+                            background: #28a745;
+                            border-radius: 10px;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            color: white;
+                            font-size: 1.3rem;
+                        ">
                             <i class="fas fa-chart-bar"></i>
                         </div>
-                        <h3 style="margin-bottom: 10px;">View Reports</h3>
-                        <p style="color: #666; margin-bottom: 20px;">Generate attendance reports</p>
-                        <button onclick="window.location.href='pages/reports.html'" style="
-                            padding: 10px 20px;
-                            background: #28a745;
-                            color: white;
-                            border: none;
-                            border-radius: 5px;
-                            cursor: pointer;
-                            width: 100%;
-                        ">
-                            View Reports
-                        </button>
-                    </div>
+                        <div>
+                            <div style="font-weight: 600; color: #333; margin-bottom: 5px;">
+                                View Reports
+                            </div>
+                            <div style="color: #666; font-size: 0.9rem;">
+                                Generate attendance reports
+                            </div>
+                        </div>
+                    </button>
                     
-                    <div class="card" style="
+                    <button onclick="goToSettings()" style="
                         background: white;
+                        border: none;
                         padding: 25px;
-                        border-radius: 10px;
-                        box-shadow: 0 3px 10px rgba(0,0,0,0.1);
-                        text-align: center;
-                    ">
-                        <div style="font-size: 2rem; color: #6c757d; margin-bottom: 15px;">
+                        border-radius: 8px;
+                        cursor: pointer;
+                        text-align: left;
+                        box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+                        transition: all 0.3s ease;
+                        display: flex;
+                        align-items: center;
+                        gap: 15px;
+                    " onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 8px 25px rgba(0,0,0,0.12)'"
+                     onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 3px 10px rgba(0,0,0,0.08)'">
+                        <div style="
+                            width: 50px;
+                            height: 50px;
+                            background: #6c757d;
+                            border-radius: 10px;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            color: white;
+                            font-size: 1.3rem;
+                        ">
                             <i class="fas fa-cog"></i>
                         </div>
-                        <h3 style="margin-bottom: 10px;">Settings</h3>
-                        <p style="color: #666; margin-bottom: 20px;">Configure your system</p>
-                        <button onclick="window.location.href='pages/settings.html'" style="
-                            padding: 10px 20px;
-                            background: #6c757d;
-                            color: white;
-                            border: none;
-                            border-radius: 5px;
-                            cursor: pointer;
-                            width: 100%;
-                        ">
-                            Go to Settings
-                        </button>
+                        <div>
+                            <div style="font-weight: 600; color: #333; margin-bottom: 5px;">
+                                Settings
+                            </div>
+                            <div style="color: #666; font-size: 0.9rem;">
+                                Configure your system
+                            </div>
+                        </div>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Recent Activity -->
+            <div style="
+                background: white;
+                padding: 25px;
+                border-radius: 8px;
+                box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+            ">
+                <h3 style="color: #333; margin-bottom: 20px;">Recent Activity</h3>
+                <div style="color: #666;">
+                    <div style="padding: 10px 0; border-bottom: 1px solid #eee;">
+                        <i class="fas fa-check-circle" style="color: #28a745; margin-right: 10px;"></i>
+                        Attendance taken for Mathematics 101 - Today, 9:00 AM
+                    </div>
+                    <div style="padding: 10px 0; border-bottom: 1px solid #eee;">
+                        <i class="fas fa-file-export" style="color: #405dde; margin-right: 10px;"></i>
+                        Report exported for Week 45 - Yesterday, 3:30 PM
+                    </div>
+                    <div style="padding: 10px 0;">
+                        <i class="fas fa-user-plus" style="color: #ffc107; margin-right: 10px;"></i>
+                        3 new students added - Monday, 10:15 AM
                     </div>
                 </div>
             </div>
-        `;
-    } else {
-        // User not logged in - show landing page
-        appContainer.innerHTML = `
-            <div class="landing" style="padding: 40px 20px; text-align: center;">
-                <div style="max-width: 800px; margin: 0 auto;">
-                    <div style="margin-bottom: 40px;">
-                        <h1 style="font-size: 2.5rem; color: #405dde; margin-bottom: 15px;">
-                            Complete Attendance Management
-                        </h1>
-                        <p style="font-size: 1.2rem; color: #666; line-height: 1.6;">
-                            Track, manage, and report student attendance efficiently with our comprehensive system.
-                            Perfect for schools, colleges, and training institutions.
+        </div>
+    `;
+}
+
+function loadLandingContent(container) {
+    container.innerHTML = `
+        <div style="padding: 40px 20px; text-align: center;">
+            <div style="max-width: 1000px; margin: 0 auto;">
+                <!-- Hero Section -->
+                <div style="margin-bottom: 60px;">
+                    <div style="
+                        width: 100px;
+                        height: 100px;
+                        background: linear-gradient(135deg, #405dde, #667eea);
+                        border-radius: 25px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        margin: 0 auto 30px;
+                        color: white;
+                        font-size: 3rem;
+                        box-shadow: 0 10px 30px rgba(64, 93, 222, 0.3);
+                    ">
+                        <i class="fas fa-clipboard-check"></i>
+                    </div>
+                    
+                    <h1 style="
+                        font-size: 3rem;
+                        color: #333;
+                        margin-bottom: 20px;
+                        background: linear-gradient(135deg, #405dde, #667eea);
+                        -webkit-background-clip: text;
+                        -webkit-text-fill-color: transparent;
+                        background-clip: text;
+                    ">
+                        Attendance Track v2
+                    </h1>
+                    
+                    <p style="
+                        font-size: 1.3rem;
+                        color: #666;
+                        line-height: 1.6;
+                        max-width: 700px;
+                        margin: 0 auto 40px;
+                    ">
+                        The complete solution for tracking, managing, and reporting student attendance.
+                        Perfect for schools, colleges, and training institutions.
+                    </p>
+                </div>
+                
+                <!-- Features Grid -->
+                <div style="
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+                    gap: 30px;
+                    margin-bottom: 60px;
+                ">
+                    <div style="
+                        background: white;
+                        padding: 35px 25px;
+                        border-radius: 15px;
+                        text-align: center;
+                        box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+                        transition: all 0.3s ease;
+                        border: 1px solid #f0f0f0;
+                    " onmouseover="this.style.transform='translateY(-10px)'; this.style.boxShadow='0 15px 35px rgba(0,0,0,0.12)'"
+                     onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 8px 25px rgba(0,0,0,0.08)'">
+                        <div style="
+                            width: 70px;
+                            height: 70px;
+                            background: linear-gradient(135deg, #405dde, #667eea);
+                            border-radius: 15px;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            margin: 0 auto 25px;
+                            color: white;
+                            font-size: 1.8rem;
+                        ">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <h3 style="color: #333; margin-bottom: 15px; font-size: 1.3rem;">
+                            Student Management
+                        </h3>
+                        <p style="color: #666; line-height: 1.6; font-size: 0.95rem;">
+                            Easily manage multiple classes and students with an intuitive interface.
                         </p>
                     </div>
                     
                     <div style="
-                        display: grid;
-                        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-                        gap: 25px;
-                        margin: 50px 0;
-                    ">
-                        <div style="text-align: center;">
-                            <div style="font-size: 2.5rem; color: #405dde; margin-bottom: 15px;">
-                                <i class="fas fa-users"></i>
-                            </div>
-                            <h3 style="margin-bottom: 10px;">Student Management</h3>
-                            <p style="color: #666;">Manage multiple classes and students</p>
+                        background: white;
+                        padding: 35px 25px;
+                        border-radius: 15px;
+                        text-align: center;
+                        box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+                        transition: all 0.3s ease;
+                        border: 1px solid #f0f0f0;
+                    " onmouseover="this.style.transform='translateY(-10px)'; this.style.boxShadow='0 15px 35px rgba(0,0,0,0.12)'"
+                     onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 8px 25px rgba(0,0,0,0.08)'">
+                        <div style="
+                            width: 70px;
+                            height: 70px;
+                            background: linear-gradient(135deg, #28a745, #20c997);
+                            border-radius: 15px;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            margin: 0 auto 25px;
+                            color: white;
+                            font-size: 1.8rem;
+                        ">
+                            <i class="fas fa-chart-pie"></i>
                         </div>
-                        
-                        <div style="text-align: center;">
-                            <div style="font-size: 2.5rem; color: #28a745; margin-bottom: 15px;">
-                                <i class="fas fa-chart-pie"></i>
-                            </div>
-                            <h3 style="margin-bottom: 10px;">Analytics</h3>
-                            <p style="color: #666;">Detailed reports and insights</p>
-                        </div>
-                        
-                        <div style="text-align: center;">
-                            <div style="font-size: 2.5rem; color: #ffc107; margin-bottom: 15px;">
-                                <i class="fas fa-file-export"></i>
-                            </div>
-                            <h3 style="margin-bottom: 10px;">Export Data</h3>
-                            <p style="color: #666;">PDF, Excel, and CSV exports</p>
-                        </div>
+                        <h3 style="color: #333; margin-bottom: 15px; font-size: 1.3rem;">
+                            Analytics & Reports
+                        </h3>
+                        <p style="color: #666; line-height: 1.6; font-size: 0.95rem;">
+                            Generate detailed reports and gain insights with comprehensive analytics.
+                        </p>
                     </div>
                     
-                    <div style="margin-top: 50px;">
-                        <button onclick="window.location.href='pages/login.html'" style="
-                            padding: 15px 40px;
-                            background: #405dde;
+                    <div style="
+                        background: white;
+                        padding: 35px 25px;
+                        border-radius: 15px;
+                        text-align: center;
+                        box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+                        transition: all 0.3s ease;
+                        border: 1px solid #f0f0f0;
+                    " onmouseover="this.style.transform='translateY(-10px)'; this.style.boxShadow='0 15px 35px rgba(0,0,0,0.12)'"
+                     onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 8px 25px rgba(0,0,0,0.08)'">
+                        <div style="
+                            width: 70px;
+                            height: 70px;
+                            background: linear-gradient(135deg, #ffc107, #fd7e14);
+                            border-radius: 15px;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            margin: 0 auto 25px;
+                            color: white;
+                            font-size: 1.8rem;
+                        ">
+                            <i class="fas fa-file-export"></i>
+                        </div>
+                        <h3 style="color: #333; margin-bottom: 15px; font-size: 1.3rem;">
+                            Export Data
+                        </h3>
+                        <p style="color: #666; line-height: 1.6; font-size: 0.95rem;">
+                            Export attendance data in multiple formats including PDF, Excel, and CSV.
+                        </p>
+                    </div>
+                </div>
+                
+                <!-- Call to Action -->
+                <div style="
+                    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+                    padding: 50px;
+                    border-radius: 15px;
+                    border: 1px solid #dee2e6;
+                ">
+                    <h2 style="color: #333; margin-bottom: 20px; font-size: 2rem;">
+                        Ready to Get Started?
+                    </h2>
+                    <p style="color: #666; margin-bottom: 40px; font-size: 1.1rem; max-width: 600px; margin-left: auto; margin-right: auto;">
+                        Join thousands of educators who trust Attendance Track for their attendance management needs.
+                    </p>
+                    
+                    <div style="display: flex; gap: 20px; justify-content: center; flex-wrap: wrap;">
+                        <button onclick="goToLogin()" style="
+                            padding: 18px 45px;
+                            background: linear-gradient(135deg, #405dde, #667eea);
                             color: white;
                             border: none;
-                            border-radius: 8px;
+                            border-radius: 10px;
                             cursor: pointer;
                             font-size: 1.1rem;
                             font-weight: 600;
-                            margin: 10px;
-                        ">
-                            <i class="fas fa-sign-in-alt"></i> Login to Start
+                            transition: all 0.3s ease;
+                            display: flex;
+                            align-items: center;
+                            gap: 12px;
+                        " onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 10px 25px rgba(64, 93, 222, 0.3)'"
+                         onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+                            <i class="fas fa-sign-in-alt"></i>
+                            Login to Start
                         </button>
                         
                         <button onclick="startDemoMode()" style="
-                            padding: 15px 40px;
-                            background: #6c757d;
-                            color: white;
-                            border: none;
-                            border-radius: 8px;
+                            padding: 18px 45px;
+                            background: white;
+                            color: #405dde;
+                            border: 2px solid #405dde;
+                            border-radius: 10px;
                             cursor: pointer;
                             font-size: 1.1rem;
-                            margin: 10px;
-                        ">
-                            <i class="fas fa-play-circle"></i> Try Demo Mode
+                            font-weight: 600;
+                            transition: all 0.3s ease;
+                            display: flex;
+                            align-items: center;
+                            gap: 12px;
+                        " onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 10px 25px rgba(0,0,0,0.1)'"
+                         onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+                            <i class="fas fa-play-circle"></i>
+                            Try Demo Mode
                         </button>
                     </div>
                 </div>
             </div>
+        </div>
+    `;
+}
+
+function setupEventListeners() {
+    console.log("🔧 Setting up event listeners...");
+    
+    // Update online status in header
+    window.addEventListener('online', function() {
+        window.appState.isOnline = true;
+        updateOnlineStatus();
+        showNotification('You are back online', 'success');
+    });
+    
+    window.addEventListener('offline', function() {
+        window.appState.isOnline = false;
+        updateOnlineStatus();
+        showNotification('You are offline. Some features may not work.', 'warning');
+    });
+}
+
+function updateOnlineStatus() {
+    const onlineStatus = document.getElementById('online-status');
+    if (onlineStatus) {
+        onlineStatus.innerHTML = `
+            <i class="fas fa-circle fa-xs"></i> ${window.appState.isOnline ? 'Online' : 'Offline'}
         `;
+        onlineStatus.style.color = window.appState.isOnline ? '#90ee90' : '#ff6b6b';
     }
 }
 
@@ -381,6 +729,9 @@ function updateUI() {
     const savedTheme = localStorage.getItem('theme') || 'light';
     document.documentElement.setAttribute('data-theme', savedTheme);
     window.appState.theme = savedTheme;
+    
+    // Update online status
+    updateOnlineStatus();
 }
 
 function initServiceWorker() {
@@ -395,41 +746,42 @@ function initServiceWorker() {
     }
 }
 
-function showNotification(message, type = 'info') {
+function showNotification(message, type) {
     console.log(`Notification [${type}]: ${message}`);
+    
+    const toastContainer = document.getElementById('toast-container');
+    if (!toastContainer) return;
     
     const toast = document.createElement('div');
     toast.textContent = message;
     toast.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        padding: 12px 24px;
         background: ${type === 'error' ? '#dc3545' : type === 'success' ? '#28a745' : type === 'warning' ? '#ffc107' : '#405dde'};
         color: white;
-        border-radius: 5px;
-        z-index: 10000;
+        padding: 15px 25px;
+        border-radius: 8px;
+        margin-bottom: 10px;
         box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         animation: slideIn 0.3s ease;
+        max-width: 400px;
     `;
     
-    // Add animation style
+    // Add animation
     const style = document.createElement('style');
     style.textContent = `
         @keyframes slideIn {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
+            from { transform: translateY(-20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
         }
         @keyframes slideOut {
-            from { transform: translateX(0); opacity: 1; }
-            to { transform: translateX(100%); opacity: 0; }
+            from { transform: translateY(0); opacity: 1; }
+            to { transform: translateY(-20px); opacity: 0; }
         }
     `;
     document.head.appendChild(style);
     
-    document.body.appendChild(toast);
+    toastContainer.appendChild(toast);
     
-    // Remove after 3 seconds
+    // Remove after 4 seconds
     setTimeout(function() {
         toast.style.animation = 'slideOut 0.3s ease';
         setTimeout(function() {
@@ -437,33 +789,57 @@ function showNotification(message, type = 'info') {
                 toast.parentNode.removeChild(toast);
             }
         }, 300);
-    }, 3000);
+    }, 4000);
 }
 
 function showError(message) {
     const appContainer = document.getElementById('app-container');
     if (appContainer) {
         appContainer.innerHTML = `
-            <div style="text-align: center; padding: 50px; color: #dc3545;">
-                <h2>⚠️ Application Error</h2>
-                <p>${message}</p>
+            <div style="text-align: center; padding: 50px;">
+                <div style="font-size: 4rem; color: #dc3545; margin-bottom: 20px;">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <h2 style="color: #333; margin-bottom: 15px;">
+                    Application Error
+                </h2>
+                <p style="color: #666; margin-bottom: 30px; max-width: 500px; margin-left: auto; margin-right: auto;">
+                    ${message}
+                </p>
                 <button onclick="location.reload()" style="
-                    padding: 10px 20px;
+                    padding: 12px 30px;
                     background: #405dde;
                     color: white;
                     border: none;
-                    border-radius: 5px;
+                    border-radius: 8px;
                     cursor: pointer;
-                    margin-top: 20px;
+                    font-size: 1rem;
+                    font-weight: 500;
                 ">
-                    Reload Application
+                    <i class="fas fa-redo"></i> Reload Application
                 </button>
             </div>
         `;
     }
 }
 
-// Global functions
+// ==================== GLOBAL FUNCTIONS ====================
+window.goToLogin = function() {
+    window.location.href = 'pages/login.html';
+};
+
+window.goToAttendance = function() {
+    window.location.href = 'pages/attendance.html';
+};
+
+window.goToReports = function() {
+    window.location.href = 'pages/reports.html';
+};
+
+window.goToSettings = function() {
+    window.location.href = 'pages/settings.html';
+};
+
 window.logout = function() {
     localStorage.removeItem('attendance_user');
     showNotification('Logged out successfully', 'success');
@@ -487,14 +863,14 @@ window.startDemoMode = function() {
     localStorage.setItem('attendance_user', JSON.stringify(demoUser));
     localStorage.setItem('demo_mode', 'true');
     
-    showNotification('Demo mode activated!', 'success');
+    showNotification('Demo mode activated! Loading dashboard...', 'success');
     
     setTimeout(function() {
         location.reload();
     }, 1500);
 };
 
-// Make initializeApp available globally
+// ==================== EXPOSE MAIN FUNCTION ====================
 window.initializeApp = initializeApp;
 
-console.log("✅ main.js setup complete");
+console.log("✅ main.js setup complete - Ready to initialize");
