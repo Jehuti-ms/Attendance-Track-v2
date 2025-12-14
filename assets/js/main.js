@@ -824,27 +824,48 @@ function showError(message) {
 }
 
 // ==================== GLOBAL FUNCTIONS ====================
+// Helper to get the correct base path
+window.getBasePath = function() {
+    // If we're on GitHub Pages
+    if (window.location.hostname.includes('github.io')) {
+        const pathParts = window.location.pathname.split('/');
+        const repoName = pathParts[1]; // Get repo name from URL
+        return `/${repoName}/`;
+    }
+    return '/';
+};
+
 window.goToLogin = function() {
-    window.location.href = 'pages/login.html';
+    const basePath = window.getBasePath();
+    window.location.href = `${basePath}pages/login.html`;
 };
 
 window.goToAttendance = function() {
-    window.location.href = 'pages/attendance.html';
+    const basePath = window.getBasePath();
+    window.location.href = `${basePath}pages/attendance.html`;
 };
 
 window.goToReports = function() {
-    window.location.href = 'pages/reports.html';
+    const basePath = window.getBasePath();
+    window.location.href = `${basePath}pages/reports.html`;
 };
 
 window.goToSettings = function() {
-    window.location.href = 'pages/settings.html';
+    const basePath = window.getBasePath();
+    window.location.href = `${basePath}pages/settings.html`;
+};
+
+window.goToDashboard = function() {
+    const basePath = window.getBasePath();
+    window.location.href = `${basePath}pages/dashboard.html`;
 };
 
 window.logout = function() {
     localStorage.removeItem('attendance_user');
+    localStorage.removeItem('demo_mode');
     showNotification('Logged out successfully', 'success');
     setTimeout(function() {
-        location.reload();
+        window.goToLogin();
     }, 1000);
 };
 
@@ -866,7 +887,7 @@ window.startDemoMode = function() {
     showNotification('Demo mode activated! Loading dashboard...', 'success');
     
     setTimeout(function() {
-        location.reload();
+        window.goToDashboard();
     }, 1500);
 };
 
