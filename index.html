@@ -103,23 +103,25 @@
         </div>
     </main>
 
-    <!-- Toast Container -->
-    <div id="toast-container" class="toast-container"></div>
+   <!-- Toast Container -->
+<div id="toast-container" class="toast-container"></div>
 
-    <!-- Modal Container -->
-    <div id="modal-container"></div>
+<!-- Modal Container -->
+<div id="modal-container"></div>
 
-    <!-- JavaScript Libraries -->
-    <script src="assets/js/vendors/jspdf.min.js"></script>
-    <script src="assets/js/vendors/jspdf-autotable.min.js"></script>
-    <script src="assets/js/vendors/html2canvas.min.js"></script>
-    
-    <!-- Application Scripts - FIXED: Load main.js FIRST as REGULAR script -->
-    <script src="assets/js/main.js"></script>
-    
-    <!-- Load other scripts AFTER main.js -->
-     <script src="assets/js/modules/utils.js"></script> 
-     <script src="assets/js/attendance-app.js"></script> 
+<!-- JavaScript Libraries -->
+<script src="assets/js/vendors/jspdf.min.js"></script>
+<script src="assets/js/vendors/jspdf-autotable.min.js"></script>
+<script src="assets/js/vendors/html2canvas.min.js"></script>
+
+<!-- Core Utilities FIRST -->
+<script src="assets/js/modules/utils.js"></script>
+
+<!-- Main Application Scripts SECOND -->
+<script src="assets/js/main.js"></script>
+
+<!-- App Initialization LAST -->
+<script src="assets/js/attendance-app.js"></script>
     
     <!-- Debug and initialization script -->
     <script>
