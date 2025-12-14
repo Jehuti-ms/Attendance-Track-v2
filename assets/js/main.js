@@ -1,5 +1,154 @@
 // assets/js/main.js - COMPLETE FILE (NO EXPORTS)
 console.log("🎯 Attendance Track v2 - main.js loading");
+// main.js - Updated version
+(function() {
+    console.log('Main.js loading...');
+    
+    // Wait for DOM to be ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+    
+    function init() {
+        console.log('Main.js initializing...');
+        setupNavigation();
+        setupEventListeners();
+    }
+    
+    // ==================== GLOBAL FUNCTIONS ====================
+    // Use the utility function if available, otherwise define locally
+    if (!window.showNotification) {
+        window.showNotification = function(message, type) {
+            console.log(`[${type}] ${message}`);
+        };
+    }
+    
+    if (!window.getBasePath) {
+        window.getBasePath = function() {
+            return '/Attendance-Track-v2/';
+        };
+    }
+    
+    window.goToLogin = function() {
+        window.location.href = window.getBasePath() + 'pages/login.html';
+    };
+    
+    window.goToAttendance = function() {
+        window.location.href = window.getBasePath() + 'pages/attendance.html';
+    };
+    
+    window.goToReports = function() {
+        window.location.href = window.getBasePath() + 'pages/reports.html';
+    };
+    
+    window.goToSettings = function() {
+        window.location.href = window.getBasePath() + 'pages/settings.html';
+    };
+    
+    window.goToDashboard = function() {
+        window.location.href = window.getBasePath() + 'pages/dashboard.html';
+    };
+    
+    window.goToSetup = function() {
+        window.location.href = window.getBasePath() + 'pages/setup.html';
+    };
+    
+    window.goToMaintenance = function() {
+        window.location.href = window.getBasePath() + 'pages/maintenance.html';
+    };
+    
+    window.logout = function() {
+        localStorage.removeItem('attendance_user');
+        localStorage.removeItem('demo_mode');
+        window.showNotification('Logged out successfully', 'success');
+        setTimeout(function() {
+            window.goToLogin();
+        }, 1000);
+    };
+    
+    window.startDemoMode = function() {
+        console.log("🚀 Starting demo mode...");
+        
+        const demoUser = {
+            id: 'demo-001',
+            name: 'Demo Teacher',
+            email: 'demo@school.edu',
+            role: 'teacher',
+            school: 'Demo Academy',
+            demo: true
+        };
+        
+        localStorage.setItem('attendance_user', JSON.stringify(demoUser));
+        localStorage.setItem('demo_mode', 'true');
+        
+        window.showNotification('Demo mode activated! Loading dashboard...', 'success');
+        
+        setTimeout(function() {
+            window.goToDashboard();
+        }, 1500);
+    };
+    
+    // Setup functions
+    function setupNavigation() {
+        console.log('Setting up navigation...');
+        
+        // Handle hash-based navigation
+        window.addEventListener('hashchange', handleHashChange);
+        
+        // Handle browser back/forward
+        window.addEventListener('popstate', handleHashChange);
+        
+        // Initial hash handling
+        if (window.location.hash) {
+            handleHashChange();
+        }
+    }
+    
+    function handleHashChange() {
+        const hash = window.location.hash.replace('#', '');
+        console.log('Hash changed to:', hash);
+        
+        switch(hash) {
+            case 'dashboard':
+                window.goToDashboard();
+                break;
+            case 'attendance':
+                window.goToAttendance();
+                break;
+            case 'reports':
+                window.goToReports();
+                break;
+            case 'settings':
+                window.goToSettings();
+                break;
+            case 'setup':
+                window.goToSetup();
+                break;
+            case 'maintenance':
+                window.goToMaintenance();
+                break;
+        }
+    }
+    
+    function setupEventListeners() {
+        // Set up navigation links
+        document.querySelectorAll('[data-module]').forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const module = this.getAttribute('data-module');
+                window.location.hash = module;
+            });
+        });
+        
+        // Logout button
+        document.getElementById('logout-btn')?.addEventListener('click', window.logout);
+        
+        // Demo mode button
+        document.getElementById('demo-btn')?.addEventListener('click', window.startDemoMode);
+    }
+})();
 
 // ==================== GLOBAL APP STATE ====================
 window.appState = {
