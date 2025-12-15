@@ -35,155 +35,150 @@ export class AttendanceManager {
     this.hideLoading();
 }
 
-    async injectAttendanceContent() {
-        const container = document.getElementById('app-container');
-        if (!container) return;
-        
-        // Hide the loading indicator that's already in the HTML
-        const loading = document.getElementById('loading-content');
-        if (loading) loading.style.display = 'none';
-        
-        // Inject the attendance content
-        container.innerHTML = `
-            <div id="attendance-content" style="display: block;" class="attendance-page">
-                <!-- Header with date and session tabs -->
-                <div class="attendance-header">
-                    <div class="header-top">
-                        <div>
-                            <h1 style="margin: 0; font-size: 2rem;">📊 Daily Attendance</h1>
-                            <div class="term-week-display">
-                                <span id="current-term">Term 1</span> • 
-                                <span id="current-week">Week 1</span>
-                            </div>
-                        </div>
-                        <div class="date-display" id="current-date">
-                            <!-- Date will be set by JavaScript -->
+async injectAttendanceContent() {
+    const container = document.getElementById('app-container');
+    if (!container) return;
+    
+    // Hide the loading indicator
+    const loading = document.getElementById('loading-content');
+    if (loading) loading.style.display = 'none';
+    
+    // Inject the attendance content
+    container.innerHTML = `
+        <div id="attendance-content" style="display: block;" class="attendance-page">
+            <!-- Header with date and session tabs -->
+            <div class="attendance-header">
+                <div class="header-top">
+                    <div>
+                        <h1 style="margin: 0; font-size: 2rem;">📊 Daily Attendance</h1>
+                        <div class="term-week-display">
+                            <span id="current-term">Term 1</span> • 
+                            <span id="current-week">Week 1</span>
                         </div>
                     </div>
-                    
-                    <div class="session-tabs">
-                        <div class="session-tab active" data-session="both">
-                            <span>☀️🌙</span>
-                            Both Sessions
-                        </div>
-                        <div class="session-tab" data-session="am">
-                            <span>☀️</span>
-                            AM Session Only
-                        </div>
-                        <div class="session-tab" data-session="pm">
-                            <span>🌙</span>
-                            PM Session Only
-                        </div>
-                    </div>
-                    
-                    <div class="quick-actions">
-                        <button class="quick-action-btn" id="mark-all-present">
-                            <span>✓</span> Mark All Present
-                        </button>
-                        <button class="quick-action-btn" id="clear-all">
-                            <span>🗑️</span> Clear All
-                        </button>
-                        <button class="quick-action-btn" id="copy-am-to-pm">
-                            <span>📋→</span> Copy AM to PM
-                        </button>
-                        <button class="quick-action-btn" id="copy-pm-to-am">
-                            <span>←📋</span> Copy PM to AM
-                        </button>
+                    <div class="date-display" id="current-date">
+                        <!-- Date will be set by JavaScript -->
                     </div>
                 </div>
                 
-                <div class="attendance-container">
-                    <!-- Classes List Panel -->
-                    <div class="classes-panel">
-                        <h3><span>📚</span> Classes</h3>
-                        <div class="classes-list" id="classes-list">
-                            <!-- Classes will be loaded here -->
-                        </div>
-                        
-                        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
-                            <h4><span>📊</span> Today's Summary</h4>
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px;">
-                                <div style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 6px;">
-                                    <div style="font-size: 1.8rem; font-weight: bold; color: #28a745;" id="am-total">0%</div>
-                                    <div style="font-size: 0.9rem; color: #666;">AM Rate</div>
-                                </div>
-                                <div style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 6px;">
-                                    <div style="font-size: 1.8rem; font-weight: bold; color: #ffc107;" id="pm-total">0%</div>
-                                    <div style="font-size: 0.9rem; color: #666;">PM Rate</div>
-                                </div>
-                            </div>
-                        </div>
+                <div class="session-tabs">
+                    <div class="session-tab active" data-session="both">
+                        <span>☀️🌙</span>
+                        Both Sessions
+                    </div>
+                    <div class="session-tab" data-session="am">
+                        <span>☀️</span>
+                        AM Session Only
+                    </div>
+                    <div class="session-tab" data-session="pm">
+                        <span>🌙</span>
+                        PM Session Only
+                    </div>
+                </div>
+                
+                <div class="quick-actions">
+                    <button class="quick-action-btn" id="mark-all-present">
+                        <span>✓</span> Mark All Present
+                    </button>
+                    <button class="quick-action-btn" id="clear-all">
+                        <span>🗑️</span> Clear All
+                    </button>
+                    <!-- REMOVED: Copy AM to PM and Copy PM to AM buttons -->
+                </div>
+            </div>
+            
+            <div class="attendance-container">
+                <!-- Classes List Panel -->
+                <div class="classes-panel">
+                    <h3><span>📚</span> Classes</h3>
+                    <div class="classes-list" id="classes-list">
+                        <!-- Classes will be loaded here -->
                     </div>
                     
-                    <!-- Attendance Table Panel -->
-                    <div class="attendance-table-container">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                            <h3 style="margin: 0;">
-                                <span id="selected-class-name">Select a Class</span>
-                                <span style="color: #666; font-size: 1rem;" id="selected-class-year"></span>
-                            </h3>
-                            <div style="display: flex; gap: 10px; align-items: center;">
-                                <span>Total: <strong id="total-students">0</strong></span>
-                                <button class="btn btn-secondary" id="view-student-list">
-                                    <span>👥</span> Student List
-                                </button>
+                    <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
+                        <h4><span>📊</span> Today's Summary</h4>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px;">
+                            <div style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 6px;">
+                                <div style="font-size: 1.8rem; font-weight: bold; color: #28a745;" id="am-total">0%</div>
+                                <div style="font-size: 0.9rem; color: #666;">AM Rate</div>
                             </div>
-                        </div>
-                        
-                        <!-- The attendance table exactly like your image -->
-                        <table class="attendance-table">
-                            <thead>
-                                <tr>
-                                    <th>Year Group</th>
-                                    <th>Class</th>
-                                    <th>Total</th>
-                                    <th colspan="2">Male Present</th>
-                                    <th colspan="2">Female Present</th>
-                                    <th>AM Rate</th>
-                                    <th>PM Rate</th>
-                                    <th>Daily Rate</th>
-                                    <th>Cumulative</th>
-                                    <th>vs Avg</th>
-                                </tr>
-                                <tr>
-                                    <th></th>
-                                    <th></th>
-                                    <th></th>
-                                    <th>AM</th>
-                                    <th>PM</th>
-                                    <th>AM</th>
-                                    <th>PM</th>
-                                    <th></th>
-                                    <th></th>
-                                    <th></th>
-                                    <th></th>
-                                    <th></th>
-                                </tr>
-                            </thead>
-                            <tbody id="attendance-table-body">
-                                <!-- Rows will be populated by JavaScript -->
-                            </tbody>
-                        </table>
-                        
-                        <div class="action-buttons">
-                            <button class="btn btn-secondary" id="save-draft">
-                                <span>💾</span> Save Draft
-                            </button>
-                            <button class="btn btn-primary" id="submit-attendance">
-                                <span>✓</span> Submit Attendance
-                            </button>
-                            <button class="btn btn-secondary" id="print-attendance">
-                                <span>🖨️</span> Print
-                            </button>
-                            <button class="btn btn-secondary" id="export-attendance">
-                                <span>📤</span> Export
-                            </button>
+                            <div style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 6px;">
+                                <div style="font-size: 1.8rem; font-weight: bold; color: #ffc107;" id="pm-total">0%</div>
+                                <div style="font-size: 0.9rem; color: #666;">PM Rate</div>
+                            </div>
                         </div>
                     </div>
                 </div>
+                
+                <!-- Attendance Table Panel -->
+                <div class="attendance-table-container">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h3 style="margin: 0;">
+                            <span id="selected-class-name">Select a Class</span>
+                            <span style="color: #666; font-size: 1rem;" id="selected-class-year"></span>
+                        </h3>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <span>Total: <strong id="total-students">0</strong></span>
+                            <button class="btn btn-secondary" id="view-student-list">
+                                <span>👥</span> Student List
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- The attendance table exactly like your image -->
+                    <table class="attendance-table">
+                        <thead>
+                            <tr>
+                                <th>Year Group</th>
+                                <th>Class</th>
+                                <th>Total</th>
+                                <th colspan="2">Male Present</th>
+                                <th colspan="2">Female Present</th>
+                                <th>AM Rate</th>
+                                <th>PM Rate</th>
+                                <th>Daily Rate</th>
+                                <th>Cumulative</th>
+                                <th>vs Avg</th>
+                            </tr>
+                            <tr>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th>AM</th>
+                                <th>PM</th>
+                                <th>AM</th>
+                                <th>PM</th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="attendance-table-body">
+                            <!-- Rows will be populated by JavaScript -->
+                        </tbody>
+                    </table>
+                    
+                    <div class="action-buttons">
+                        <button class="btn btn-secondary" id="save-draft">
+                            <span>💾</span> Save Draft
+                        </button>
+                        <button class="btn btn-primary" id="submit-attendance">
+                            <span>✓</span> Submit Attendance
+                        </button>
+                        <button class="btn btn-secondary" id="print-attendance">
+                            <span>🖨️</span> Print
+                        </button>
+                        <button class="btn btn-secondary" id="export-attendance">
+                            <span>📤</span> Export
+                        </button>
+                    </div>
+                </div>
             </div>
-        `;
-    }
+        </div>
+    `;
+}
 
     hideLoading() {
         const loading = document.getElementById('loading-content');
@@ -301,18 +296,34 @@ updateSelectedClassUI(classId) {
     const malePm = parseInt(row.querySelector('.male-pm').value) || 0;
     const femalePm = parseInt(row.querySelector('.female-pm').value) || 0;
     
-    // Only auto-copy if PM inputs are empty (0) and AM has values
-    if (malePm === 0 && femalePm === 0 && (maleAm > 0 || femaleAm > 0)) {
+    // Get max values
+    const maleMax = parseInt(row.querySelector('.male-am').max) || 0;
+    const femaleMax = parseInt(row.querySelector('.female-am').max) || 0;
+    
+    // Only auto-copy if:
+    // 1. PM inputs are empty (0) OR PM inputs equal AM inputs (already copied)
+    // 2. AM has values
+    // 3. Don't copy if user has manually set PM to a different value
+    
+    const shouldCopyMale = (malePm === 0 || malePm === maleAm) && maleAm > 0;
+    const shouldCopyFemale = (femalePm === 0 || femalePm === femaleAm) && femaleAm > 0;
+    
+    if (shouldCopyMale) {
         row.querySelector('.male-pm').value = maleAm;
+    }
+    
+    if (shouldCopyFemale) {
         row.querySelector('.female-pm').value = femaleAm;
-        
-        // Trigger input events to recalculate
+    }
+    
+    // Trigger input events to recalculate if we changed anything
+    if (shouldCopyMale || shouldCopyFemale) {
         row.querySelector('.male-pm').dispatchEvent(new Event('input'));
         row.querySelector('.female-pm').dispatchEvent(new Event('input'));
     }
 }
     
-    setupEventListeners() {
+   setupEventListeners() {
     // Use event delegation for dynamic elements
     document.addEventListener('click', (e) => {
         // Session tabs
@@ -329,10 +340,8 @@ updateSelectedClassUI(classId) {
         
         // Quick actions
         const actionMap = {
-            'mark-all-present': () => this.markallpresent(),
-            'clear-all': () => this.clearall(),
-            'copy-am-to-pm': () => this.copyamtpm(),
-            'copy-pm-to-am': () => this.copypmtoam()
+            'mark-all-present': () => this.markAllPresent(), // Fixed method name
+            'clear-all': () => this.clearAll()  // Fixed method name
         };
         
         for (const [id, handler] of Object.entries(actionMap)) {
@@ -345,11 +354,11 @@ updateSelectedClassUI(classId) {
         
         // Action buttons
         const actionButtons = {
-            'save-draft': () => this.savedraft(),
-            'submit-attendance': () => this.submitattendance(),
-            'print-attendance': () => this.printattendance(),
-            'export-attendance': () => this.exportattendance(),
-            'view-student-list': () => this.viewstudentlist()
+            'save-draft': () => this.saveDraft(),
+            'submit-attendance': () => this.submitAttendance(),
+            'print-attendance': () => this.printAttendance(),
+            'export-attendance': () => this.exportAttendance(),
+            'view-student-list': () => this.viewStudentList()
         };
         
         for (const [id, handler] of Object.entries(actionButtons)) {
@@ -562,108 +571,77 @@ handleAttendanceInput(event) {
     }
 
     // Quick Actions
-    markallpresent() {
-        const inputs = this.currentSession === 'am' ? 
-            document.querySelectorAll('.male-am, .female-am') :
-            this.currentSession === 'pm' ?
-            document.querySelectorAll('.male-pm, .female-pm') :
-            document.querySelectorAll('.attendance-input');
+// Fix method names - they need to match what's called in setupEventListeners
+markAllPresent() {  // Changed from markallpresent
+    const inputs = this.currentSession === 'am' ? 
+        document.querySelectorAll('.male-am, .female-am') :
+        this.currentSession === 'pm' ?
+        document.querySelectorAll('.male-pm, .female-pm') :
+        document.querySelectorAll('.attendance-input');
 
-        inputs.forEach(input => {
-            const max = parseInt(input.max) || 0;
-            input.value = max;
-            input.dispatchEvent(new Event('input'));
-        });
-    }
+    inputs.forEach(input => {
+        const max = parseInt(input.max) || 0;
+        input.value = max;
+        input.dispatchEvent(new Event('input'));
+    });
+    
+    Utils.showNotification('Marked all students as present!', 'success');
+}
 
-    clearall() {
-        const inputs = this.currentSession === 'am' ? 
-            document.querySelectorAll('.male-am, .female-am') :
-            this.currentSession === 'pm' ?
-            document.querySelectorAll('.male-pm, .female-pm') :
-            document.querySelectorAll('.attendance-input');
+// Also fix these method names:
+viewStudentList() {  // Changed from viewstudentlist
+    Utils.showNotification('Student list feature coming soon!', 'info');
+}
+    clearAll() {  // Changed from clearall
+    const inputs = this.currentSession === 'am' ? 
+        document.querySelectorAll('.male-am, .female-am') :
+        this.currentSession === 'pm' ?
+        document.querySelectorAll('.male-pm, .female-pm') :
+        document.querySelectorAll('.attendance-input');
 
-        inputs.forEach(input => {
-            input.value = 0;
-            input.dispatchEvent(new Event('input'));
-        });
-    }
-
-    copyamtpm() {
-        document.querySelectorAll('.male-am').forEach(amInput => {
-            const classId = amInput.dataset.class;
-            const pmInput = document.querySelector(`.male-pm[data-class="${classId}"]`);
-            if (pmInput) {
-                pmInput.value = amInput.value;
-                pmInput.dispatchEvent(new Event('input'));
-            }
-        });
-
-        document.querySelectorAll('.female-am').forEach(amInput => {
-            const classId = amInput.dataset.class;
-            const pmInput = document.querySelector(`.female-pm[data-class="${classId}"]`);
-            if (pmInput) {
-                pmInput.value = amInput.value;
-                pmInput.dispatchEvent(new Event('input'));
-            }
-        });
-    }
-
-    copypmtoam() {
-        document.querySelectorAll('.male-pm').forEach(pmInput => {
-            const classId = pmInput.dataset.class;
-            const amInput = document.querySelector(`.male-am[data-class="${classId}"]`);
-            if (amInput) {
-                amInput.value = pmInput.value;
-                amInput.dispatchEvent(new Event('input'));
-            }
-        });
-
-        document.querySelectorAll('.female-pm').forEach(pmInput => {
-            const classId = pmInput.dataset.class;
-            const amInput = document.querySelector(`.female-am[data-class="${classId}"]`);
-            if (amInput) {
-                amInput.value = pmInput.value;
-                amInput.dispatchEvent(new Event('input'));
-            }
-        });
-    }
-
+    inputs.forEach(input => {
+        input.value = 0;
+        input.dispatchEvent(new Event('input'));
+    });
+    
+    Utils.showNotification('Cleared all attendance!', 'info');
+}
+    
     // Action Methods
-    savedraft() {
+    saveDraft() {  // Changed from savedraft
+    const data = this.collectData();
+    Storage.set('attendance_draft', data);
+    Utils.showNotification('Draft saved successfully!', 'success');
+}
+    
+   submitAttendance() {  // Changed from submitattendance
+    if (confirm('Submit attendance for all classes?')) {
         const data = this.collectData();
-        Storage.set('attendance_draft', data);
-        Utils.showToast('Draft saved successfully!', 'success');
+        const dateKey = `attendance_${new Date().toISOString().split('T')[0]}`;
+        Storage.set(dateKey, data);
+        Storage.remove('attendance_draft');
+        Utils.showNotification('Attendance submitted successfully!', 'success');
     }
+}
 
-    submitattendance() {
-        if (confirm('Submit attendance for all classes?')) {
-            const data = this.collectData();
-            const dateKey = `attendance_${new Date().toISOString().split('T')[0]}`;
-            Storage.set(dateKey, data);
-            Storage.remove('attendance_draft');
-            Utils.showToast('Attendance submitted successfully!', 'success');
-        }
-    }
+    printAttendance() {  // Changed from printattendance
+    window.print();
+}
 
-    printattendance() {
-        window.print();
-    }
-
-    exportattendance() {
-        const data = this.collectData();
-        const json = JSON.stringify(data, null, 2);
-        const blob = new Blob([json], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `attendance_${new Date().toISOString().split('T')[0]}.json`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        Utils.showToast('Attendance data exported!', 'success');
-    }
+exportAttendance() {  // Changed from exportattendance
+    const data = this.collectData();
+    const json = JSON.stringify(data, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `attendance_${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    Utils.showNotification('Attendance data exported!', 'success');
+}
 
     viewstudentlist() {
         Utils.showToast('Student list feature coming soon!', 'info');
