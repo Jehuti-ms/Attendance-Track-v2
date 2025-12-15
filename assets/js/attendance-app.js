@@ -485,43 +485,77 @@ class AttendanceApp {
         `;
     }
 
-    async loadAttendanceContent(container) {
-        if (!this.state.currentUser) {
-            this.goToLogin();
-            return;
-        }
-        
-        container.innerHTML = `
-            <div class="attendance-page">
-                <div class="page-header">
-                    <h2>Take Attendance</h2>
-                    <p>Select a class and mark student attendance</p>
-                </div>
-                
-                <div class="attendance-container">
-                    <div class="classes-section">
-                        <h3>Select Class</h3>
-                        <div id="classes-container" class="classes-grid">
-                            <!-- Classes loaded dynamically -->
+async loadAttendanceContent(container) {
+    if (!this.state.currentUser) {
+        this.goToLogin();
+        return;
+    }
+    
+    // Import the AttendanceManager dynamically
+    import('./attendance.js').then(module => {
+        this.attendanceManager = new module.AttendanceManager(this);
+        this.attendanceManager.init();
+    }).catch(error => {
+        console.error('Failed to load attendance module:', error);
+        this.loadBasicAttendanceContent(container);
+    });
+}
+
+async loadBasicAttendanceContent(container) {
+    // Fallback content if module fails to load
+    container.innerHTML = `
+        <div id="attendance-content" style="display: block;" class="attendance-page">
+            <div class="attendance-header">
+                <div class="header-top">
+                    <div>
+                        <h1 style="margin: 0; font-size: 2rem;">📊 Daily Attendance</h1>
+                        <div class="term-week-display">
+                            <span id="current-term">Term 1</span> • 
+                            <span id="current-week">Week 1</span>
                         </div>
                     </div>
-                    
-                    <div class="students-section">
-                        <h3>Attendance List</h3>
-                        <div id="students-container" class="students-list">
-                            <p class="no-class-selected">Select a class to view students</p>
-                        </div>
-                        <div class="attendance-actions" id="attendance-actions" style="display: none;">
-                            <button class="btn btn-success" onclick="app.saveAttendance()">Save Attendance</button>
-                            <button class="btn btn-outline" onclick="app.clearAttendance()">Clear</button>
-                        </div>
+                    <div class="date-display" id="current-date">
+                        ${new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }).replace(/\//g, ' / ')}
+                    </div>
+                </div>
+                
+                <div class="session-tabs">
+                    <div class="session-tab active" data-session="both">
+                        <span>☀️🌙</span>
+                        Both Sessions
+                    </div>
+                    <div class="session-tab" data-session="am">
+                        <span>☀️</span>
+                        AM Session Only
+                    </div>
+                    <div class="session-tab" data-session="pm">
+                        <span>🌙</span>
+                        PM Session Only
                     </div>
                 </div>
             </div>
-        `;
-        
-        this.loadClassesForAttendance();
+            
+            <div class="attendance-container">
+                <div class="attendance-table-container">
+                    <div style="text-align: center; padding: 50px;">
+                        <div style="font-size: 3rem; margin-bottom: 20px;">📋</div>
+                        <h3>Attendance System Loading...</h3>
+                        <p>If this persists, please refresh the page.</p>
+                        <button class="btn btn-primary" onclick="window.location.reload()">
+                            Refresh Page
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Hide loading
+    const loadingContent = document.getElementById('loading-content');
+    if (loadingContent) {
+        loadingContent.style.display = 'none';
     }
+}
 
     async loadReportsContent(container) {
         if (!this.state.currentUser) {
