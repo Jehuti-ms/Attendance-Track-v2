@@ -24,13 +24,13 @@ import {
 
 // Your Firebase configuration - REPLACE WITH YOUR ACTUAL CONFIG
 const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_PROJECT.firebaseapp.com",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_PROJECT.appspot.com",
-    messagingSenderId: "YOUR_SENDER_ID",
-    appId: "YOUR_APP_ID"
-};
+  apiKey: "AIzaSyBPhe4eHZk__J27luIXzOPz6OGiubXkttE",
+  authDomain: "attendance-track-v2.firebaseapp.com",
+  projectId: "attendance-track-v2",
+  storageBucket: "attendance-track-v2.firebasestorage.app",
+  messagingSenderId: "598438033902",
+  appId: "1:598438033902:web:3ba1e0e2be0a16ea7e36ff",
+  };
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
