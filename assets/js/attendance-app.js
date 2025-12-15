@@ -105,34 +105,127 @@ class AttendanceApp {
         }
     }
 
-    async loadContent() {
-        const appContainer = document.getElementById('app-container');
-        if (!appContainer) return;
-        
-        // Hide loading
-        const loadingContent = document.getElementById('loading-content');
-        if (loadingContent) {
-            loadingContent.style.display = 'none';
-        }
-        
-        // Load content based on page
-        switch(this.state.currentPage) {
-            case 'index':
-                await this.loadIndexContent(appContainer);
-                break;
-            case 'login':
-                await this.loadLoginContent(appContainer);
-                break;
-            case 'dashboard':
-                await this.loadDashboardContent(appContainer);
-                break;
-            case 'attendance':
-                await this.loadAttendanceContent(appContainer);
-                break;
-            default:
-                appContainer.innerHTML = `<h2>${this.state.currentPage} Page</h2>`;
-        }
+   async loadContent() {
+    const appContainer = document.getElementById('app-container');
+    if (!appContainer) return;
+    
+    // Hide loading
+    const loadingContent = document.getElementById('loading-content');
+    if (loadingContent) {
+        loadingContent.style.display = 'none';
     }
+    
+    // Check if the current page exists by trying to fetch it
+    try {
+        const response = await fetch(this.getBasePath() + this.state.currentPage + '.html');
+        if (!response.ok) {
+            // Page doesn't exist, show error
+            this.showPageNotFound();
+            return;
+        }
+    } catch (error) {
+        // Network error, but continue anyway
+        console.log('Network error checking page:', error);
+    }
+    
+    // Load content based on page
+    switch(this.state.currentPage) {
+        case 'index':
+            await this.loadIndexContent(appContainer);
+            break;
+        case 'login':
+            await this.loadLoginContent(appContainer);
+            break;
+        case 'dashboard':
+            await this.loadDashboardContent(appContainer);
+            break;
+        case 'attendance':
+            await this.loadAttendanceContent(appContainer);
+            break;
+        case 'reports':
+            await this.loadReportsContent(appContainer);
+            break;
+        case 'setup':
+            await this.loadSetupContent(appContainer);
+            break;
+        case 'settings':
+            await this.loadSettingsContent(appContainer);
+            break;
+        case 'maintenance':
+            await this.loadMaintenanceContent(appContainer);
+            break;
+        default:
+            this.showPageNotFound();
+    }
+}
+
+// Add these methods for other pages:
+async loadReportsContent(container) {
+    container.innerHTML = `
+        <div class="page-header">
+            <h2>Reports</h2>
+            <p>Generate and view attendance reports</p>
+        </div>
+        <div class="reports-page">
+            <p>Reports page coming soon...</p>
+        </div>
+    `;
+}
+
+async loadSetupContent(container) {
+    container.innerHTML = `
+        <div class="page-header">
+            <h2>Setup</h2>
+            <p>Configure your system</p>
+        </div>
+        <div class="setup-page">
+            <p>Setup page coming soon...</p>
+        </div>
+    `;
+}
+
+async loadSettingsContent(container) {
+    container.innerHTML = `
+        <div class="page-header">
+            <h2>Settings</h2>
+            <p>Manage your preferences</p>
+        </div>
+        <div class="settings-page">
+            <p>Settings page coming soon...</p>
+        </div>
+    `;
+}
+
+async loadMaintenanceContent(container) {
+    container.innerHTML = `
+        <div class="page-header">
+            <h2>Maintenance</h2>
+            <p>Manage data and backups</p>
+        </div>
+        <div class="maintenance-page">
+            <p>Maintenance page coming soon...</p>
+        </div>
+    `;
+}
+
+showPageNotFound() {
+    const appContainer = document.getElementById('app-container');
+    if (!appContainer) return;
+    
+    appContainer.innerHTML = `
+        <div class="error-page">
+            <div class="error-icon">📄</div>
+            <h2>Page Not Found</h2>
+            <p>The page "${this.state.currentPage}" doesn't exist yet.</p>
+            <button class="btn btn-primary" onclick="app.goToDashboard()">
+                Go to Dashboard
+            </button>
+            <button class="btn btn-secondary" onclick="app.goToIndex()" style="margin-left: 10px;">
+                Back to Home
+            </button>
+        </div>
+    `;
+}
 
     async loadIndexContent(container) {
         container.innerHTML = `
