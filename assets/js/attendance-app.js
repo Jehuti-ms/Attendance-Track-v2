@@ -1,3 +1,4 @@
+// attendance-app.js - Updated with navigation functions
 import { AuthModule } from './auth.js';
 import { DashboardModule } from './dashboard.js';
 import { SetupModule } from './setup.js';
@@ -11,9 +12,11 @@ import { Utils, Storage } from './utils.js';
 
 class AttendanceApp {
     constructor() {
+        console.log('🎯 AttendanceApp constructor');
+        
         this.state = {
             currentUser: null,
-            currentPage: 'login',
+            currentPage: this.getCurrentPage(),
             settings: Storage.get('gams_settings', {}),
             classes: Storage.get('gams_classes', []),
             attendanceRecords: Storage.get('gams_attendance', []),
@@ -24,7 +27,7 @@ class AttendanceApp {
             ]),
             cumulativeData: Storage.get('gams_cumulative', {}),
             historicalAverages: Storage.get('gams_averages', {}),
-            isOnline: false
+            isOnline: navigator.onLine
         };
 
         this.modules = {
@@ -42,121 +45,211 @@ class AttendanceApp {
         this.init();
     }
 
-    async init() {
-        // Load initial components
-        await this.loadInitialComponents();
+    // ========== NAVIGATION FUNCTIONS (from main.js) ==========
+    getBasePath() {
+        const pathname = window.location.pathname;
         
-        // Initialize theme
-        this.initTheme();
-        
-        // Initialize auth module
-        await this.modules.auth.init();
-        
-        // Setup global event listeners
-        this.setupGlobalListeners();
-    }
-
-    async loadInitialComponents() {
-        try {
-            // Load header
-            await Utils.loadComponent('components/header.html', 'header-container');
-            
-            // Set active page
-            this.navigateTo(this.state.currentUser ? 'dashboard' : 'login');
-        } catch (error) {
-            console.error('Error loading initial components:', error);
+        if (pathname.includes('/Attendance-Track-v2/')) {
+            return '/Attendance-Track-v2/';
+        } else if (pathname === '/Attendance-Track-v2/' || pathname === '/Attendance-Track-v2') {
+            return '/Attendance-Track-v2/';
         }
+        return '/';
     }
 
-    initTheme() {
-        const savedTheme = Storage.get('gams_theme', 'light');
-        document.documentElement.setAttribute('data-theme', savedTheme);
+    getCurrentPage() {
+        const path = window.location.pathname;
+        const page = path.split('/').pop() || 'index.html';
+        return page.replace('.html', '');
+    }
+
+    navigateTo(pageName) {
+        console.log(`Navigating to: ${pageName}`);
+        const basePath = this.getBasePath();
+        window.location.href = `${basePath}${pageName}.html`;
+    }
+
+    goToLogin() { this.navigateTo('login'); }
+    goToAttendance() { this.navigateTo('attendance'); }
+    goToReports() { this.navigateTo('reports'); }
+    goToSettings() { this.navigateTo('settings'); }
+    goToDashboard() { this.navigateTo('dashboard'); }
+    goToSetup() { this.navigateTo('setup'); }
+    goToMaintenance() { this.navigateTo('maintenance'); }
+    goToIndex() { this.navigateTo('index'); }
+
+    logout() {
+        Storage.remove('attendance_user');
+        Storage.remove('demo_mode');
+        this.state.currentUser = null;
+        this.showNotification('Logged out successfully', 'success');
+        setTimeout(() => this.goToLogin(), 1000);
+    }
+
+    startDemoMode() {
+        console.log("🚀 Starting demo mode...");
         
-        const themeToggle = document.querySelector('.theme-toggle');
-        if (themeToggle) {
-            themeToggle.textContent = savedTheme === 'dark' ? '☀️' : '🌙';
-        }
-    }
-
-    setupGlobalListeners() {
-        document.addEventListener('click', (e) => {
-            // Theme toggle
-            if (e.target.matches('.theme-toggle')) {
-                this.toggleTheme();
-            }
-            
-            // Navigation
-            if (e.target.matches('[data-page]')) {
-                e.preventDefault();
-                const page = e.target.getAttribute('data-page');
-                this.navigateTo(page);
-            }
-            
-            // Logout
-            if (e.target.matches('#logout-btn')) {
-                this.modules.auth.logout();
-            }
-        });
-    }
-
-    toggleTheme() {
-        const currentTheme = document.documentElement.getAttribute('data-theme');
-        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        const demoUser = {
+            id: 'demo-001',
+            name: 'Demo Teacher',
+            email: 'demo@school.edu',
+            role: 'teacher',
+            school: 'Demo Academy',
+            demo: true
+        };
         
-        document.documentElement.setAttribute('data-theme', newTheme);
-        Storage.set('gams_theme', newTheme);
+        Storage.set('attendance_user', demoUser);
+        Storage.set('demo_mode', 'true');
+        this.state.currentUser = demoUser;
         
-        const themeToggle = document.querySelector('.theme-toggle');
-        if (themeToggle) {
-            themeToggle.textContent = newTheme === 'dark' ? '☀️' : '🌙';
-        }
+        this.showNotification('Demo mode activated!', 'success');
+        setTimeout(() => this.goToDashboard(), 1500);
     }
 
-    async navigateTo(pageName) {
-        try {
-            // Update navigation state
-            document.querySelectorAll('.nav-link').forEach(link => {
-                link.classList.remove('active');
-                if (link.getAttribute('data-page') === pageName) {
-                    link.classList.add('active');
-                }
-            });
-
-            // Update state
-            this.state.currentPage = pageName;
-            
-            // Load page content
-            await Utils.loadComponent(`pages/${pageName}.html`, 'app-container');
-            
-            // Initialize page module
-            if (this.modules[pageName]) {
-                await this.modules[pageName].init();
-            }
-        } catch (error) {
-            console.error(`Error navigating to ${pageName}:`, error);
-            Utils.showToast(`Error loading page: ${error.message}`, 'error');
-        }
-    }
-
-    // State management
-    updateState(key, value) {
-        this.state[key] = value;
-        Storage.set(`gams_${key}`, value);
-    }
-
-    // Shared methods for modules
-    showToast(message, type = 'info') {
+    showNotification(message, type = 'info') {
+        console.log(`[${type}] ${message}`);
         Utils.showToast(message, type);
     }
 
-    async syncDataFromSheets() {
-        // Implementation moved to SettingsModule
-        return await this.modules.settings.syncDataFromSheets();
+    // ========== MAIN INITIALIZATION ==========
+    async init() {
+        console.log('🚀 Initializing AttendanceApp...');
+        
+        try {
+            // Check authentication
+            const user = Storage.get('attendance_user');
+            if (user) {
+                this.state.currentUser = user;
+                console.log('User found:', user.name);
+            }
+
+            // Load header
+            await this.loadHeader();
+            
+            // Load main content
+            await this.loadMainContent();
+            
+            // Setup event listeners
+            this.setupEventListeners();
+            
+            // Initialize service worker
+            this.initServiceWorker();
+            
+            console.log('✅ AttendanceApp initialized successfully');
+            
+        } catch (error) {
+            console.error('❌ Error initializing AttendanceApp:', error);
+            this.showNotification(`Initialization error: ${error.message}`, 'error');
+        }
     }
 
-    async saveToSheets(dataType, data) {
-        // Implementation moved to respective modules
+    async loadHeader() {
+        const headerContainer = document.getElementById('header-container');
+        if (!headerContainer) return;
+        
+        headerContainer.innerHTML = `
+            <header>
+                <div class="header-left">
+                    <div class="app-icon">📋</div>
+                    <div>
+                        <h1>Attendance Track v2</h1>
+                        <div class="online-status" id="online-status">
+                            ● ${this.state.isOnline ? 'Online' : 'Offline'}
+                        </div>
+                    </div>
+                </div>
+                <div class="header-right">
+                    ${this.state.currentUser ? `
+                        <div class="user-info">
+                            <div class="user-avatar">👤</div>
+                            <div>
+                                <div class="user-name">${this.state.currentUser.name}</div>
+                                <div class="user-role">${this.state.currentUser.role}</div>
+                            </div>
+                        </div>
+                        <button class="btn btn-outline" onclick="app.logout()">Logout</button>
+                    ` : `
+                        <button class="btn btn-primary" onclick="app.goToLogin()">Login</button>
+                        <button class="btn btn-secondary" onclick="app.startDemoMode()">Try Demo</button>
+                    `}
+                </div>
+            </header>
+        `;
+    }
+
+    async loadMainContent() {
+        const appContainer = document.getElementById('app-container');
+        if (!appContainer) return;
+
+        // Load page-specific content
+        if (this.state.currentUser) {
+            await this.modules.dashboard.init();
+        } else {
+            await this.loadLandingPage();
+        }
+    }
+
+    async loadLandingPage() {
+        const appContainer = document.getElementById('app-container');
+        if (!appContainer) return;
+        
+        appContainer.innerHTML = `
+            <div class="landing-page">
+                <div class="hero">
+                    <div class="hero-icon">📋</div>
+                    <h1>Attendance Track v2</h1>
+                    <p class="hero-subtitle">Modern attendance tracking for educational institutions</p>
+                    <div class="hero-actions">
+                        <button class="btn btn-lg btn-primary" onclick="app.goToLogin()">
+                            Login to Start
+                        </button>
+                        <button class="btn btn-lg btn-outline" onclick="app.startDemoMode()">
+                            Try Demo Mode
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    setupEventListeners() {
+        // Online/offline status
+        window.addEventListener('online', () => {
+            this.state.isOnline = true;
+            this.updateOnlineStatus();
+            this.showNotification('You are back online', 'success');
+        });
+        
+        window.addEventListener('offline', () => {
+            this.state.isOnline = false;
+            this.updateOnlineStatus();
+            this.showNotification('You are offline', 'warning');
+        });
+    }
+
+    updateOnlineStatus() {
+        const onlineStatus = document.getElementById('online-status');
+        if (onlineStatus) {
+            onlineStatus.innerHTML = `● ${this.state.isOnline ? 'Online' : 'Offline'}`;
+            onlineStatus.style.color = this.state.isOnline ? '#28a745' : '#dc3545';
+        }
+    }
+
+    initServiceWorker() {
+        if ('serviceWorker' in navigator) {
+            const basePath = this.getBasePath();
+            const swPath = basePath === '/' ? 'service-worker.js' : basePath + 'service-worker.js';
+            
+            navigator.serviceWorker.register(swPath)
+                .then(registration => {
+                    console.log('✅ Service Worker registered:', registration.scope);
+                })
+                .catch(error => {
+                    console.warn('⚠️ Service Worker registration failed:', error);
+                });
+        }
     }
 }
 
-export default AttendanceApp;
+// Create global instance
+window.app = new AttendanceApp();
