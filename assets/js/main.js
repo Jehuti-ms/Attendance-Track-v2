@@ -32,31 +32,31 @@ console.log("🎯 Attendance Track v2 - main.js loading");
     }
     
     window.goToLogin = function() {
-        window.location.href = window.getBasePath() + 'pages/login.html';
+        window.location.href = window.getBasePath() + '/login.html';
     };
     
     window.goToAttendance = function() {
-        window.location.href = window.getBasePath() + 'pages/attendance.html';
+        window.location.href = window.getBasePath() + '/attendance.html';
     };
     
     window.goToReports = function() {
-        window.location.href = window.getBasePath() + 'pages/reports.html';
+        window.location.href = window.getBasePath() + '/reports.html';
     };
     
     window.goToSettings = function() {
-        window.location.href = window.getBasePath() + 'pages/settings.html';
+        window.location.href = window.getBasePath() + '/settings.html';
     };
     
     window.goToDashboard = function() {
-        window.location.href = window.getBasePath() + 'pages/dashboard.html';
+        window.location.href = window.getBasePath() + '/dashboard.html';
     };
     
     window.goToSetup = function() {
-        window.location.href = window.getBasePath() + 'pages/setup.html';
+        window.location.href = window.getBasePath() + '/setup.html';
     };
     
     window.goToMaintenance = function() {
-        window.location.href = window.getBasePath() + 'pages/maintenance.html';
+        window.location.href = window.getBasePath() + '/maintenance.html';
     };
     
     window.logout = function() {
