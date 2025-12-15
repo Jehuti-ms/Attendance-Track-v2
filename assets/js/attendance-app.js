@@ -1,13 +1,13 @@
-import { AuthModule } from './modules/auth.js';
-import { DashboardModule } from './modules/dashboard.js';
-import { SetupModule } from './modules/setup.js';
-import { AttendanceModule } from './modules/attendance.js';
-import { ReportsModule } from './modules/reports.js';
-import { ExportModule } from './modules/export.js';
-import { MaintenanceModule } from './modules/maintenance.js';
-import { SettingsModule } from './modules/settings.js';
-import { ImportModule } from './modules/import.js';
-import { Utils, Storage } from './modules/utils.js';
+import { AuthModule } from './auth.js';
+import { DashboardModule } from './dashboard.js';
+import { SetupModule } from './setup.js';
+import { AttendanceModule } from './attendance.js';
+import { ReportsModule } from './reports.js';
+import { ExportModule } from './export.js';
+import { MaintenanceModule } from './maintenance.js';
+import { SettingsModule } from './settings.js';
+import { ImportModule } from './import.js';
+import { Utils, Storage } from './utils.js';
 
 class AttendanceApp {
     constructor() {
