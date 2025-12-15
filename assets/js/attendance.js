@@ -1,4 +1,4 @@
-// assets/js/attendance.js - ES6 Module
+// assets/js/attendance.js - UPDATED ES6 Module
 import { Utils, Storage } from './utils.js';
 
 export class AttendanceManager {
@@ -7,9 +7,9 @@ export class AttendanceManager {
         this.currentSession = 'both';
         this.currentClass = null;
         this.classes = [
-            { id: '3AN', name: '3AN', yearGroup: '3rd Years', total: 18 },
-            { id: '3TL', name: '3TL', yearGroup: '3rd Years', total: 16 },
-            { id: '3EY', name: '3EY', yearGroup: '3rd Years', total: 25 }
+            { id: '3AN', name: '3AN', yearGroup: '3rd Years', total: 18, male: 9, female: 9 },
+            { id: '3TL', name: '3TL', yearGroup: '3rd Years', total: 16, male: 8, female: 8 },
+            { id: '3EY', name: '3EY', yearGroup: '3rd Years', total: 25, male: 13, female: 12 }
         ];
         this.attendanceData = {};
     }
@@ -17,23 +17,187 @@ export class AttendanceManager {
     async init() {
         console.log('📊 AttendanceManager initialized');
         
+        // Inject the attendance HTML content
+        await this.injectAttendanceContent();
+        
         // Set current date
         this.setCurrentDate();
         
         // Initialize table with exact structure from image
         this.initAttendanceTable();
         
+        // Initialize classes list in sidebar
+        this.initClassesList();
+        
         // Load saved data
         this.loadSavedData();
-        
-        // Initialize UI
-        this.initUI();
         
         // Set up event listeners
         this.setupEventListeners();
         
         // Calculate initial rates
         this.calculateAllRates();
+        
+        // Hide loading
+        this.hideLoading();
+    }
+
+    async injectAttendanceContent() {
+        const container = document.getElementById('app-container');
+        if (!container) return;
+        
+        // Hide the loading indicator that's already in the HTML
+        const loading = document.getElementById('loading-content');
+        if (loading) loading.style.display = 'none';
+        
+        // Inject the attendance content
+        container.innerHTML = `
+            <div id="attendance-content" style="display: block;" class="attendance-page">
+                <!-- Header with date and session tabs -->
+                <div class="attendance-header">
+                    <div class="header-top">
+                        <div>
+                            <h1 style="margin: 0; font-size: 2rem;">📊 Daily Attendance</h1>
+                            <div class="term-week-display">
+                                <span id="current-term">Term 1</span> • 
+                                <span id="current-week">Week 1</span>
+                            </div>
+                        </div>
+                        <div class="date-display" id="current-date">
+                            <!-- Date will be set by JavaScript -->
+                        </div>
+                    </div>
+                    
+                    <div class="session-tabs">
+                        <div class="session-tab active" data-session="both">
+                            <span>☀️🌙</span>
+                            Both Sessions
+                        </div>
+                        <div class="session-tab" data-session="am">
+                            <span>☀️</span>
+                            AM Session Only
+                        </div>
+                        <div class="session-tab" data-session="pm">
+                            <span>🌙</span>
+                            PM Session Only
+                        </div>
+                    </div>
+                    
+                    <div class="quick-actions">
+                        <button class="quick-action-btn" id="mark-all-present">
+                            <span>✓</span> Mark All Present
+                        </button>
+                        <button class="quick-action-btn" id="clear-all">
+                            <span>🗑️</span> Clear All
+                        </button>
+                        <button class="quick-action-btn" id="copy-am-to-pm">
+                            <span>📋→</span> Copy AM to PM
+                        </button>
+                        <button class="quick-action-btn" id="copy-pm-to-am">
+                            <span>←📋</span> Copy PM to AM
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="attendance-container">
+                    <!-- Classes List Panel -->
+                    <div class="classes-panel">
+                        <h3><span>📚</span> Classes</h3>
+                        <div class="classes-list" id="classes-list">
+                            <!-- Classes will be loaded here -->
+                        </div>
+                        
+                        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
+                            <h4><span>📊</span> Today's Summary</h4>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px;">
+                                <div style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 6px;">
+                                    <div style="font-size: 1.8rem; font-weight: bold; color: #28a745;" id="am-total">0%</div>
+                                    <div style="font-size: 0.9rem; color: #666;">AM Rate</div>
+                                </div>
+                                <div style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 6px;">
+                                    <div style="font-size: 1.8rem; font-weight: bold; color: #ffc107;" id="pm-total">0%</div>
+                                    <div style="font-size: 0.9rem; color: #666;">PM Rate</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Attendance Table Panel -->
+                    <div class="attendance-table-container">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                            <h3 style="margin: 0;">
+                                <span id="selected-class-name">Select a Class</span>
+                                <span style="color: #666; font-size: 1rem;" id="selected-class-year"></span>
+                            </h3>
+                            <div style="display: flex; gap: 10px; align-items: center;">
+                                <span>Total: <strong id="total-students">0</strong></span>
+                                <button class="btn btn-secondary" id="view-student-list">
+                                    <span>👥</span> Student List
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- The attendance table exactly like your image -->
+                        <table class="attendance-table">
+                            <thead>
+                                <tr>
+                                    <th>Year Group</th>
+                                    <th>Class</th>
+                                    <th>Total</th>
+                                    <th colspan="2">Male Present</th>
+                                    <th colspan="2">Female Present</th>
+                                    <th>AM Rate</th>
+                                    <th>PM Rate</th>
+                                    <th>Daily Rate</th>
+                                    <th>Cumulative</th>
+                                    <th>vs Avg</th>
+                                </tr>
+                                <tr>
+                                    <th></th>
+                                    <th></th>
+                                    <th></th>
+                                    <th>AM</th>
+                                    <th>PM</th>
+                                    <th>AM</th>
+                                    <th>PM</th>
+                                    <th></th>
+                                    <th></th>
+                                    <th></th>
+                                    <th></th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody id="attendance-table-body">
+                                <!-- Rows will be populated by JavaScript -->
+                            </tbody>
+                        </table>
+                        
+                        <div class="action-buttons">
+                            <button class="btn btn-secondary" id="save-draft">
+                                <span>💾</span> Save Draft
+                            </button>
+                            <button class="btn btn-primary" id="submit-attendance">
+                                <span>✓</span> Submit Attendance
+                            </button>
+                            <button class="btn btn-secondary" id="print-attendance">
+                                <span>🖨️</span> Print
+                            </button>
+                            <button class="btn btn-secondary" id="export-attendance">
+                                <span>📤</span> Export
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    hideLoading() {
+        const loading = document.getElementById('loading-content');
+        if (loading) loading.style.display = 'none';
+        
+        const content = document.getElementById('attendance-content');
+        if (content) content.style.display = 'block';
     }
 
     setCurrentDate() {
@@ -45,6 +209,27 @@ export class AttendanceManager {
         const dateElement = document.getElementById('current-date');
         if (dateElement) {
             dateElement.textContent = `${month} / ${day} / ${year}`;
+        }
+    }
+
+    initClassesList() {
+        const container = document.getElementById('classes-list');
+        if (!container) return;
+        
+        container.innerHTML = this.classes.map(cls => `
+            <div class="class-item" data-class-id="${cls.id}">
+                <div style="font-weight: 600; color: #2a5298;">${cls.name}</div>
+                <div style="font-size: 0.9rem; color: #666;">${cls.yearGroup}</div>
+                <div style="font-size: 0.85rem; margin-top: 5px;">
+                    <span style="color: #28a745;">✓ AM: 0/${cls.total}</span> • 
+                    <span style="color: #ffc107;">✓ PM: 0/${cls.total}</span>
+                </div>
+            </div>
+        `).join('');
+        
+        // Select first class by default
+        if (this.classes.length > 0) {
+            this.selectClass(this.classes[0].id);
         }
     }
 
@@ -65,22 +250,22 @@ export class AttendanceManager {
                 <td class="total-cell">${cls.total}</td>
                 <td>
                     <input type="number" class="attendance-input male-am" 
-                           min="0" max="${cls.total}" value="0" 
+                           min="0" max="${cls.male}" value="0" 
                            data-class="${cls.id}" data-gender="male" data-session="am">
                 </td>
                 <td>
                     <input type="number" class="attendance-input male-pm" 
-                           min="0" max="${cls.total}" value="0" 
+                           min="0" max="${cls.male}" value="0" 
                            data-class="${cls.id}" data-gender="male" data-session="pm">
                 </td>
                 <td>
                     <input type="number" class="attendance-input female-am" 
-                           min="0" max="${cls.total}" value="0" 
+                           min="0" max="${cls.female}" value="0" 
                            data-class="${cls.id}" data-gender="female" data-session="am">
                 </td>
                 <td>
                     <input type="number" class="attendance-input female-pm" 
-                           min="0" max="${cls.total}" value="0" 
+                           min="0" max="${cls.female}" value="0" 
                            data-class="${cls.id}" data-gender="female" data-session="pm">
                 </td>
                 <td class="percentage-cell am-rate">0%</td>
@@ -99,14 +284,8 @@ export class AttendanceManager {
         if (draft) {
             this.attendanceData = draft;
             this.loadAttendanceData(draft);
+            Utils.showToast('Draft loaded from previous session', 'info');
         }
-    }
-
-    initUI() {
-        const loading = document.getElementById('loading-content');
-        const content = document.getElementById('attendance-content');
-        if (loading) loading.style.display = 'none';
-        if (content) content.style.display = 'block';
     }
 
     setupEventListeners() {
@@ -116,22 +295,27 @@ export class AttendanceManager {
         });
 
         // Class selection
-        document.querySelectorAll('.class-item').forEach(item => {
-            item.addEventListener('click', (e) => this.handleClassSelect(e));
+        document.addEventListener('click', (e) => {
+            if (e.target.closest('.class-item')) {
+                const classItem = e.target.closest('.class-item');
+                this.handleClassSelect(classItem);
+            }
         });
 
         // Attendance inputs
         document.addEventListener('input', (e) => this.handleAttendanceInput(e));
 
         // Quick actions
-        document.getElementById('mark-all-present')?.addEventListener('click', () => this.markAllPresent());
-        document.getElementById('clear-all')?.addEventListener('click', () => this.clearAll());
-        document.getElementById('copy-am-to-pm')?.addEventListener('click', () => this.copyAMtoPM());
-        document.getElementById('copy-pm-to-am')?.addEventListener('click', () => this.copyPMtoAM());
+        const quickActions = ['mark-all-present', 'clear-all', 'copy-am-to-pm', 'copy-pm-to-am'];
+        quickActions.forEach(action => {
+            document.getElementById(action)?.addEventListener('click', () => this[action.replace(/-/g, '')]());
+        });
 
         // Action buttons
-        document.getElementById('save-draft')?.addEventListener('click', () => this.saveDraft());
-        document.getElementById('submit-attendance')?.addEventListener('click', () => this.submitAttendance());
+        const actions = ['save-draft', 'submit-attendance', 'print-attendance', 'export-attendance', 'view-student-list'];
+        actions.forEach(action => {
+            document.getElementById(action)?.addEventListener('click', () => this[action.replace(/-/g, '')]());
+        });
     }
 
     handleSessionChange(event) {
@@ -147,29 +331,54 @@ export class AttendanceManager {
         const pmInputs = document.querySelectorAll('.male-pm, .female-pm');
         
         if (this.currentSession === 'am') {
-            amInputs.forEach(input => input.disabled = false);
-            pmInputs.forEach(input => input.disabled = true);
+            amInputs.forEach(input => {
+                input.disabled = false;
+                input.style.opacity = '1';
+            });
+            pmInputs.forEach(input => {
+                input.disabled = true;
+                input.style.opacity = '0.3';
+            });
         } else if (this.currentSession === 'pm') {
-            amInputs.forEach(input => input.disabled = true);
-            pmInputs.forEach(input => input.disabled = false);
+            amInputs.forEach(input => {
+                input.disabled = true;
+                input.style.opacity = '0.3';
+            });
+            pmInputs.forEach(input => {
+                input.disabled = false;
+                input.style.opacity = '1';
+            });
         } else {
-            amInputs.forEach(input => input.disabled = false);
-            pmInputs.forEach(input => input.disabled = false);
+            amInputs.forEach(input => {
+                input.disabled = false;
+                input.style.opacity = '1';
+            });
+            pmInputs.forEach(input => {
+                input.disabled = false;
+                input.style.opacity = '1';
+            });
         }
     }
 
-    handleClassSelect(event) {
-        const item = event.currentTarget;
+    handleClassSelect(classItem) {
         document.querySelectorAll('.class-item').forEach(i => i.classList.remove('active'));
-        item.classList.add('active');
-        this.currentClass = item.dataset.classId;
+        classItem.classList.add('active');
+        this.currentClass = classItem.dataset.classId;
         this.updateSelectedClass();
     }
 
     updateSelectedClass() {
         const className = document.getElementById('selected-class-name');
-        if (className && this.currentClass) {
-            className.textContent = this.currentClass;
+        const classYear = document.getElementById('selected-class-year');
+        const classTotal = document.getElementById('total-students');
+        
+        if (this.currentClass) {
+            const cls = this.classes.find(c => c.id === this.currentClass);
+            if (cls) {
+                if (className) className.textContent = cls.name;
+                if (classYear) classYear.textContent = `(${cls.yearGroup})`;
+                if (classTotal) classTotal.textContent = cls.total;
+            }
         }
     }
 
@@ -179,7 +388,7 @@ export class AttendanceManager {
             const classId = input.dataset.class;
             
             // Validate input
-            const max = parseInt(input.max) || 100;
+            const max = parseInt(input.max) || 0;
             let value = parseInt(input.value) || 0;
             
             if (value < 0) value = 0;
@@ -257,12 +466,15 @@ export class AttendanceManager {
         const amPercentage = totalStudents > 0 ? Math.round((totalAmPresent / totalStudents) * 100) : 0;
         const pmPercentage = totalStudents > 0 ? Math.round((totalPmPresent / totalStudents) * 100) : 0;
 
-        document.getElementById('am-total').textContent = `${amPercentage}%`;
-        document.getElementById('pm-total').textContent = `${pmPercentage}%`;
+        const amTotal = document.getElementById('am-total');
+        const pmTotal = document.getElementById('pm-total');
+        
+        if (amTotal) amTotal.textContent = `${amPercentage}%`;
+        if (pmTotal) pmTotal.textContent = `${pmPercentage}%`;
     }
 
     // Quick Actions
-    markAllPresent() {
+    markallpresent() {
         const inputs = this.currentSession === 'am' ? 
             document.querySelectorAll('.male-am, .female-am') :
             this.currentSession === 'pm' ?
@@ -276,7 +488,7 @@ export class AttendanceManager {
         });
     }
 
-    clearAll() {
+    clearall() {
         const inputs = this.currentSession === 'am' ? 
             document.querySelectorAll('.male-am, .female-am') :
             this.currentSession === 'pm' ?
@@ -289,7 +501,7 @@ export class AttendanceManager {
         });
     }
 
-    copyAMtoPM() {
+    copyamtpm() {
         document.querySelectorAll('.male-am').forEach(amInput => {
             const classId = amInput.dataset.class;
             const pmInput = document.querySelector(`.male-pm[data-class="${classId}"]`);
@@ -309,7 +521,7 @@ export class AttendanceManager {
         });
     }
 
-    copyPMtoAM() {
+    copypmtoam() {
         document.querySelectorAll('.male-pm').forEach(pmInput => {
             const classId = pmInput.dataset.class;
             const amInput = document.querySelector(`.male-am[data-class="${classId}"]`);
@@ -329,21 +541,44 @@ export class AttendanceManager {
         });
     }
 
-    // Data Management
-    saveDraft() {
+    // Action Methods
+    savedraft() {
         const data = this.collectData();
         Storage.set('attendance_draft', data);
-        this.showNotification('Draft saved successfully!', 'success');
+        Utils.showToast('Draft saved successfully!', 'success');
     }
 
-    submitAttendance() {
+    submitattendance() {
         if (confirm('Submit attendance for all classes?')) {
             const data = this.collectData();
             const dateKey = `attendance_${new Date().toISOString().split('T')[0]}`;
             Storage.set(dateKey, data);
             Storage.remove('attendance_draft');
-            this.showNotification('Attendance submitted successfully!', 'success');
+            Utils.showToast('Attendance submitted successfully!', 'success');
         }
+    }
+
+    printattendance() {
+        window.print();
+    }
+
+    exportattendance() {
+        const data = this.collectData();
+        const json = JSON.stringify(data, null, 2);
+        const blob = new Blob([json], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `attendance_${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        Utils.showToast('Attendance data exported!', 'success');
+    }
+
+    viewstudentlist() {
+        Utils.showToast('Student list feature coming soon!', 'info');
     }
 
     collectData() {
@@ -386,13 +621,5 @@ export class AttendanceManager {
                 row.querySelector('.male-am').dispatchEvent(new Event('input'));
             }
         });
-    }
-
-    showNotification(message, type = 'info') {
-        if (this.app && this.app.showNotification) {
-            this.app.showNotification(message, type);
-        } else {
-            console.log(`[${type}] ${message}`);
-        }
     }
 }
