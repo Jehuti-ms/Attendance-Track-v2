@@ -1,154 +1,154 @@
-// assets/js/main.js - COMPLETE FILE (NO EXPORTS)
+// assets/js/main.js - CORRECTED PATHS
 console.log("🎯 Attendance Track v2 - main.js loading");
-// main.js - Updated version
-(function() {
-    console.log('Main.js loading...');
+console.log('Main.js loading...');
+
+// Wait for DOM to be ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+} else {
+    init();
+}
+
+function init() {
+    console.log('Main.js initializing...');
+    setupNavigation();
+    setupEventListeners();
+}
+
+// ==================== GLOBAL FUNCTIONS ====================
+// Helper to get the correct base path for GitHub Pages
+window.getBasePath = function() {
+    const pathname = window.location.pathname;
     
-    // Wait for DOM to be ready
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
-    } else {
-        init();
+    // If on GitHub Pages and in Attendance-Track-v2 repository
+    if (pathname.includes('/Attendance-Track-v2/')) {
+        return '/Attendance-Track-v2/';
     }
-    
-    function init() {
-        console.log('Main.js initializing...');
-        setupNavigation();
-        setupEventListeners();
+    // If at root of GitHub Pages site
+    else if (pathname === '/Attendance-Track-v2/' || pathname === '/Attendance-Track-v2') {
+        return '/Attendance-Track-v2/';
     }
-    
-    // ==================== GLOBAL FUNCTIONS ====================
-    // Use the utility function if available, otherwise define locally
-    if (!window.showNotification) {
-        window.showNotification = function(message, type) {
-            console.log(`[${type}] ${message}`);
-        };
+    // For local development
+    else {
+        return '/';
     }
+};
+
+// Navigation functions - FIXED PATHS
+window.goToLogin = function() {
+    window.location.href = window.getBasePath() + 'login.html';
+};
+
+window.goToAttendance = function() {
+    console.log('goToAttendance called');
+    const path = window.getBasePath() + 'attendance.html';
+    console.log('Navigating to:', path);
+    window.location.href = path;
+};
+
+window.goToReports = function() {
+    window.location.href = window.getBasePath() + 'reports.html';
+};
+
+window.goToSettings = function() {
+    window.location.href = window.getBasePath() + 'settings.html';
+};
+
+window.goToDashboard = function() {
+    window.location.href = window.getBasePath() + 'dashboard.html';
+};
+
+window.goToSetup = function() {
+    window.location.href = window.getBasePath() + 'setup.html';
+};
+
+window.goToMaintenance = function() {
+    window.location.href = window.getBasePath() + 'maintenance.html';
+};
+
+window.goToIndex = function() {
+    window.location.href = window.getBasePath() + 'index.html';
+};
+
+window.logout = function() {
+    localStorage.removeItem('attendance_user');
+    localStorage.removeItem('demo_mode');
+    showNotification('Logged out successfully', 'success');
+    setTimeout(function() {
+        window.goToLogin();
+    }, 1000);
+};
+
+window.startDemoMode = function() {
+    console.log("🚀 Starting demo mode...");
     
-    if (!window.getBasePath) {
-        window.getBasePath = function() {
-            return '/Attendance-Track-v2/';
-        };
-    }
-    
-    window.goToLogin = function() {
-        window.location.href = window.getBasePath() + '/login.html';
+    const demoUser = {
+        id: 'demo-001',
+        name: 'Demo Teacher',
+        email: 'demo@school.edu',
+        role: 'teacher',
+        school: 'Demo Academy',
+        demo: true
     };
     
-    window.goToAttendance = function() {
-        window.location.href = window.getBasePath() + '/attendance.html';
-    };
+    localStorage.setItem('attendance_user', JSON.stringify(demoUser));
+    localStorage.setItem('demo_mode', 'true');
     
-    window.goToReports = function() {
-        window.location.href = window.getBasePath() + '/reports.html';
-    };
+    showNotification('Demo mode activated! Loading dashboard...', 'success');
     
-    window.goToSettings = function() {
-        window.location.href = window.getBasePath() + '/settings.html';
-    };
-    
-    window.goToDashboard = function() {
-        window.location.href = window.getBasePath() + '/dashboard.html';
-    };
-    
-    window.goToSetup = function() {
-        window.location.href = window.getBasePath() + '/setup.html';
-    };
-    
-    window.goToMaintenance = function() {
-        window.location.href = window.getBasePath() + '/maintenance.html';
-    };
-    
-    window.logout = function() {
-        localStorage.removeItem('attendance_user');
-        localStorage.removeItem('demo_mode');
-        window.showNotification('Logged out successfully', 'success');
-        setTimeout(function() {
-            window.goToLogin();
-        }, 1000);
-    };
-    
-    window.startDemoMode = function() {
-        console.log("🚀 Starting demo mode...");
+    setTimeout(function() {
+        window.goToDashboard();
+    }, 1500);
+};
+
+// Utility function if not in utils.js
+if (!window.showNotification) {
+    window.showNotification = function(message, type = 'info') {
+        console.log(`[${type}] ${message}`);
         
-        const demoUser = {
-            id: 'demo-001',
-            name: 'Demo Teacher',
-            email: 'demo@school.edu',
-            role: 'teacher',
-            school: 'Demo Academy',
-            demo: true
-        };
+        // Create a simple notification if we can
+        const notification = document.createElement('div');
+        notification.textContent = message;
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            background: ${type === 'error' ? '#dc3545' : type === 'success' ? '#28a745' : type === 'warning' ? '#ffc107' : '#405dde'};
+            color: white;
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 9999;
+            animation: slideIn 0.3s ease;
+            max-width: 300px;
+            font-size: 14px;
+        `;
         
-        localStorage.setItem('attendance_user', JSON.stringify(demoUser));
-        localStorage.setItem('demo_mode', 'true');
+        document.body.appendChild(notification);
         
-        window.showNotification('Demo mode activated! Loading dashboard...', 'success');
+        setTimeout(() => {
+            notification.style.animation = 'slideOut 0.3s ease';
+            setTimeout(() => notification.remove(), 300);
+        }, 4000);
         
-        setTimeout(function() {
-            window.goToDashboard();
-        }, 1500);
-    };
-    
-    // Setup functions
-    function setupNavigation() {
-        console.log('Setting up navigation...');
-        
-        // Handle hash-based navigation
-        window.addEventListener('hashchange', handleHashChange);
-        
-        // Handle browser back/forward
-        window.addEventListener('popstate', handleHashChange);
-        
-        // Initial hash handling
-        if (window.location.hash) {
-            handleHashChange();
+        // Add animation styles if not present
+        if (!document.querySelector('#notification-animations')) {
+            const style = document.createElement('style');
+            style.id = 'notification-animations';
+            style.textContent = `
+                @keyframes slideIn {
+                    from { transform: translateX(100%); opacity: 0; }
+                    to { transform: translateX(0); opacity: 1; }
+                }
+                @keyframes slideOut {
+                    from { transform: translateX(0); opacity: 1; }
+                    to { transform: translateX(100%); opacity: 0; }
+                }
+            `;
+            document.head.appendChild(style);
         }
-    }
-    
-    function handleHashChange() {
-        const hash = window.location.hash.replace('#', '');
-        console.log('Hash changed to:', hash);
-        
-        switch(hash) {
-            case 'dashboard':
-                window.goToDashboard();
-                break;
-            case 'attendance':
-                window.goToAttendance();
-                break;
-            case 'reports':
-                window.goToReports();
-                break;
-            case 'settings':
-                window.goToSettings();
-                break;
-            case 'setup':
-                window.goToSetup();
-                break;
-            case 'maintenance':
-                window.goToMaintenance();
-                break;
-        }
-    }
-    
-    function setupEventListeners() {
-        // Set up navigation links
-        document.querySelectorAll('[data-module]').forEach(link => {
-            link.addEventListener('click', function(e) {
-                e.preventDefault();
-                const module = this.getAttribute('data-module');
-                window.location.hash = module;
-            });
-        });
-        
-        // Logout button
-        document.getElementById('logout-btn')?.addEventListener('click', window.logout);
-        
-        // Demo mode button
-        document.getElementById('demo-btn')?.addEventListener('click', window.startDemoMode);
-    }
-})();
+    };
+}
 
 // ==================== GLOBAL APP STATE ====================
 window.appState = {
@@ -160,35 +160,21 @@ window.appState = {
 };
 
 // ==================== INITIALIZATION ====================
-document.addEventListener('DOMContentLoaded', function() {
-    console.log("📄 DOM ready");
+function initializeApp() {
+    console.log("🚀 Initializing Attendance Track v2");
+    console.log('Current page:', window.appState.currentPage);
+    console.log('Base path:', window.getBasePath());
     
     // Update loading status
     updateStatus('Initializing application...');
     
-    // Initialize the app
-    setTimeout(function() {
-        try {
-            initializeApp();
-        } catch (error) {
-            console.error("❌ Initialization error:", error);
-            updateStatus('Error: ' + error.message, 'error');
-            showError(error.message);
-        }
-    }, 100);
-});
-
-// ==================== MAIN APP FUNCTIONS ====================
-function initializeApp() {
-    console.log("🚀 Initializing Attendance Track v2");
-    
     // 1. Check authentication
     checkAuth();
     
-    // 2. Load header
+    // 2. Load header if container exists
     loadHeader();
     
-    // 3. Load main content
+    // 3. Load main content if container exists
     loadMainContent();
     
     // 4. Setup event listeners
@@ -255,7 +241,7 @@ function loadHeader() {
     
     const headerContainer = document.getElementById('header-container');
     if (!headerContainer) {
-        console.warn("⚠️ header-container not found");
+        console.log("ℹ️ header-container not found on this page");
         return;
     }
     
@@ -340,19 +326,21 @@ function loadHeader() {
                      onmouseout="this.style.background='rgba(255,255,255,0.9)'">
                         <i class="fas fa-sign-in-alt"></i> Login
                     </button>
-                    <button onclick="startDemoMode()" style="
-                        padding: 8px 16px;
-                        background: transparent;
-                        color: white;
-                        border: 1px solid rgba(255,255,255,0.3);
-                        border-radius: 4px;
-                        cursor: pointer;
-                        font-size: 0.9rem;
-                        transition: all 0.2s ease;
-                    " onmouseover="this.style.background='rgba(255,255,255,0.1)'"
-                     onmouseout="this.style.background='transparent'">
-                        <i class="fas fa-play-circle"></i> Try Demo
-                    </button>
+                    ${window.appState.currentPage === 'index.html' ? `
+                        <button onclick="startDemoMode()" style="
+                            padding: 8px 16px;
+                            background: transparent;
+                            color: white;
+                            border: 1px solid rgba(255,255,255,0.3);
+                            border-radius: 4px;
+                            cursor: pointer;
+                            font-size: 0.9rem;
+                            transition: all 0.2s ease;
+                        " onmouseover="this.style.background='rgba(255,255,255,0.1)'"
+                         onmouseout="this.style.background='transparent'">
+                            <i class="fas fa-play-circle"></i> Try Demo
+                        </button>
+                    ` : ''}
                 `}
             </div>
         </header>
@@ -364,11 +352,11 @@ function loadMainContent() {
     
     const appContainer = document.getElementById('app-container');
     if (!appContainer) {
-        console.error("❌ app-container not found!");
+        console.log("ℹ️ app-container not found on this page");
         return;
     }
     
-    // Remove loading indicator
+    // Remove loading indicator if it exists
     const loadingContent = document.getElementById('loading-content');
     if (loadingContent) {
         loadingContent.style.transition = 'opacity 0.3s ease';
@@ -378,15 +366,26 @@ function loadMainContent() {
         }, 300);
     }
     
-    // Load content based on authentication
-    if (window.appState.user) {
-        loadDashboardContent(appContainer);
-    } else {
-        loadLandingContent(appContainer);
+    // Load content based on current page
+    switch(window.appState.currentPage) {
+        case 'index.html':
+            loadLandingContent(appContainer);
+            break;
+        case 'dashboard.html':
+            loadDashboardContent(appContainer);
+            break;
+        default:
+            // For other pages, just clear loading
+            console.log(`On ${window.appState.currentPage}, letting page handle content`);
     }
 }
 
 function loadDashboardContent(container) {
+    if (!window.appState.user) {
+        window.goToLogin();
+        return;
+    }
+    
     container.innerHTML = `
         <div style="padding: 30px; max-width: 1200px; margin: 0 auto;">
             <!-- Welcome section -->
@@ -405,86 +404,6 @@ function loadDashboardContent(container) {
                     ${window.appState.user.role === 'teacher' ? 'Teacher Dashboard' : 'Administrator Dashboard'} • 
                     Last login: Today
                 </p>
-            </div>
-            
-            <!-- Quick Stats -->
-            <div style="
-                display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-                gap: 20px;
-                margin-bottom: 30px;
-            ">
-                <div style="
-                    background: white;
-                    padding: 20px;
-                    border-radius: 8px;
-                    box-shadow: 0 3px 10px rgba(0,0,0,0.08);
-                    text-align: center;
-                ">
-                    <div style="font-size: 2rem; color: #405dde; margin-bottom: 10px;">
-                        <i class="fas fa-users"></i>
-                    </div>
-                    <div style="font-size: 1.8rem; font-weight: 600; color: #333;">
-                        24
-                    </div>
-                    <div style="color: #666; font-size: 0.9rem;">
-                        Total Students
-                    </div>
-                </div>
-                
-                <div style="
-                    background: white;
-                    padding: 20px;
-                    border-radius: 8px;
-                    box-shadow: 0 3px 10px rgba(0,0,0,0.08);
-                    text-align: center;
-                ">
-                    <div style="font-size: 2rem; color: #28a745; margin-bottom: 10px;">
-                        <i class="fas fa-clipboard-check"></i>
-                    </div>
-                    <div style="font-size: 1.8rem; font-weight: 600; color: #333;">
-                        92%
-                    </div>
-                    <div style="color: #666; font-size: 0.9rem;">
-                        Attendance Rate
-                    </div>
-                </div>
-                
-                <div style="
-                    background: white;
-                    padding: 20px;
-                    border-radius: 8px;
-                    box-shadow: 0 3px 10px rgba(0,0,0,0.08);
-                    text-align: center;
-                ">
-                    <div style="font-size: 2rem; color: #ffc107; margin-bottom: 10px;">
-                        <i class="fas fa-calendar-alt"></i>
-                    </div>
-                    <div style="font-size: 1.8rem; font-weight: 600; color: #333;">
-                        5
-                    </div>
-                    <div style="color: #666; font-size: 0.9rem;">
-                        Classes Today
-                    </div>
-                </div>
-                
-                <div style="
-                    background: white;
-                    padding: 20px;
-                    border-radius: 8px;
-                    box-shadow: 0 3px 10px rgba(0,0,0,0.08);
-                    text-align: center;
-                ">
-                    <div style="font-size: 2rem; color: #dc3545; margin-bottom: 10px;">
-                        <i class="fas fa-exclamation-circle"></i>
-                    </div>
-                    <div style="font-size: 1.8rem; font-weight: 600; color: #333;">
-                        3
-                    </div>
-                    <div style="color: #666; font-size: 0.9rem;">
-                        Pending Actions
-                    </div>
-                </div>
             </div>
             
             <!-- Quick Actions -->
@@ -569,7 +488,7 @@ function loadDashboardContent(container) {
                         </div>
                     </button>
                     
-                    <button onclick="goToSettings()" style="
+                    <button onclick="goToMaintenance()" style="
                         background: white;
                         border: none;
                         padding: 25px;
@@ -594,41 +513,17 @@ function loadDashboardContent(container) {
                             color: white;
                             font-size: 1.3rem;
                         ">
-                            <i class="fas fa-cog"></i>
+                            <i class="fas fa-database"></i>
                         </div>
                         <div>
                             <div style="font-weight: 600; color: #333; margin-bottom: 5px;">
-                                Settings
+                                Data Maintenance
                             </div>
                             <div style="color: #666; font-size: 0.9rem;">
-                                Configure your system
+                                Manage data and backups
                             </div>
                         </div>
                     </button>
-                </div>
-            </div>
-            
-            <!-- Recent Activity -->
-            <div style="
-                background: white;
-                padding: 25px;
-                border-radius: 8px;
-                box-shadow: 0 3px 10px rgba(0,0,0,0.08);
-            ">
-                <h3 style="color: #333; margin-bottom: 20px;">Recent Activity</h3>
-                <div style="color: #666;">
-                    <div style="padding: 10px 0; border-bottom: 1px solid #eee;">
-                        <i class="fas fa-check-circle" style="color: #28a745; margin-right: 10px;"></i>
-                        Attendance taken for Mathematics 101 - Today, 9:00 AM
-                    </div>
-                    <div style="padding: 10px 0; border-bottom: 1px solid #eee;">
-                        <i class="fas fa-file-export" style="color: #405dde; margin-right: 10px;"></i>
-                        Report exported for Week 45 - Yesterday, 3:30 PM
-                    </div>
-                    <div style="padding: 10px 0;">
-                        <i class="fas fa-user-plus" style="color: #ffc107; margin-right: 10px;"></i>
-                        3 new students added - Monday, 10:15 AM
-                    </div>
                 </div>
             </div>
         </div>
@@ -679,125 +574,6 @@ function loadLandingContent(container) {
                         The complete solution for tracking, managing, and reporting student attendance.
                         Perfect for schools, colleges, and training institutions.
                     </p>
-                </div>
-                
-                <!-- Features Grid -->
-                <div style="
-                    display: grid;
-                    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-                    gap: 30px;
-                    margin-bottom: 60px;
-                ">
-                    <div style="
-                        background: white;
-                        padding: 35px 25px;
-                        border-radius: 15px;
-                        text-align: center;
-                        box-shadow: 0 8px 25px rgba(0,0,0,0.08);
-                        transition: all 0.3s ease;
-                        border: 1px solid #f0f0f0;
-                    " onmouseover="this.style.transform='translateY(-10px)'; this.style.boxShadow='0 15px 35px rgba(0,0,0,0.12)'"
-                     onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 8px 25px rgba(0,0,0,0.08)'">
-                        <div style="
-                            width: 70px;
-                            height: 70px;
-                            background: linear-gradient(135deg, #405dde, #667eea);
-                            border-radius: 15px;
-                            display: flex;
-                            align-items: center;
-                            justify-content: center;
-                            margin: 0 auto 25px;
-                            color: white;
-                            font-size: 1.8rem;
-                        ">
-                            <i class="fas fa-users"></i>
-                        </div>
-                        <h3 style="color: #333; margin-bottom: 15px; font-size: 1.3rem;">
-                            Student Management
-                        </h3>
-                        <p style="color: #666; line-height: 1.6; font-size: 0.95rem;">
-                            Easily manage multiple classes and students with an intuitive interface.
-                        </p>
-                    </div>
-                    
-                    <div style="
-                        background: white;
-                        padding: 35px 25px;
-                        border-radius: 15px;
-                        text-align: center;
-                        box-shadow: 0 8px 25px rgba(0,0,0,0.08);
-                        transition: all 0.3s ease;
-                        border: 1px solid #f0f0f0;
-                    " onmouseover="this.style.transform='translateY(-10px)'; this.style.boxShadow='0 15px 35px rgba(0,0,0,0.12)'"
-                     onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 8px 25px rgba(0,0,0,0.08)'">
-                        <div style="
-                            width: 70px;
-                            height: 70px;
-                            background: linear-gradient(135deg, #28a745, #20c997);
-                            border-radius: 15px;
-                            display: flex;
-                            align-items: center;
-                            justify-content: center;
-                            margin: 0 auto 25px;
-                            color: white;
-                            font-size: 1.8rem;
-                        ">
-                            <i class="fas fa-chart-pie"></i>
-                        </div>
-                        <h3 style="color: #333; margin-bottom: 15px; font-size: 1.3rem;">
-                            Analytics & Reports
-                        </h3>
-                        <p style="color: #666; line-height: 1.6; font-size: 0.95rem;">
-                            Generate detailed reports and gain insights with comprehensive analytics.
-                        </p>
-                    </div>
-                    
-                    <div style="
-                        background: white;
-                        padding: 35px 25px;
-                        border-radius: 15px;
-                        text-align: center;
-                        box-shadow: 0 8px 25px rgba(0,0,0,0.08);
-                        transition: all 0.3s ease;
-                        border: 1px solid #f0f0f0;
-                    " onmouseover="this.style.transform='translateY(-10px)'; this.style.boxShadow='0 15px 35px rgba(0,0,0,0.12)'"
-                     onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 8px 25px rgba(0,0,0,0.08)'">
-                        <div style="
-                            width: 70px;
-                            height: 70px;
-                            background: linear-gradient(135deg, #ffc107, #fd7e14);
-                            border-radius: 15px;
-                            display: flex;
-                            align-items: center;
-                            justify-content: center;
-                            margin: 0 auto 25px;
-                            color: white;
-                            font-size: 1.8rem;
-                        ">
-                            <i class="fas fa-file-export"></i>
-                        </div>
-                        <h3 style="color: #333; margin-bottom: 15px; font-size: 1.3rem;">
-                            Export Data
-                        </h3>
-                        <p style="color: #666; line-height: 1.6; font-size: 0.95rem;">
-                            Export attendance data in multiple formats including PDF, Excel, and CSV.
-                        </p>
-                    </div>
-                </div>
-                
-                <!-- Call to Action -->
-                <div style="
-                    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-                    padding: 50px;
-                    border-radius: 15px;
-                    border: 1px solid #dee2e6;
-                ">
-                    <h2 style="color: #333; margin-bottom: 20px; font-size: 2rem;">
-                        Ready to Get Started?
-                    </h2>
-                    <p style="color: #666; margin-bottom: 40px; font-size: 1.1rem; max-width: 600px; margin-left: auto; margin-right: auto;">
-                        Join thousands of educators who trust Attendance Track for their attendance management needs.
-                    </p>
                     
                     <div style="display: flex; gap: 20px; justify-content: center; flex-wrap: wrap;">
                         <button onclick="goToLogin()" style="
@@ -844,6 +620,47 @@ function loadLandingContent(container) {
     `;
 }
 
+function setupNavigation() {
+    console.log('Setting up navigation...');
+    
+    // Handle hash-based navigation
+    window.addEventListener('hashchange', handleHashChange);
+    
+    // Handle browser back/forward
+    window.addEventListener('popstate', handleHashChange);
+    
+    // Initial hash handling
+    if (window.location.hash) {
+        handleHashChange();
+    }
+}
+
+function handleHashChange() {
+    const hash = window.location.hash.replace('#', '');
+    console.log('Hash changed to:', hash);
+    
+    switch(hash) {
+        case 'dashboard':
+            window.goToDashboard();
+            break;
+        case 'attendance':
+            window.goToAttendance();
+            break;
+        case 'reports':
+            window.goToReports();
+            break;
+        case 'settings':
+            window.goToSettings();
+            break;
+        case 'setup':
+            window.goToSetup();
+            break;
+        case 'maintenance':
+            window.goToMaintenance();
+            break;
+    }
+}
+
 function setupEventListeners() {
     console.log("🔧 Setting up event listeners...");
     
@@ -885,7 +702,12 @@ function updateUI() {
 
 function initServiceWorker() {
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/service-worker.js')
+        const basePath = window.getBasePath();
+        const swPath = basePath === '/' ? 'service-worker.js' : basePath + 'service-worker.js';
+        
+        console.log('Registering Service Worker at:', swPath);
+        
+        navigator.serviceWorker.register(swPath)
             .then(function(registration) {
                 console.log('✅ Service Worker registered:', registration.scope);
             })
@@ -893,52 +715,6 @@ function initServiceWorker() {
                 console.warn('⚠️ Service Worker registration failed:', error);
             });
     }
-}
-
-function showNotification(message, type) {
-    console.log(`Notification [${type}]: ${message}`);
-    
-    const toastContainer = document.getElementById('toast-container');
-    if (!toastContainer) return;
-    
-    const toast = document.createElement('div');
-    toast.textContent = message;
-    toast.style.cssText = `
-        background: ${type === 'error' ? '#dc3545' : type === 'success' ? '#28a745' : type === 'warning' ? '#ffc107' : '#405dde'};
-        color: white;
-        padding: 15px 25px;
-        border-radius: 8px;
-        margin-bottom: 10px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        animation: slideIn 0.3s ease;
-        max-width: 400px;
-    `;
-    
-    // Add animation
-    const style = document.createElement('style');
-    style.textContent = `
-        @keyframes slideIn {
-            from { transform: translateY(-20px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
-        @keyframes slideOut {
-            from { transform: translateY(0); opacity: 1; }
-            to { transform: translateY(-20px); opacity: 0; }
-        }
-    `;
-    document.head.appendChild(style);
-    
-    toastContainer.appendChild(toast);
-    
-    // Remove after 4 seconds
-    setTimeout(function() {
-        toast.style.animation = 'slideOut 0.3s ease';
-        setTimeout(function() {
-            if (toast.parentNode) {
-                toast.parentNode.removeChild(toast);
-            }
-        }, 300);
-    }, 4000);
 }
 
 function showError(message) {
@@ -972,85 +748,37 @@ function showError(message) {
     }
 }
 
-// ==================== GLOBAL FUNCTIONS ====================
-// Helper to get the correct base path
-window.getBasePath = function() {
-    // If we're on GitHub Pages
-    if (window.location.hostname.includes('github.io')) {
-        const pathParts = window.location.pathname.split('/');
-        const repoName = pathParts[1]; // Get repo name from URL
-        return `/${repoName}/`;
-    }
-    return '/';
-};
-
-window.goToLogin = function() {
-    const basePath = window.getBasePath();
-    window.location.href = `${basePath}pages/login.html`;
-};
-
-window.goToAttendance = function() {
-    const basePath = window.getBasePath();
-    window.location.href = `${basePath}pages/attendance.html`;
-};
-
-window.goToReports = function() {
-    const basePath = window.getBasePath();
-    window.location.href = `${basePath}pages/reports.html`;
-};
-
-window.goToSettings = function() {
-    const basePath = window.getBasePath();
-    window.location.href = `${basePath}pages/settings.html`;
-};
-
-window.goToDashboard = function() {
-    const basePath = window.getBasePath();
-    window.location.href = `${basePath}pages/dashboard.html`;
-};
-
-window.logout = function() {
-    localStorage.removeItem('attendance_user');
-    localStorage.removeItem('demo_mode');
-    showNotification('Logged out successfully', 'success');
+// Auto-initialize on DOM ready
+document.addEventListener('DOMContentLoaded', function() {
+    console.log("📄 DOM ready");
+    
+    // Update loading status
+    updateStatus('Initializing application...');
+    
+    // Initialize the app with error handling
     setTimeout(function() {
-        window.goToLogin();
-    }, 1000);
-};
-
-window.startDemoMode = function() {
-    console.log("🚀 Starting demo mode...");
-    
-    const demoUser = {
-        id: 'demo-001',
-        name: 'Demo Teacher',
-        email: 'demo@school.edu',
-        role: 'teacher',
-        school: 'Demo Academy',
-        demo: true
-    };
-    
-    localStorage.setItem('attendance_user', JSON.stringify(demoUser));
-    localStorage.setItem('demo_mode', 'true');
-    
-    showNotification('Demo mode activated! Loading dashboard...', 'success');
-    
-    setTimeout(function() {
-        window.goToDashboard();
-    }, 1500);
-};
+        try {
+            initializeApp();
+        } catch (error) {
+            console.error("❌ Initialization error:", error);
+            updateStatus('Error: ' + error.message, 'error');
+            showError(error.message);
+        }
+    }, 100);
+});
 
 // ==================== EXPOSE MAIN FUNCTION ====================
 window.initializeApp = initializeApp;
 
 console.log("✅ main.js setup complete - Ready to initialize");
 
-// Add this to your main.js to debug
+// Debug info
 console.log('=== DEBUG INFO ===');
 console.log('Current URL:', window.location.href);
 console.log('Pathname:', window.location.pathname);
+console.log('Base path function returns:', window.getBasePath());
 console.log('goToAttendance function:', typeof window.goToAttendance);
 
-// Test what path will be used
-const testPath = 'pages/attendance.html';
-console.log('Test path resolves to:', new URL(testPath, window.location.href).href);
+// Test attendance path
+const testPath = window.getBasePath() + 'attendance.html';
+console.log('Attendance path will be:', testPath);
