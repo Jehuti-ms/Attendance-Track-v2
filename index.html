@@ -15,7 +15,7 @@
     <link rel="icon" href="assets/icons/favicon.ico">
     
     <!-- Load ES6 module -->
-    <script type="module" src="assets/js/attendance-app.js"></script>
+   <!-- <script type="module" src="assets/js/attendance-app.js"></script> -->
 </head>
 <body>
     <div id="app">
@@ -25,11 +25,13 @@
         </main>
     </div>
 
-    <!-- Vendor libraries (load after module) -->
-    <script src="https://cdn.jsdelivr.net/npm/jspdf@3.0.4/dist/jspdf.umd.min.js"></script>
-    <script src="assets/vendors/jsPDF.min.js"></script>
-    <script src="assets/vendors/jspdf-autotable.min.js"></script>
-    <script src="assets/vendors/html2canvas.min.js"></script>
+       <!-- Vendor libraries FIRST (non-module) -->
+<script src="assets/vendors/jsPDF.min.js"></script>
+<script src="assets/vendors/jspdf-autotable.min.js"></script>
+<script src="assets/vendors/html2canvas.min.js"></script>
+
+<!-- Your ES6 module LAST -->
+<script type="module" src="assets/js/attendance-app.js"></script>
     
     <!-- Remove other script tags that might conflict -->
 </body>
