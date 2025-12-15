@@ -1,4 +1,4 @@
-// assets/js/attendance.js - UPDATED with Firebase
+// assets/js/attendance.js - COMPLETE FIXED VERSION with Firebase
 import { Utils, Storage } from './utils.js';
 import { Firestore, getSchoolId } from './firebase.js';
 
@@ -14,13 +14,13 @@ export class AttendanceManager {
     async init() {
         console.log('📊 AttendanceManager initialized');
         
-        // Load classes from Firebase/localStorage
+        // Load classes from Firebase/localStorage FIRST
         await this.loadClasses();
         
         // Inject the attendance HTML content
         await this.injectAttendanceContent();
         
-        // Set up everything else
+        // THEN set up everything else
         this.setCurrentDate();
         this.initAttendanceTable();
         this.initClassesList();
@@ -289,7 +289,6 @@ export class AttendanceManager {
         }
     }
 
-    // Add this new helper method
     updateSelectedClassUI(classId) {
         const classItem = document.querySelector(`.class-item[data-class-id="${classId}"]`);
         if (classItem) {
@@ -411,7 +410,7 @@ export class AttendanceManager {
         }
     }
     
-   setupEventListeners() {
+    setupEventListeners() {
         // Use event delegation for dynamic elements
         document.addEventListener('click', (e) => {
             // Session tabs
@@ -463,7 +462,7 @@ export class AttendanceManager {
         
         // Add keyboard shortcuts
         document.addEventListener('keydown', (e) => {
-            if (e.target.classList.contains('.attendance-input')) {
+            if (e.target.classList.contains('attendance-input')) {
                 this.handleKeyboardInput(e);
             }
         });
