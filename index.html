@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#405dde">
     <title>Attendance Track v2</title>
     
     <!-- CSS -->
@@ -12,27 +13,42 @@
     
     <!-- PWA -->
     <link rel="manifest" href="manifest.json">
-    <link rel="icon" href="assets/icons/favicon.ico">
+    <link rel="icon" href="assets/icons/favicon.ico" type="image/x-icon">
+    <link rel="apple-touch-icon" href="assets/icons/icon-192.png">
     
-    <!-- Load ES6 module -->
-   <!-- <script type="module" src="assets/js/attendance-app.js"></script> -->
+    <!-- Load main app as ES6 module -->
+    <script type="module" src="assets/js/attendance-app.js"></script>
 </head>
 <body>
     <div id="app">
+        <!-- Header loaded by JS -->
         <div id="header-container"></div>
+        
+        <!-- Main content -->
         <main id="app-container">
-            <!-- Content will be loaded by JavaScript -->
+            <!-- Loading indicator -->
+            <div id="loading-content">
+                <div class="loading-spinner"></div>
+                <div>Loading Attendance Track v2...</div>
+            </div>
         </main>
+        
+        <!-- Simple footer -->
+        <footer style="
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            font-size: 0.9rem;
+            border-top: 1px solid #eee;
+            margin-top: 40px;
+        ">
+            <p>Attendance Track v2 &copy; 2024</p>
+        </footer>
     </div>
 
-       <!-- Vendor libraries FIRST (non-module) -->
-<script src="assets/vendors/jsPDF.min.js"></script>
-<script src="assets/vendors/jspdf-autotable.min.js"></script>
-<script src="assets/vendors/html2canvas.min.js"></script>
-
-<!-- Your ES6 module LAST -->
-<script type="module" src="assets/js/attendance-app.js"></script>
-    
-    <!-- Remove other script tags that might conflict -->
+    <!-- Vendor libraries (load after module) -->
+    <script src="assets/vendors/jsPDF.min.js"></script>
+    <script src="assets/vendors/jspdf-autotable.min.js"></script>
+    <script src="assets/vendors/html2canvas.min.js"></script>
 </body>
 </html>
