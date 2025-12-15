@@ -1,4 +1,3 @@
-// attendance-track-v2/manifest.json
 {
   "name": "Attendance Track v2",
   "short_name": "AttendanceTrack",
@@ -22,7 +21,7 @@
   "start_url": "/Attendance-Track-v2/index.html",
   "scope": "/Attendance-Track-v2/",
   "display": "standalone",
-  "theme_color": "#007bff",
+  "theme_color": "#405dde",
   "background_color": "#ffffff",
   "orientation": "portrait",
   "categories": ["education", "productivity"],
