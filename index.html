@@ -3,178 +3,119 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Attendance Track v2 - Complete School Attendance System</title>
-    
-    <!-- Favicon and PWA Support - SIMPLIFIED -->
-    <link rel="icon" href="assets/icons/favicon.ico" type="image/x-icon">
-    <link rel="shortcut icon" href="assets/icons/favicon.ico">
-    <link rel="apple-touch-icon" href="assets/icons/icon-192.png">
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#405dde">
+    <meta name="theme-color" content="#007bff">
+    <title>Attendance Track v2</title>
     
     <!-- CSS Files -->
-    <link rel="stylesheet" href="assets/css/theme.css">
     <link rel="stylesheet" href="assets/css/main.css">
     <link rel="stylesheet" href="assets/css/components.css">
+    <link rel="stylesheet" href="assets/css/theme.css">
     
-    <!-- Font Awesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- PWA -->
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="assets/icons/favicon.ico" type="image/x-icon">
+    <link rel="apple-touch-icon" href="assets/icons/icon-192.png">
     
-    <!-- EMERGENCY VISIBILITY FIX -->
-    <style>
-        /* Ensure everything is visible */
-        body, html {
-            display: block !important;
-            visibility: visible !important;
-            opacity: 1 !important;
-            background: #f5f5f5 !important;
-            min-height: 100vh !important;
-            margin: 0 !important;
-            font-family: Arial, sans-serif !important;
-        }
-        
-        #app-container {
-            display: block !important;
-            min-height: 400px !important;
-            background: white !important;
-        }
-        
-        /* Loading animation */
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-    </style>
+    <!-- Main JS module -->
+    <script type="module" src="assets/js/main.js" defer></script>
 </head>
 <body>
-    <!-- Header Component - ADD THIS BACK -->
-    <div id="header-container"></div>
-
-    <!-- Main Content Container - ADD FALLBACK CONTENT -->
-    <main id="app-container" class="container">
-        <!-- Fallback content while loading -->
-        <div id="loading-content" style="text-align: center; padding: 50px;">
-            <div style="font-size: 3rem; color: #405dde; margin-bottom: 20px;">
-                <i class="fas fa-clipboard-check"></i>
-            </div>
-            <h1 style="color: #333; margin-bottom: 10px;">Attendance Track v2</h1>
-            <p style="color: #666; margin-bottom: 30px;">Complete School Attendance System</p>
-            
-            <div style="
-                border: 4px solid #f3f3f3;
-                border-top: 4px solid #405dde;
-                border-radius: 50%;
-                width: 40px;
-                height: 40px;
-                animation: spin 1s linear infinite;
-                margin: 0 auto 20px;
-            "></div>
-            
-            <p style="color: #888; font-size: 14px;">
-                <span id="load-status">Loading application...</span>
-            </p>
-            
-            <div style="margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 8px; max-width: 400px; margin-left: auto; margin-right: auto;">
-                <p style="margin-bottom: 10px; font-size: 14px;">If this takes too long:</p>
-                <button onclick="location.reload()" style="
-                    padding: 8px 16px;
-                    background: #405dde;
-                    color: white;
-                    border: none;
-                    border-radius: 4px;
-                    cursor: pointer;
-                    font-size: 14px;
-                ">
-                    Reload Page
-                </button>
-                <button onclick="startDemoMode()" style="
-                    padding: 8px 16px;
-                    background: #6c757d;
-                    color: white;
-                    border: none;
-                    border-radius: 4px;
-                    cursor: pointer;
-                    font-size: 14px;
-                    margin-left: 10px;
-                ">
-                    Try Demo Mode
-                </button>
-            </div>
-        </div>
-    </main>
-
-   <!-- Toast Container -->
-<div id="toast-container" class="toast-container"></div>
-
-<!-- Modal Container -->
-<div id="modal-container"></div>
-
-<!-- JavaScript Libraries -->
-<script src="assets/vendors/jspdf.min.js"></script>
-<script src="assets/vendors/jspdf-autotable.min.js"></script>
-<script src="assets/vendors/html2canvas.min.js"></script>
-
-<!-- Core Utilities FIRST -->
-<script src="assets/js/utils.js"></script>
-
-<!-- Main Application Scripts SECOND -->
-<script src="assets/js/main.js"></script>
-
-<!-- App Initialization LAST -->
-<script src="assets/js/attendance-app.js"></script>
-    
-    <!-- Debug and initialization script -->
-    <script>
-        console.log("📄 index.html loaded");
+    <div id="app">
+        <!-- Header will be loaded here -->
+        <div id="header-container"></div>
         
-        // Update loading status
-        const statusEl = document.getElementById('load-status');
-        if (statusEl) {
-            statusEl.textContent = 'Loading main application...';
-        }
-        
-        // Global function for demo mode
-        window.startDemoMode = function() {
-            console.log("Starting demo mode...");
-            localStorage.setItem('demo_mode', 'true');
-            localStorage.setItem('attendance_user', JSON.stringify({
-                name: 'Demo Teacher',
-                email: 'demo@school.edu',
-                role: 'teacher'
-            }));
-            alert('Demo mode activated! The app will reload.');
-            location.reload();
-        };
-        
-        // Check if main.js loaded properly
-        setTimeout(function() {
-            console.log("Checking application status...");
-            
-            if (typeof initializeApp !== 'undefined') {
-                console.log("✅ initializeApp function found");
-                if (statusEl) {
-                    statusEl.textContent = 'Application loaded successfully!';
-                    statusEl.style.color = 'green';
-                }
-            } else {
-                console.warn("⚠️ initializeApp function not found");
-                if (statusEl) {
-                    statusEl.textContent = 'Waiting for application to load...';
-                    statusEl.style.color = 'orange';
-                }
+        <!-- Main content -->
+        <main id="main-content" class="container">
+            <div class="welcome-section">
+                <h1>Welcome to Attendance Track v2</h1>
+                <p class="subtitle">A modern, offline-capable attendance tracking system for schools</p>
                 
-                // Try to load a backup script
-                setTimeout(function() {
-                    if (typeof initializeApp === 'undefined') {
-                        console.error("❌ Application failed to load");
-                        if (statusEl) {
-                            statusEl.textContent = 'Application failed to load. Please reload.';
-                            statusEl.style.color = 'red';
-                        }
-                    }
-                }, 3000);
+                <div class="auth-buttons">
+                    <button id="login-btn" class="btn btn-primary btn-lg">
+                        <i class="icon-login"></i> Login
+                    </button>
+                    <button id="setup-btn" class="btn btn-secondary btn-lg">
+                        <i class="icon-setup"></i> Setup System
+                    </button>
+                </div>
+                
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">📊</div>
+                        <h3>Real-time Tracking</h3>
+                        <p>Track attendance with instant updates and live status</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">📱</div>
+                        <h3>Offline Support</h3>
+                        <p>Works without internet connection, syncs when online</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">📈</div>
+                        <h3>Detailed Reports</h3>
+                        <p>Generate comprehensive attendance reports in multiple formats</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🔒</div>
+                        <h3>Secure Data</h3>
+                        <p>Your data stays encrypted and secure on your device</p>
+                    </div>
+                </div>
+                
+                <div class="quick-start">
+                    <h2>Getting Started</h2>
+                    <ol>
+                        <li>Click <strong>Setup System</strong> to configure your institution</li>
+                        <li>Add classes, teachers, and students</li>
+                        <li>Start tracking attendance</li>
+                        <li>Generate reports and analyze data</li>
+                    </ol>
+                </div>
+            </div>
+        </main>
+        
+        <!-- Footer will be loaded here -->
+        <div id="footer-container"></div>
+    </div>
+
+    <!-- Vendor Libraries -->
+    <script src="assets/vendors/jsPDF.min.js"></script>
+    <script src="assets/vendors/jspdf-autotable.min.js"></script>
+    <script src="assets/vendors/html2canvas.min.js"></script>
+
+    <!-- Utility -->
+    <script src="assets/js/utils.js"></script>
+
+    <!-- Module files -->
+    <script src="assets/js/attendance-app.js"></script>
+    <script src="assets/js/auth.js"></script>
+    <script src="assets/js/dashboard.js"></script>
+    <script src="assets/js/setup.js"></script>
+    <script src="assets/js/attendance.js"></script>
+    <script src="assets/js/reports.js"></script>
+    <script src="assets/js/export.js"></script>
+    <script src="assets/js/maintenance.js"></script>
+    <script src="assets/js/settings.js"></script>
+    <script src="assets/js/import.js"></script>
+    
+    <script>
+        // Debug: Check if all scripts loaded
+        console.log('📄 index.html loaded from: ' + window.location.pathname);
+        
+        // Add some icons if needed
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add icon classes if not in CSS
+            if (!document.querySelector('style[data-icons]')) {
+                const style = document.createElement('style');
+                style.setAttribute('data-icons', 'true');
+                style.textContent = `
+                    .icon-login:before { content: "🔑 "; }
+                    .icon-setup:before { content: "⚙️ "; }
+                    .feature-icon { font-size: 2rem; margin-bottom: 1rem; }
+                `;
+                document.head.appendChild(style);
             }
-        }, 1500);
+        });
     </script>
 </body>
 </html>
