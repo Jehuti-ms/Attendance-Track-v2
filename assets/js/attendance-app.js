@@ -33,37 +33,63 @@ class AttendanceApp {
         return '/';
     }
 
-    async init() {
-        console.log('🚀 Initializing AttendanceApp...');
+    async checkFirebaseAuth() {
+    try {
+        const { auth } = await import('./firebase.js');
         
-        try {
-            // Check authentication
-            const user = Storage.get('attendance_user');
-            if (user) {
-                this.state.currentUser = user;
-                console.log('User found:', user.name);
-            }
-
-            // Load UI components
-            await this.loadHeader();
-            await this.loadContent();
-            
-            // Setup page-specific handlers
-            this.setupPageHandlers();
-            
-            // Setup event listeners
-            this.setupEventListeners();
-            
-            // Initialize service worker
-            this.initServiceWorker();
-            
-            console.log('✅ AttendanceApp initialized successfully');
-            
-        } catch (error) {
-            console.error('❌ Error initializing app:', error);
-            this.showError(error.message);
+        if (auth.currentUser) {
+            console.log('Firebase user already logged in:', auth.currentUser.email);
+            this.state.currentUser = {
+                id: auth.currentUser.uid,
+                email: auth.currentUser.email,
+                name: auth.currentUser.displayName || auth.currentUser.email.split('@')[0],
+                role: 'teacher'
+            };
+            Storage.set('attendance_user', this.state.currentUser);
+            return true;
         }
+        return false;
+    } catch (error) {
+        console.error('Firebase auth check failed:', error);
+        return false;
     }
+}
+    
+   async init() {
+    console.log('🚀 Initializing AttendanceApp...');
+    
+    try {
+        // First check if we have Firebase auth
+        const hasFirebaseAuth = await this.checkFirebaseAuth();
+        console.log('Firebase auth status:', hasFirebaseAuth ? 'Logged in' : 'Not logged in');
+        
+        // Check authentication (from localStorage or Firebase)
+        const user = Storage.get('attendance_user');
+        if (user) {
+            this.state.currentUser = user;
+            console.log('User found:', user.name);
+        }
+
+        // Load UI components
+        await this.loadHeader();
+        await this.loadContent();
+        
+        // Setup page-specific handlers
+        this.setupPageHandlers();
+        
+        // Setup event listeners
+        this.setupEventListeners();
+        
+        // Initialize service worker
+        this.initServiceWorker();
+        
+        console.log('✅ AttendanceApp initialized successfully');
+        
+    } catch (error) {
+        console.error('❌ Error initializing app:', error);
+        this.showError(error.message);
+    }
+}
 
     async loadHeader() {
         const headerContainer = document.getElementById('header-container');
