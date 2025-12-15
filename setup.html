@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Setup - Attendance Track v2</title>
+    <link rel="stylesheet" href="assets/css/main.css">
+    <link rel="stylesheet" href="assets/css/components.css">
+    <link rel="stylesheet" href="assets/css/theme.css">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="assets/icons/favicon.ico">
+    <script type="module" src="assets/js/attendance-app.js"></script>
+</head>
+<body>
+    <div id="app">
+        <div id="header-container"></div>
+        <main id="app-container">
+            <div id="loading-content">
+                <div style="
+                    width: 60px;
+                    height: 60px;
+                    border: 4px solid #f3f3f3;
+                    border-top: 4px solid #405dde;
+                    border-radius: 50%;
+                    animation: spin 1s linear infinite;
+                    margin: 0 auto;
+                "></div>
+                <div style="margin-top: 20px; color: #666;">
+                    Loading Setup...
+                </div>
+            </div>
+        </main>
+        <footer style="
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            font-size: 0.9rem;
+            border-top: 1px solid #eee;
+            margin-top: 40px;
+        ">
+            <p>Attendance Track v2 &copy; 2024</p>
+        </footer>
+    </div>
+    <script src="assets/vendors/jsPDF.min.js"></script>
+    <script src="assets/vendors/jspdf-autotable.min.js"></script>
+    <script src="assets/vendors/html2canvas.min.js"></script>
+    <style>
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</body>
+</html>
