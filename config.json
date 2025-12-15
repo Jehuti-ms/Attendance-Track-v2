@@ -1,26 +1,24 @@
 {
-  "appName": "Attendance Track v2",
-  "version": "2.0.0",
-  "schoolName": "Your School Name",
-  "defaultTermWeeks": 14,
-  "features": {
-    "googleSheetsIntegration": true,
-    "pdfExport": true,
-    "emailReports": true,
-    "dataImport": true,
-    "offlineMode": true
-  },
-  "export": {
-    "pdf": {
-      "defaultOrientation": "landscape",
-      "defaultFormat": "a4",
-      "includeHeader": true,
-      "includeFooter": true
+    "app": {
+        "name": "Attendance Track v2",
+        "version": "2.0.0",
+        "author": "Your Institution",
+        "defaultLanguage": "en"
     },
-    "email": {
-      "defaultSubject": "Attendance Report",
-      "defaultBody": "Please find the attendance report attached.",
-      "allowMultipleRecipients": true
+    "paths": {
+        "assets": "assets/",
+        "components": "components/",
+        "pages": "./"
+    },
+    "features": {
+        "offline": true,
+        "export": true,
+        "import": true,
+        "reports": true,
+        "backup": true
+    },
+    "storage": {
+        "prefix": "attendance_v2_",
+        "backupInterval": 3600000
     }
-  }
 }
