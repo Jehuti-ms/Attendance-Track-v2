@@ -1,8 +1,36 @@
-export class DashboardModule {
-    constructor(app) {
-        this.app = app;
-    }
+// Alternative approach - define Storage locally if import fails
+let Storage;
 
+// Try to import, but fallback if it fails
+try {
+    const utils = await import('./utils.js');
+    Storage = utils.Storage;
+} catch (error) {
+    console.warn('Could not import utils.js, using localStorage directly:', error);
+    Storage = {
+        get: (key, defaultValue = null) => {
+            try {
+                const item = localStorage.getItem(key);
+                return item ? JSON.parse(item) : defaultValue;
+            } catch (e) {
+                console.error(`Error getting ${key}:`, e);
+                return defaultValue;
+            }
+        },
+        set: (key, value) => {
+            try {
+                localStorage.setItem(key, JSON.stringify(value));
+                return true;
+            } catch (e) {
+                console.error(`Error setting ${key}:`, e);
+                return false;
+            }
+        }
+    };
+}
+
+export class DashboardModule {
+    // ... rest of the class
     async init() {
         console.log('📊 DashboardModule initialized');
         await this.loadDashboardData();
