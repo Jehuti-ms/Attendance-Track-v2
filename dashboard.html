@@ -9,30 +9,134 @@
     <link rel="stylesheet" href="assets/css/theme.css">
     <link rel="manifest" href="manifest.json">
     <link rel="icon" href="assets/icons/favicon.ico">
-    <script type="module" src="assets/js/attendance-app.js"></script>
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
     <div id="app">
+        <!-- Header will be injected here -->
         <div id="header-container"></div>
+        
         <main id="app-container">
-            <div id="loading-content">
+            <!-- Loading state -->
+            <div id="loading-content" class="loading-state">
                 <div class="loading-spinner"></div>
                 <div>Loading dashboard...</div>
             </div>
+            
+            <!-- Dashboard content (will be shown after loading) -->
+            <div id="dashboard-content" class="dashboard-container" style="display: none;">
+                <h1>Dashboard</h1>
+                <!-- Your dashboard content will go here -->
+            </div>
         </main>
-        <footer style="
-            text-align: center;
-            padding: 20px;
-            color: #666;
-            font-size: 0.9rem;
-            border-top: 1px solid #eee;
-            margin-top: 40px;
-        ">
-            <p>Attendance Track v2 &copy; 2024</p>
-        </footer>
+        
+        <!-- Footer will be injected here -->
+        <div id="footer-container"></div>
     </div>
+    
+    <!-- Vendor scripts -->
     <script src="assets/vendors/jsPDF.min.js"></script>
     <script src="assets/vendors/jspdf-autotable.min.js"></script>
     <script src="assets/vendors/html2canvas.min.js"></script>
+    
+    <!-- Your app scripts -->
+    <script src="assets/js/utils.js"></script>
+    <script src="assets/js/auth.js"></script>
+    <script src="assets/js/main.js"></script>
+    <script src="assets/js/dashboard.js"></script>
+    
+    <script>
+        // Component loader function
+        async function loadComponent(componentName, containerId) {
+            try {
+                const response = await fetch(`components/${componentName}.html`);
+                if (!response.ok) {
+                    throw new Error(`Failed to load ${componentName}: ${response.status}`);
+                }
+                
+                const html = await response.text();
+                const container = document.getElementById(containerId);
+                
+                if (container) {
+                    container.innerHTML = html;
+                    console.log(`✓ Loaded ${componentName}`);
+                    return true;
+                }
+                return false;
+            } catch (error) {
+                console.error(`Error loading ${componentName}:`, error);
+                
+                // Fallback for header if component fails
+                if (componentName === 'header' && containerId === 'header-container') {
+                    const container = document.getElementById(containerId);
+                    if (container) {
+                        container.innerHTML = `
+                            <div style="background: #2a5298; padding: 15px 20px; color: white; display: flex; justify-content: space-between; align-items: center;">
+                                <div style="display: flex; align-items: center; gap: 15px;">
+                                    <a href="dashboard.html" style="color: white; text-decoration: none; font-weight: bold; font-size: 1.2rem;">
+                                        <i class="fas fa-clipboard-check"></i> Attendance Track
+                                    </a>
+                                    <div style="display: flex; gap: 10px;">
+                                        <a href="dashboard.html" style="color: white; text-decoration: none;">Dashboard</a>
+                                        <a href="setup.html" style="color: white; text-decoration: none;">Setup</a>
+                                        <a href="attendance.html" style="color: white; text-decoration: none;">Attendance</a>
+                                        <a href="reports.html" style="color: white; text-decoration: none;">Reports</a>
+                                        <a href="maintenance.html" style="color: white; text-decoration: none;">Maintenance</a>
+                                        <a href="settings.html" style="color: white; text-decoration: none;">Settings</a>
+                                    </div>
+                                </div>
+                                <div>
+                                    <a href="login.html" style="color: white; text-decoration: none;">
+                                        <i class="fas fa-sign-out-alt"></i> Logout
+                                    </a>
+                                </div>
+                            </div>
+                        `;
+                    }
+                }
+                return false;
+            }
+        }
+        
+        // Initialize the page
+        document.addEventListener('DOMContentLoaded', async function() {
+            console.log('Initializing dashboard...');
+            
+            // Load components
+            await Promise.all([
+                loadComponent('header', 'header-container'),
+                loadComponent('footer', 'footer-container')
+            ]);
+            
+            // Initialize common functionality
+            if (typeof initApp === 'function') {
+                initApp();
+            }
+            
+            // Initialize dashboard
+            if (typeof initDashboard === 'function') {
+                initDashboard();
+            } else {
+                // Fallback if dashboard.js doesn't have initDashboard
+                setTimeout(() => {
+                    const loading = document.getElementById('loading-content');
+                    const content = document.getElementById('dashboard-content');
+                    
+                    if (loading) loading.style.display = 'none';
+                    if (content) content.style.display = 'block';
+                }, 500);
+            }
+            
+            // Add navigation highlighting
+            const currentPage = window.location.pathname.split('/').pop();
+            document.querySelectorAll('a[href]').forEach(link => {
+                if (link.getAttribute('href') === currentPage) {
+                    link.style.fontWeight = 'bold';
+                    link.style.textDecoration = 'underline';
+                }
+            });
+        });
+    </script>
 </body>
 </html>
