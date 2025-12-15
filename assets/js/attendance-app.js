@@ -77,14 +77,33 @@ class AttendanceApp {
     goToSetup() { this.navigateTo('setup'); }
     goToMaintenance() { this.navigateTo('maintenance'); }
     goToIndex() { this.navigateTo('index'); }
-
-    logout() {
-        Storage.remove('attendance_user');
-        Storage.remove('demo_mode');
+// In your attendance-app.js, update the logout function:
+logout() {
+    try {
+        // Try to use Storage if available
+        if (window.Storage && typeof window.Storage.remove === 'function') {
+            Storage.remove('attendance_user');
+            Storage.remove('demo_mode');
+        } else if (window.utils && window.utils.clearData) {
+            // Fallback to utils
+            window.utils.clearData('attendance_user');
+            window.utils.clearData('demo_mode');
+        } else {
+            // Direct localStorage as last resort
+            localStorage.removeItem('attendance_user');
+            localStorage.removeItem('demo_mode');
+        }
+        
         this.state.currentUser = null;
-        this.showNotification('Logged out successfully', 'success');
-        setTimeout(() => this.goToLogin(), 1000);
+        this.showNotification('Logged out', 'success');
+        setTimeout(() => window.location.reload(), 1000);
+    } catch (error) {
+        console.error('Error during logout:', error);
+        // Force logout anyway
+        localStorage.clear();
+        window.location.reload();
     }
+}
 
     startDemoMode() {
         console.log("🚀 Starting demo mode...");
