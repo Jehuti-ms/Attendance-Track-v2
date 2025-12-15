@@ -32,28 +32,6 @@ class AttendanceApp {
         }
         return '/';
     }
-
-    async checkFirebaseAuth() {
-    try {
-        const { auth } = await import('./firebase.js');
-        
-        if (auth.currentUser) {
-            console.log('Firebase user already logged in:', auth.currentUser.email);
-            this.state.currentUser = {
-                id: auth.currentUser.uid,
-                email: auth.currentUser.email,
-                name: auth.currentUser.displayName || auth.currentUser.email.split('@')[0],
-                role: 'teacher'
-            };
-            Storage.set('attendance_user', this.state.currentUser);
-            return true;
-        }
-        return false;
-    } catch (error) {
-        console.error('Firebase auth check failed:', error);
-        return false;
-    }
-}
     
    async init() {
     console.log('🚀 Initializing AttendanceApp...');
@@ -91,6 +69,28 @@ class AttendanceApp {
     }
 }
 
+     async checkFirebaseAuth() {
+    try {
+        const { auth } = await import('./firebase.js');
+        
+        if (auth.currentUser) {
+            console.log('Firebase user already logged in:', auth.currentUser.email);
+            this.state.currentUser = {
+                id: auth.currentUser.uid,
+                email: auth.currentUser.email,
+                name: auth.currentUser.displayName || auth.currentUser.email.split('@')[0],
+                role: 'teacher'
+            };
+            Storage.set('attendance_user', this.state.currentUser);
+            return true;
+        }
+        return false;
+    } catch (error) {
+        console.error('Firebase auth check failed:', error);
+        return false;
+    }
+}
+    
     async loadHeader() {
         const headerContainer = document.getElementById('header-container');
         if (!headerContainer) return;
