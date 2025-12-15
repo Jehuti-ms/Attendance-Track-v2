@@ -22,12 +22,23 @@ class AttendanceApp {
     }
 
     getBasePath() {
-        const pathname = window.location.pathname;
-        if (pathname.includes('/Attendance-Track-v2/')) {
-            return '/Attendance-Track-v2/';
-        }
+    const pathname = window.location.pathname;
+    
+    console.log('Current pathname:', pathname);
+    
+    // Handle GitHub Pages with repo name
+    if (pathname.startsWith('/Attendance-Track-v2/')) {
+        return '/Attendance-Track-v2/';
+    } 
+    // If we're at the root of the repo
+    else if (pathname === '/Attendance-Track-v2' || pathname === '/Attendance-Track-v2/') {
+        return '/Attendance-Track-v2/';
+    }
+    // For local development
+    else {
         return '/';
     }
+}
 
     async init() {
         console.log('🚀 Initializing AttendanceApp...');
@@ -585,18 +596,45 @@ showPageNotFound() {
     }
 
     // Navigation methods
-    navigateTo(page) {
-        window.location.href = this.getBasePath() + page + '.html';
-    }
-
-    goToIndex() { this.navigateTo('index'); }
-    goToLogin() { this.navigateTo('login'); }
-    goToDashboard() { this.navigateTo('dashboard'); }
-    goToAttendance() { this.navigateTo('attendance'); }
-    goToReports() { this.navigateTo('reports'); }
-    goToSetup() { this.navigateTo('setup'); }
-    goToSettings() { this.navigateTo('settings'); }
-    goToMaintenance() { this.navigateTo('maintenance'); }
+   // FIXED navigateTo method
+navigateTo(page) {
+    console.log(`Navigating to: ${page}`);
+    
+    // Get the correct base path
+    const basePath = this.getBasePath();
+    const targetUrl = basePath + page + '.html';
+    
+    console.log('Base path:', basePath);
+    console.log('Target URL:', targetUrl);
+    console.log('Current URL:', window.location.href);
+    
+    // Test if the page exists first
+    fetch(targetUrl)
+        .then(response => {
+            if (response.ok) {
+                console.log(`✅ ${page}.html exists, navigating...`);
+                window.location.href = targetUrl;
+            } else {
+                console.error(`❌ ${page}.html not found (${response.status})`);
+                
+                // Fallback: Update the page content dynamically
+                this.state.currentPage = page;
+                this.loadContent();
+                
+                // Update URL without reloading (SPA style)
+                window.history.pushState({}, '', targetUrl);
+                
+                // Show warning to user
+                Utils.showToast(`${page} page is loading dynamically`, 'info');
+            }
+        })
+        .catch(error => {
+            console.error(`Error checking ${page}.html:`, error);
+            
+            // Still try to navigate, let the browser handle 404
+            window.location.href = targetUrl;
+        });
+}
 
     startDemoMode() {
         const demoUser = {
