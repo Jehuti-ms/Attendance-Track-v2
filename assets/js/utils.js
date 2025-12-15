@@ -1,23 +1,31 @@
 // utils.js - ES6 Module with proper Storage class
-export class Utils {
-    static formatDate(date = new Date()) {
-        const d = new Date(date);
-        const year = d.getFullYear();
-        const month = String(d.getMonth() + 1).padStart(2, '0');
-        const day = String(d.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
+// Add to your utils.js file
+export class FirebaseStorage {
+    static async save(key, value) {
+        // Save to localStorage for offline use
+        Storage.set(key, value);
+        
+        // TODO: Add Firebase sync here if needed
+        return true;
     }
 
-    static formatTime(date = new Date()) {
-        const d = new Date(date);
-        const hours = String(d.getHours()).padStart(2, '0');
-        const minutes = String(d.getMinutes()).padStart(2, '0');
-        return `${hours}:${minutes}`;
+    static async load(key, defaultValue = null) {
+        // First try localStorage
+        const localData = Storage.get(key, null);
+        if (localData !== null) {
+            return localData;
+        }
+        
+        // TODO: Fallback to Firebase if needed
+        return defaultValue;
     }
 
-    static generateId() {
-        return Date.now().toString(36) + Math.random().toString(36).substr(2);
+    static async syncToFirebase(dataType, data) {
+        // This will be implemented when we have Firebase setup
+        console.log(`Would sync ${dataType} to Firebase:`, data);
+        return { success: true, synced: false, message: 'Firebase sync not configured' };
     }
+}
 
     // Enhanced notification system
     static showNotification(message, type = 'info') {
