@@ -1,274 +1,301 @@
-// attendance-app.js - Updated with navigation functions
-import { AuthModule } from './auth.js';
-import { DashboardModule } from './dashboard.js';
-import { SetupModule } from './setup.js';
-import { AttendanceModule } from './attendance.js';
-import { ReportsModule } from './reports.js';
-import { ExportModule } from './export.js';
-import { MaintenanceModule } from './maintenance.js';
-import { SettingsModule } from './settings.js';
-import { ImportModule } from './import.js';
-import { Utils, Storage } from './utils.js';
+// attendance-app.js - Updated with proper Storage handling
+console.log('🎯 attendance-app.js loading');
 
-class AttendanceApp {
-    constructor() {
-        console.log('🎯 AttendanceApp constructor');
-        
-        this.state = {
-            currentUser: null,
-            currentPage: this.getCurrentPage(),
-            settings: Storage.get('gams_settings', {}),
-            classes: Storage.get('gams_classes', []),
-            attendanceRecords: Storage.get('gams_attendance', []),
-            terms: Storage.get('gams_terms', [
-                { id: 'term1', name: 'Term 1', startDate: '2024-09-08', endDate: '2024-12-15', weeks: 14, isActive: true },
-                { id: 'term2', name: 'Term 2', startDate: '2025-01-08', endDate: '2025-04-15', weeks: 14, isActive: true },
-                { id: 'term3', name: 'Term 3', startDate: '2025-04-22', endDate: '2025-07-15', weeks: 12, isActive: true }
-            ]),
-            cumulativeData: Storage.get('gams_cumulative', {}),
-            historicalAverages: Storage.get('gams_averages', {}),
-            isOnline: navigator.onLine
-        };
+// Try to import utils, but have fallbacks
+let Utils, Storage;
 
-        this.modules = {
-            auth: new AuthModule(this),
-            dashboard: new DashboardModule(this),
-            setup: new SetupModule(this),
-            attendance: new AttendanceModule(this),
-            reports: new ReportsModule(this),
-            export: new ExportModule(this),
-            maintenance: new MaintenanceModule(this),
-            settings: new SettingsModule(this),
-            import: new ImportModule(this)
-        };
-
-        this.init();
-    }
-
-    // ========== NAVIGATION FUNCTIONS (from main.js) ==========
-    getBasePath() {
-        const pathname = window.location.pathname;
-        
-        if (pathname.includes('/Attendance-Track-v2/')) {
-            return '/Attendance-Track-v2/';
-        } else if (pathname === '/Attendance-Track-v2/' || pathname === '/Attendance-Track-v2') {
-            return '/Attendance-Track-v2/';
-        }
-        return '/';
-    }
-
-    getCurrentPage() {
-        const path = window.location.pathname;
-        const page = path.split('/').pop() || 'index.html';
-        return page.replace('.html', '');
-    }
-
-    navigateTo(pageName) {
-        console.log(`Navigating to: ${pageName}`);
-        const basePath = this.getBasePath();
-        window.location.href = `${basePath}${pageName}.html`;
-    }
-
-    goToLogin() { this.navigateTo('login'); }
-    goToAttendance() { this.navigateTo('attendance'); }
-    goToReports() { this.navigateTo('reports'); }
-    goToSettings() { this.navigateTo('settings'); }
-    goToDashboard() { this.navigateTo('dashboard'); }
-    goToSetup() { this.navigateTo('setup'); }
-    goToMaintenance() { this.navigateTo('maintenance'); }
-    goToIndex() { this.navigateTo('index'); }
-// In your attendance-app.js, update the logout function:
-logout() {
+(async function initApp() {
     try {
-        // Try to use Storage if available
-        if (window.Storage && typeof window.Storage.remove === 'function') {
-            Storage.remove('attendance_user');
-            Storage.remove('demo_mode');
-        } else if (window.utils && window.utils.clearData) {
-            // Fallback to utils
-            window.utils.clearData('attendance_user');
-            window.utils.clearData('demo_mode');
-        } else {
-            // Direct localStorage as last resort
-            localStorage.removeItem('attendance_user');
-            localStorage.removeItem('demo_mode');
-        }
-        
-        this.state.currentUser = null;
-        this.showNotification('Logged out', 'success');
-        setTimeout(() => window.location.reload(), 1000);
+        // Try to import utils
+        const utilsModule = await import('./utils.js');
+        Utils = utilsModule.Utils;
+        Storage = utilsModule.Storage;
+        console.log('✅ Utils imported successfully');
     } catch (error) {
-        console.error('Error during logout:', error);
-        // Force logout anyway
-        localStorage.clear();
-        window.location.reload();
-    }
-}
-
-    startDemoMode() {
-        console.log("🚀 Starting demo mode...");
+        console.warn('⚠️ Could not import utils.js, using fallbacks:', error);
         
-        const demoUser = {
-            id: 'demo-001',
-            name: 'Demo Teacher',
-            email: 'demo@school.edu',
-            role: 'teacher',
-            school: 'Demo Academy',
-            demo: true
+        // Fallback implementations
+        Utils = {
+            formatDate: (date = new Date()) => {
+                const d = new Date(date);
+                const year = d.getFullYear();
+                const month = String(d.getMonth() + 1).padStart(2, '0');
+                const day = String(d.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            },
+            showToast: (message, type = 'info') => {
+                console.log(`[${type}] ${message}`);
+                alert(message);
+            }
         };
         
-        Storage.set('attendance_user', demoUser);
-        Storage.set('demo_mode', 'true');
-        this.state.currentUser = demoUser;
-        
-        this.showNotification('Demo mode activated!', 'success');
-        setTimeout(() => this.goToDashboard(), 1500);
+        Storage = {
+            get: (key, defaultValue = null) => {
+                try {
+                    const item = localStorage.getItem(key);
+                    return item ? JSON.parse(item) : defaultValue;
+                } catch (e) {
+                    console.error(`Error getting ${key}:`, e);
+                    return defaultValue;
+                }
+            },
+            set: (key, value) => {
+                try {
+                    localStorage.setItem(key, JSON.stringify(value));
+                    return true;
+                } catch (e) {
+                    console.error(`Error setting ${key}:`, e);
+                    return false;
+                }
+            },
+            remove: (key) => {
+                try {
+                    localStorage.removeItem(key);
+                    return true;
+                } catch (e) {
+                    console.error(`Error removing ${key}:`, e);
+                    return false;
+                }
+            }
+        };
     }
 
-    showNotification(message, type = 'info') {
-        console.log(`[${type}] ${message}`);
-        Utils.showToast(message, type);
-    }
+    // Now define the AttendanceApp class
+    class AttendanceApp {
+        constructor() {
+            console.log('🎯 AttendanceApp constructor');
+            
+            this.state = {
+                currentUser: null,
+                currentPage: this.getCurrentPage(),
+                isOnline: navigator.onLine
+            };
 
-    // ========== MAIN INITIALIZATION ==========
-    async init() {
-        console.log('🚀 Initializing AttendanceApp...');
-        
-        try {
-            // Check authentication
-            const user = Storage.get('attendance_user');
-            if (user) {
-                this.state.currentUser = user;
-                console.log('User found:', user.name);
+            this.init();
+        }
+
+        getCurrentPage() {
+            const path = window.location.pathname;
+            const page = path.split('/').pop() || 'index.html';
+            return page.replace('.html', '');
+        }
+
+        async init() {
+            console.log('🚀 Initializing AttendanceApp...');
+            
+            try {
+                // Check for existing user
+                const user = Storage.get('attendance_user');
+                if (user) {
+                    this.state.currentUser = user;
+                    console.log('User found:', user.name);
+                }
+
+                // Load UI
+                await this.loadUI();
+                
+                console.log('✅ AttendanceApp initialized successfully');
+                
+            } catch (error) {
+                console.error('❌ Error initializing app:', error);
+                this.showError(error.message);
+            }
+        }
+
+        async loadUI() {
+            // Load header
+            const headerContainer = document.getElementById('header-container');
+            if (headerContainer) {
+                headerContainer.innerHTML = `
+                    <header style="
+                        background: #405dde;
+                        color: white;
+                        padding: 15px 30px;
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                    ">
+                        <div>
+                            <h1 style="margin: 0; font-size: 1.5rem;">
+                                📋 Attendance Track v2
+                            </h1>
+                        </div>
+                        <div>
+                            ${this.state.currentUser ? `
+                                <span>Welcome, ${this.state.currentUser.name}</span>
+                                <button onclick="app.logout()" style="
+                                    margin-left: 15px;
+                                    padding: 8px 16px;
+                                    background: white;
+                                    color: #405dde;
+                                    border: none;
+                                    border-radius: 4px;
+                                    cursor: pointer;
+                                ">
+                                    Logout
+                                </button>
+                            ` : `
+                                <button onclick="app.goToLogin()" style="
+                                    padding: 8px 16px;
+                                    background: white;
+                                    color: #405dde;
+                                    border: none;
+                                    border-radius: 4px;
+                                    cursor: pointer;
+                                ">
+                                    Login
+                                </button>
+                                <button onclick="app.startDemoMode()" style="
+                                    margin-left: 10px;
+                                    padding: 8px 16px;
+                                    background: transparent;
+                                    color: white;
+                                    border: 1px solid white;
+                                    border-radius: 4px;
+                                    cursor: pointer;
+                                ">
+                                    Try Demo
+                                </button>
+                            `}
+                        </div>
+                    </header>
+                `;
             }
 
-            // Load header
-            await this.loadHeader();
-            
             // Load main content
-            await this.loadMainContent();
-            
-            // Setup event listeners
-            this.setupEventListeners();
-            
-            // Initialize service worker
-            this.initServiceWorker();
-            
-            console.log('✅ AttendanceApp initialized successfully');
-            
-        } catch (error) {
-            console.error('❌ Error initializing AttendanceApp:', error);
-            this.showNotification(`Initialization error: ${error.message}`, 'error');
-        }
-    }
+            const appContainer = document.getElementById('app-container');
+            if (appContainer) {
+                // Hide loading
+                const loadingContent = document.getElementById('loading-content');
+                if (loadingContent) {
+                    loadingContent.style.display = 'none';
+                }
 
-    async loadHeader() {
-        const headerContainer = document.getElementById('header-container');
-        if (!headerContainer) return;
-        
-        headerContainer.innerHTML = `
-            <header>
-                <div class="header-left">
-                    <div class="app-icon">📋</div>
-                    <div>
-                        <h1>Attendance Track v2</h1>
-                        <div class="online-status" id="online-status">
-                            ● ${this.state.isOnline ? 'Online' : 'Offline'}
-                        </div>
-                    </div>
-                </div>
-                <div class="header-right">
-                    ${this.state.currentUser ? `
-                        <div class="user-info">
-                            <div class="user-avatar">👤</div>
+                // Show welcome message
+                appContainer.innerHTML = `
+                    <div style="padding: 40px; text-align: center;">
+                        <h1>Welcome to Attendance Track v2</h1>
+                        <p style="margin: 20px 0; color: #666;">
+                            A modern attendance tracking system
+                        </p>
+                        ${this.state.currentUser ? `
                             <div>
-                                <div class="user-name">${this.state.currentUser.name}</div>
-                                <div class="user-role">${this.state.currentUser.role}</div>
+                                <p>You are logged in as ${this.state.currentUser.name}</p>
+                                <button onclick="app.goToDashboard()" style="
+                                    padding: 12px 24px;
+                                    background: #405dde;
+                                    color: white;
+                                    border: none;
+                                    border-radius: 6px;
+                                    cursor: pointer;
+                                    margin-top: 20px;
+                                ">
+                                    Go to Dashboard
+                                </button>
                             </div>
-                        </div>
-                        <button class="btn btn-outline" onclick="app.logout()">Logout</button>
-                    ` : `
-                        <button class="btn btn-primary" onclick="app.goToLogin()">Login</button>
-                        <button class="btn btn-secondary" onclick="app.startDemoMode()">Try Demo</button>
-                    `}
-                </div>
-            </header>
-        `;
-    }
-
-    async loadMainContent() {
-        const appContainer = document.getElementById('app-container');
-        if (!appContainer) return;
-
-        // Load page-specific content
-        if (this.state.currentUser) {
-            await this.modules.dashboard.init();
-        } else {
-            await this.loadLandingPage();
+                        ` : `
+                            <div>
+                                <button onclick="app.goToLogin()" style="
+                                    padding: 12px 24px;
+                                    background: #405dde;
+                                    color: white;
+                                    border: none;
+                                    border-radius: 6px;
+                                    cursor: pointer;
+                                ">
+                                    Login
+                                </button>
+                                <button onclick="app.startDemoMode()" style="
+                                    padding: 12px 24px;
+                                    background: white;
+                                    color: #405dde;
+                                    border: 2px solid #405dde;
+                                    border-radius: 6px;
+                                    cursor: pointer;
+                                    margin-left: 15px;
+                                ">
+                                    Try Demo
+                                </button>
+                            </div>
+                        `}
+                    </div>
+                `;
+            }
         }
-    }
 
-    async loadLandingPage() {
-        const appContainer = document.getElementById('app-container');
-        if (!appContainer) return;
-        
-        appContainer.innerHTML = `
-            <div class="landing-page">
-                <div class="hero">
-                    <div class="hero-icon">📋</div>
-                    <h1>Attendance Track v2</h1>
-                    <p class="hero-subtitle">Modern attendance tracking for educational institutions</p>
-                    <div class="hero-actions">
-                        <button class="btn btn-lg btn-primary" onclick="app.goToLogin()">
-                            Login to Start
-                        </button>
-                        <button class="btn btn-lg btn-outline" onclick="app.startDemoMode()">
-                            Try Demo Mode
+        // Navigation methods
+        getBasePath() {
+            const pathname = window.location.pathname;
+            if (pathname.includes('/Attendance-Track-v2/')) {
+                return '/Attendance-Track-v2/';
+            }
+            return '/';
+        }
+
+        navigateTo(page) {
+            window.location.href = this.getBasePath() + page + '.html';
+        }
+
+        goToLogin() { this.navigateTo('login'); }
+        goToDashboard() { this.navigateTo('dashboard'); }
+        goToAttendance() { this.navigateTo('attendance'); }
+        goToReports() { this.navigateTo('reports'); }
+
+        startDemoMode() {
+            const demoUser = {
+                id: 'demo-001',
+                name: 'Demo Teacher',
+                email: 'demo@school.edu',
+                role: 'teacher',
+                demo: true
+            };
+            
+            Storage.set('attendance_user', demoUser);
+            this.state.currentUser = demoUser;
+            Utils.showToast('Demo mode activated!', 'success');
+            setTimeout(() => this.goToDashboard(), 1000);
+        }
+
+        logout() {
+            console.log('Logout called');
+            try {
+                Storage.remove('attendance_user');
+                Storage.remove('demo_mode');
+                this.state.currentUser = null;
+                Utils.showToast('Logged out', 'success');
+                setTimeout(() => window.location.reload(), 1000);
+            } catch (error) {
+                console.error('Logout error:', error);
+                // Fallback
+                localStorage.clear();
+                window.location.reload();
+            }
+        }
+
+        showError(message) {
+            const appContainer = document.getElementById('app-container');
+            if (appContainer) {
+                appContainer.innerHTML = `
+                    <div style="padding: 40px; text-align: center; color: #dc3545;">
+                        <h2>Error</h2>
+                        <p>${message}</p>
+                        <button onclick="window.location.reload()" style="
+                            padding: 10px 20px;
+                            background: #405dde;
+                            color: white;
+                            border: none;
+                            border-radius: 4px;
+                            cursor: pointer;
+                            margin-top: 20px;
+                        ">
+                            Reload
                         </button>
                     </div>
-                </div>
-            </div>
-        `;
-    }
-
-    setupEventListeners() {
-        // Online/offline status
-        window.addEventListener('online', () => {
-            this.state.isOnline = true;
-            this.updateOnlineStatus();
-            this.showNotification('You are back online', 'success');
-        });
-        
-        window.addEventListener('offline', () => {
-            this.state.isOnline = false;
-            this.updateOnlineStatus();
-            this.showNotification('You are offline', 'warning');
-        });
-    }
-
-    updateOnlineStatus() {
-        const onlineStatus = document.getElementById('online-status');
-        if (onlineStatus) {
-            onlineStatus.innerHTML = `● ${this.state.isOnline ? 'Online' : 'Offline'}`;
-            onlineStatus.style.color = this.state.isOnline ? '#28a745' : '#dc3545';
+                `;
+            }
         }
     }
 
-    initServiceWorker() {
-        if ('serviceWorker' in navigator) {
-            const basePath = this.getBasePath();
-            const swPath = basePath === '/' ? 'service-worker.js' : basePath + 'service-worker.js';
-            
-            navigator.serviceWorker.register(swPath)
-                .then(registration => {
-                    console.log('✅ Service Worker registered:', registration.scope);
-                })
-                .catch(error => {
-                    console.warn('⚠️ Service Worker registration failed:', error);
-                });
-        }
-    }
-}
-
-// Create global instance
-window.app = new AttendanceApp();
+    // Create global instance
+    window.app = new AttendanceApp();
+})();
