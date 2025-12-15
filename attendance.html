@@ -11,6 +11,135 @@
     <link rel="icon" href="assets/icons/favicon.ico">
     <!-- Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Add styles that work with your attendance.js */
+        .class-card {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 10px 0;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .class-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            border-color: #2a5298;
+        }
+        
+        .student-row {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            gap: 20px;
+        }
+        
+        .student-info {
+            flex: 1;
+            display: flex;
+            gap: 20px;
+        }
+        
+        .attendance-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        
+        .btn-sm {
+            padding: 5px 10px;
+            font-size: 0.9rem;
+        }
+        
+        .btn-success {
+            background-color: #28a745;
+            color: white;
+        }
+        
+        .btn-danger {
+            background-color: #dc3545;
+            color: white;
+        }
+        
+        .btn-warning {
+            background-color: #ffc107;
+            color: #212529;
+        }
+        
+        .btn-info {
+            background-color: #17a2b8;
+            color: white;
+        }
+        
+        .btn-primary {
+            background-color: #007bff;
+            color: white;
+        }
+        
+        .badge {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+        
+        .status-present { background-color: #d4edda; color: #155724; }
+        .status-absent { background-color: #f8d7da; color: #721c24; }
+        .status-late { background-color: #fff3cd; color: #856404; }
+        .status-excused { background-color: #d1ecf1; color: #0c5460; }
+        
+        .attendance-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #eee;
+        }
+        
+        .classes-container {
+            margin-bottom: 30px;
+        }
+        
+        .students-container {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .loading-state {
+            text-align: center;
+            padding: 60px 20px;
+        }
+        
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #2a5298;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
 </head>
 <body>
     <div id="app">
@@ -21,78 +150,33 @@
             <!-- Loading state -->
             <div id="loading-content" class="loading-state">
                 <div class="loading-spinner"></div>
-                <div>Loading attendance interface...</div>
+                <div>Loading attendance system...</div>
             </div>
             
             <!-- Attendance content (will be shown after loading) -->
-            <div id="attendance-content" class="attendance-container" style="display: none;">
-                <div class="page-header">
-                    <h1><i class="fas fa-clipboard-check"></i> Take Attendance</h1>
-                    <div class="date-selector">
-                        <span id="current-date">Loading date...</span>
-                        <button id="date-picker-btn" class="btn-secondary">
-                            <i class="fas fa-calendar-alt"></i> Change Date
-                        </button>
+            <div id="attendance-content" style="display: none; max-width: 1200px; margin: 0 auto; padding: 20px;">
+                <div class="page-header" style="margin-bottom: 30px;">
+                    <h1><i class="fas fa-clipboard-check"></i> Attendance Management</h1>
+                    <div id="current-date-display" style="color: #666;">
+                        <!-- Date will be populated by JS -->
                     </div>
                 </div>
                 
-                <!-- Term/Week selector -->
-                <div class="session-selector card">
-                    <div class="selector-row">
-                        <div class="selector-group">
-                            <label for="term-select"><i class="fas fa-graduation-cap"></i> Term</label>
-                            <select id="term-select" class="form-select">
-                                <option value="1">Term 1</option>
-                                <option value="2">Term 2</option>
-                                <option value="3">Term 3</option>
-                            </select>
-                        </div>
-                        <div class="selector-group">
-                            <label for="week-select"><i class="fas fa-calendar-week"></i> Week</label>
-                            <select id="week-select" class="form-select">
-                                <!-- Weeks will be populated by JS -->
-                                <option value="1">Week 1</option>
-                                <option value="2">Week 2</option>
-                                <option value="3">Week 3</option>
-                                <option value="4">Week 4</option>
-                            </select>
-                        </div>
-                        <div class="selector-group">
-                            <label><i class="fas fa-clock"></i> Session</label>
-                            <div class="session-options">
-                                <button id="session-both" class="session-btn active">
-                                    <i class="fas fa-calendar-day"></i> Both Sessions
-                                </button>
-                                <button id="session-am" class="session-btn">
-                                    <i class="fas fa-sun"></i> AM Only
-                                </button>
-                                <button id="session-pm" class="session-btn">
-                                    <i class="fas fa-moon"></i> PM Only
-                                </button>
-                            </div>
-                        </div>
+                <!-- Classes list -->
+                <div id="classes-container" class="classes-container">
+                    <!-- Classes will be loaded here by attendance.js -->
+                    <div style="text-align: center; color: #888; padding: 40px;">
+                        <i class="fas fa-spinner fa-spin"></i> Loading classes...
                     </div>
                 </div>
                 
-                <!-- Attendance table will be loaded here -->
-                <div id="attendance-table-container">
-                    <div class="table-placeholder">
-                        <i class="fas fa-table"></i>
-                        <p>Select a class to view attendance</p>
+                <!-- Students attendance -->
+                <div id="students-container" class="students-container" style="display: none;">
+                    <!-- Students will be loaded here when a class is selected -->
+                    <div class="attendance-placeholder" style="text-align: center; padding: 40px; color: #999;">
+                        <i class="fas fa-users" style="font-size: 3rem; margin-bottom: 15px; opacity: 0.5;"></i>
+                        <p>Select a class to mark attendance</p>
                     </div>
-                </div>
-                
-                <!-- Action buttons -->
-                <div class="action-bar">
-                    <button id="save-attendance" class="btn-primary">
-                        <i class="fas fa-save"></i> Save Attendance
-                    </button>
-                    <button id="clear-attendance" class="btn-secondary">
-                        <i class="fas fa-eraser"></i> Clear All
-                    </button>
-                    <button id="print-attendance" class="btn-secondary">
-                        <i class="fas fa-print"></i> Print Report
-                    </button>
                 </div>
             </div>
         </main>
@@ -110,10 +194,12 @@
     <script src="assets/js/utils.js"></script>
     <script src="assets/js/auth.js"></script>
     <script src="assets/js/main.js"></script>
-    <script src="assets/js/attendance.js"></script>
     
-    <script>
-        // Component loader function (same as dashboard)
+    <!-- Attendance module will be loaded as a module -->
+    <script type="module">
+        import { AttendanceModule } from './assets/js/attendance.js';
+        
+        // Component loader function
         async function loadComponent(componentName, containerId) {
             try {
                 const response = await fetch(`components/${componentName}.html`);
@@ -165,7 +251,7 @@
             }
         }
         
-        // Initialize the attendance page
+        // Main initialization
         document.addEventListener('DOMContentLoaded', async function() {
             console.log('Initializing attendance page...');
             
@@ -175,237 +261,98 @@
                 loadComponent('footer', 'footer-container')
             ]);
             
-            // Initialize common functionality
-            if (typeof initApp === 'function') {
-                initApp();
+            // Set current date
+            const dateElement = document.getElementById('current-date-display');
+            if (dateElement) {
+                const today = new Date();
+                dateElement.innerHTML = `
+                    <strong>Today:</strong> ${today.toLocaleDateString('en-US', {
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                    })}
+                `;
             }
             
-            // Initialize attendance page
-            if (typeof initAttendance === 'function') {
-                initAttendance();
-            } else {
-                // Fallback if attendance.js doesn't have initAttendance
-                setTimeout(() => {
-                    const loading = document.getElementById('loading-content');
-                    const content = document.getElementById('attendance-content');
-                    
-                    if (loading) loading.style.display = 'none';
-                    if (content) content.style.display = 'block';
-                    
-                    // Set current date
-                    const currentDate = new Date();
-                    const dateElement = document.getElementById('current-date');
-                    if (dateElement) {
-                        dateElement.textContent = currentDate.toLocaleDateString('en-US', {
-                            weekday: 'long',
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric'
-                        });
+            // Initialize attendance module
+            try {
+                // Create a simple app object for the attendance module
+                const app = {
+                    showNotification: function(message, type) {
+                        console.log(`[${type}] ${message}`);
+                        // Simple notification system - you can enhance this
+                        const notification = document.createElement('div');
+                        notification.style.cssText = `
+                            position: fixed;
+                            top: 20px;
+                            right: 20px;
+                            background: ${type === 'success' ? '#28a745' : type === 'error' ? '#dc3545' : '#007bff'};
+                            color: white;
+                            padding: 15px 20px;
+                            border-radius: 4px;
+                            z-index: 1000;
+                            animation: slideIn 0.3s ease;
+                        `;
+                        notification.innerHTML = message;
+                        document.body.appendChild(notification);
+                        
+                        setTimeout(() => {
+                            notification.style.animation = 'slideOut 0.3s ease';
+                            setTimeout(() => notification.remove(), 300);
+                        }, 3000);
                     }
-                    
-                    // Add basic functionality
-                    setupAttendancePage();
-                }, 500);
+                };
+                
+                // Create and initialize attendance module
+                const attendanceModule = new AttendanceModule(app);
+                await attendanceModule.init();
+                
+                // Show attendance content
+                const loading = document.getElementById('loading-content');
+                const content = document.getElementById('attendance-content');
+                
+                if (loading) loading.style.display = 'none';
+                if (content) content.style.display = 'block';
+                
+                // Store module globally for debugging
+                window.attendanceModule = attendanceModule;
+                
+                console.log('✓ Attendance module initialized successfully');
+                
+            } catch (error) {
+                console.error('Failed to initialize attendance module:', error);
+                
+                // Show error state
+                const loading = document.getElementById('loading-content');
+                if (loading) {
+                    loading.innerHTML = `
+                        <div style="color: #dc3545; text-align: center; padding: 40px;">
+                            <i class="fas fa-exclamation-triangle" style="font-size: 3rem; margin-bottom: 20px;"></i>
+                            <h3>Error Loading Attendance System</h3>
+                            <p>${error.message}</p>
+                            <button onclick="location.reload()" class="btn" style="background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; margin-top: 20px;">
+                                Reload Page
+                            </button>
+                        </div>
+                    `;
+                }
             }
         });
         
-        // Basic attendance page setup (fallback)
-        function setupAttendancePage() {
-            // Session button handling
-            const sessionButtons = document.querySelectorAll('.session-btn');
-            sessionButtons.forEach(btn => {
-                btn.addEventListener('click', function() {
-                    sessionButtons.forEach(b => b.classList.remove('active'));
-                    this.classList.add('active');
-                });
-            });
-            
-            // Save button
-            const saveBtn = document.getElementById('save-attendance');
-            if (saveBtn) {
-                saveBtn.addEventListener('click', function() {
-                    alert('Attendance saved! (Demo mode)');
-                });
+        // Add notification animations
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideIn {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
             }
-            
-            // Clear button
-            const clearBtn = document.getElementById('clear-attendance');
-            if (clearBtn) {
-                clearBtn.addEventListener('click', function() {
-                    if (confirm('Clear all attendance marks?')) {
-                        alert('Attendance cleared! (Demo mode)');
-                    }
-                });
+            @keyframes slideOut {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(100%); opacity: 0; }
             }
-        }
+        `;
+        document.head.appendChild(style);
     </script>
-    
-    <!-- Add some basic styles for the attendance page -->
-    <style>
-        .attendance-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        
-        .page-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 25px;
-            padding-bottom: 15px;
-            border-bottom: 2px solid #eaeaea;
-        }
-        
-        .page-header h1 {
-            color: #2a5298;
-            margin: 0;
-        }
-        
-        .date-selector {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .session-selector {
-            margin-bottom: 25px;
-            padding: 20px;
-        }
-        
-        .selector-row {
-            display: flex;
-            gap: 20px;
-            flex-wrap: wrap;
-        }
-        
-        .selector-group {
-            flex: 1;
-            min-width: 200px;
-        }
-        
-        .selector-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
-            color: #555;
-        }
-        
-        .form-select {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 1rem;
-        }
-        
-        .session-options {
-            display: flex;
-            gap: 10px;
-            margin-top: 5px;
-        }
-        
-        .session-btn {
-            flex: 1;
-            padding: 10px;
-            border: 1px solid #ddd;
-            background: white;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        
-        .session-btn.active {
-            background: #2a5298;
-            color: white;
-            border-color: #2a5298;
-        }
-        
-        .session-btn:hover:not(.active) {
-            background: #f5f5f5;
-        }
-        
-        .table-placeholder {
-            text-align: center;
-            padding: 60px 20px;
-            color: #888;
-            border: 2px dashed #ddd;
-            border-radius: 8px;
-            margin: 20px 0;
-        }
-        
-        .table-placeholder i {
-            font-size: 3rem;
-            margin-bottom: 15px;
-            color: #ccc;
-        }
-        
-        .action-bar {
-            display: flex;
-            justify-content: flex-end;
-            gap: 15px;
-            margin-top: 30px;
-            padding-top: 20px;
-            border-top: 1px solid #eee;
-        }
-        
-        .btn-primary, .btn-secondary {
-            padding: 12px 24px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 1rem;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            transition: all 0.2s;
-        }
-        
-        .btn-primary {
-            background: #2a5298;
-            color: white;
-        }
-        
-        .btn-primary:hover {
-            background: #1e3c72;
-        }
-        
-        .btn-secondary {
-            background: #f0f0f0;
-            color: #333;
-            border: 1px solid #ddd;
-        }
-        
-        .btn-secondary:hover {
-            background: #e0e0e0;
-        }
-        
-        .card {
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        
-        .loading-state {
-            text-align: center;
-            padding: 60px 20px;
-        }
-        
-        .loading-spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #2a5298;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 20px;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-    </style>
 </body>
 </html>
