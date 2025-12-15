@@ -19,42 +19,65 @@ export class Utils {
         return Date.now().toString(36) + Math.random().toString(36).substr(2);
     }
 
-    static showToast(message, type = 'info') {
+    // Enhanced notification system
+    static showNotification(message, type = 'info') {
         console.log(`[${type}] ${message}`);
         
-        // Create a simple toast
-        const toast = document.createElement('div');
-        toast.textContent = message;
-        toast.style.cssText = `
+        // Remove existing notifications
+        const existing = document.querySelectorAll('.app-notification');
+        existing.forEach(el => el.remove());
+        
+        // Create notification
+        const notification = document.createElement('div');
+        notification.className = `app-notification notification-${type}`;
+        notification.textContent = message;
+        
+        // Style it
+        notification.style.cssText = `
             position: fixed;
             top: 20px;
             right: 20px;
-            padding: 12px 24px;
-            background: ${type === 'error' ? '#dc3545' : type === 'success' ? '#28a745' : type === 'warning' ? '#ffc107' : '#405dde'};
+            padding: 15px 25px;
+            background: ${type === 'error' ? '#dc3545' : type === 'success' ? '#28a745' : type === 'warning' ? '#ffc107' : '#2a5298'};
             color: white;
             border-radius: 8px;
             z-index: 9999;
             animation: slideIn 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            font-weight: 500;
         `;
         
-        document.body.appendChild(toast);
+        document.body.appendChild(notification);
         
+        // Auto-remove after 3 seconds
         setTimeout(() => {
-            toast.remove();
-        }, 4000);
+            notification.style.animation = 'slideOut 0.3s ease';
+            setTimeout(() => notification.remove(), 300);
+        }, 3000);
         
-        // Add animation
-        if (!document.querySelector('#toast-animation')) {
+        // Add animations if not present
+        if (!document.querySelector('#notification-animations')) {
             const style = document.createElement('style');
-            style.id = 'toast-animation';
+            style.id = 'notification-animations';
             style.textContent = `
                 @keyframes slideIn {
                     from { transform: translateX(100%); opacity: 0; }
                     to { transform: translateX(0); opacity: 1; }
                 }
+                @keyframes slideOut {
+                    from { transform: translateX(0); opacity: 1; }
+                    to { transform: translateX(100%); opacity: 0; }
+                }
             `;
             document.head.appendChild(style);
         }
+        
+        return notification;
+    }
+    
+    // Backward compatible toast method (calls showNotification)
+    static showToast(message, type = 'info') {
+        return this.showNotification(message, type);
     }
 }
 
@@ -114,10 +137,11 @@ if (typeof window !== 'undefined') {
         formatTime: Utils.formatTime,
         generateId: Utils.generateId,
         showToast: Utils.showToast,
+        showNotification: Utils.showNotification,
         saveData: Storage.set,
         loadData: Storage.get,
         clearData: Storage.remove
     };
 }
 
-console.log('🛠️ utils.js loaded with Storage class');
+console.log('🛠️ utils.js loaded with enhanced notification system');
