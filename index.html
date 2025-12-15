@@ -3,119 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#007bff">
     <title>Attendance Track v2</title>
     
-    <!-- CSS Files -->
+    <!-- CSS -->
     <link rel="stylesheet" href="assets/css/main.css">
-    <link rel="stylesheet" href="assets/css/components.css">
-    <link rel="stylesheet" href="assets/css/theme.css">
     
     <!-- PWA -->
     <link rel="manifest" href="manifest.json">
-    <link rel="icon" href="assets/icons/favicon.ico" type="image/x-icon">
-    <link rel="apple-touch-icon" href="assets/icons/icon-192.png">
+    <link rel="icon" href="assets/icons/favicon.ico">
     
-    <!-- Main JS module -->
-    <script type="module" src="assets/js/main.js" defer></script>
+    <!-- Load ES6 module -->
+    <script type="module" src="assets/js/attendance-app.js"></script>
 </head>
 <body>
     <div id="app">
-        <!-- Header will be loaded here -->
         <div id="header-container"></div>
-        
-        <!-- Main content -->
-        <main id="main-content" class="container">
-            <div class="welcome-section">
-                <h1>Welcome to Attendance Track v2</h1>
-                <p class="subtitle">A modern, offline-capable attendance tracking system for schools</p>
-                
-                <div class="auth-buttons">
-                    <button id="login-btn" class="btn btn-primary btn-lg">
-                        <i class="icon-login"></i> Login
-                    </button>
-                    <button id="setup-btn" class="btn btn-secondary btn-lg">
-                        <i class="icon-setup"></i> Setup System
-                    </button>
-                </div>
-                
-                <div class="features-grid">
-                    <div class="feature-card">
-                        <div class="feature-icon">📊</div>
-                        <h3>Real-time Tracking</h3>
-                        <p>Track attendance with instant updates and live status</p>
-                    </div>
-                    <div class="feature-card">
-                        <div class="feature-icon">📱</div>
-                        <h3>Offline Support</h3>
-                        <p>Works without internet connection, syncs when online</p>
-                    </div>
-                    <div class="feature-card">
-                        <div class="feature-icon">📈</div>
-                        <h3>Detailed Reports</h3>
-                        <p>Generate comprehensive attendance reports in multiple formats</p>
-                    </div>
-                    <div class="feature-card">
-                        <div class="feature-icon">🔒</div>
-                        <h3>Secure Data</h3>
-                        <p>Your data stays encrypted and secure on your device</p>
-                    </div>
-                </div>
-                
-                <div class="quick-start">
-                    <h2>Getting Started</h2>
-                    <ol>
-                        <li>Click <strong>Setup System</strong> to configure your institution</li>
-                        <li>Add classes, teachers, and students</li>
-                        <li>Start tracking attendance</li>
-                        <li>Generate reports and analyze data</li>
-                    </ol>
-                </div>
-            </div>
+        <main id="app-container">
+            <!-- Content will be loaded by JavaScript -->
         </main>
-        
-        <!-- Footer will be loaded here -->
-        <div id="footer-container"></div>
     </div>
 
-    <!-- Vendor Libraries -->
+    <!-- Vendor libraries (load after module) -->
     <script src="assets/vendors/jsPDF.min.js"></script>
     <script src="assets/vendors/jspdf-autotable.min.js"></script>
     <script src="assets/vendors/html2canvas.min.js"></script>
-
-    <!-- Utility -->
-    <script type="module" src="assets/js/utils.js"></script>
-
-    <!-- Module files -->
-    <script type="module" src="assets/js/attendance-app.js"></script>
-    <script type="module" src="assets/js/auth.js"></script>
-    <script type="module" src="assets/js/dashboard.js"></script>
-    <script type="module" src="assets/js/setup.js"></script>
-    <script type="module" src="assets/js/attendance.js"></script>
-    <script type="module" src="assets/js/reports.js"></script>
-    <script type="module" src="assets/js/export.js"></script>
-    <script type="module" src="assets/js/maintenance.js"></script>
-    <script type="module" src="assets/js/settings.js"></script>
-    <script type="module" src="assets/js/import.js"></script>
-   
-    <script>
-        // Debug: Check if all scripts loaded
-        console.log('📄 index.html loaded from: ' + window.location.pathname);
-        
-        // Add some icons if needed
-        document.addEventListener('DOMContentLoaded', function() {
-            // Add icon classes if not in CSS
-            if (!document.querySelector('style[data-icons]')) {
-                const style = document.createElement('style');
-                style.setAttribute('data-icons', 'true');
-                style.textContent = `
-                    .icon-login:before { content: "🔑 "; }
-                    .icon-setup:before { content: "⚙️ "; }
-                    .feature-icon { font-size: 2rem; margin-bottom: 1rem; }
-                `;
-                document.head.appendChild(style);
-            }
-        });
-    </script>
+    
+    <!-- Remove other script tags that might conflict -->
 </body>
 </html>
