@@ -15,32 +15,25 @@ export class AttendanceManager {
     }
 
     async init() {
-        console.log('📊 AttendanceManager initialized');
-        
-        // Inject the attendance HTML content
-        await this.injectAttendanceContent();
-        
-        // Set current date
-        this.setCurrentDate();
-        
-        // Initialize table with exact structure from image
-        this.initAttendanceTable();
-        
-        // Initialize classes list in sidebar
-        this.initClassesList();
-        
-        // Load saved data
-        this.loadSavedData();
-        
-        // Set up event listeners
+    console.log('📊 AttendanceManager initialized');
+    
+    // Inject the attendance HTML content FIRST
+    await this.injectAttendanceContent();
+    
+    // THEN set up everything else
+    this.setCurrentDate();
+    this.initAttendanceTable();
+    this.initClassesList();  // This was causing the error - fixed now
+    this.loadSavedData();
+    
+    // Set up event listeners AFTER content is injected
+    setTimeout(() => {
         this.setupEventListeners();
-        
-        // Calculate initial rates
         this.calculateAllRates();
-        
-        // Hide loading
-        this.hideLoading();
-    }
+    }, 100);
+    
+    this.hideLoading();
+}
 
     async injectAttendanceContent() {
         const container = document.getElementById('app-container');
@@ -211,28 +204,39 @@ export class AttendanceManager {
             dateElement.textContent = `${month} / ${day} / ${year}`;
         }
     }
-
-    initClassesList() {
-        const container = document.getElementById('classes-list');
-        if (!container) return;
-        
-        container.innerHTML = this.classes.map(cls => `
-            <div class="class-item" data-class-id="${cls.id}">
-                <div style="font-weight: 600; color: #2a5298;">${cls.name}</div>
-                <div style="font-size: 0.9rem; color: #666;">${cls.yearGroup}</div>
-                <div style="font-size: 0.85rem; margin-top: 5px;">
-                    <span style="color: #28a745;">✓ AM: 0/${cls.total}</span> • 
-                    <span style="color: #ffc107;">✓ PM: 0/${cls.total}</span>
-                </div>
+    
+initClassesList() {
+    const container = document.getElementById('classes-list');
+    if (!container) return;
+    
+    container.innerHTML = this.classes.map(cls => `
+        <div class="class-item" data-class-id="${cls.id}">
+            <div style="font-weight: 600; color: #2a5298;">${cls.name}</div>
+            <div style="font-size: 0.9rem; color: #666;">${cls.yearGroup}</div>
+            <div style="font-size: 0.85rem; margin-top: 5px;">
+                <span style="color: #28a745;">✓ AM: 0/${cls.total}</span> • 
+                <span style="color: #ffc107;">✓ PM: 0/${cls.total}</span>
             </div>
-        `).join('');
-        
-        // Select first class by default
-        if (this.classes.length > 0) {
-            this.selectClass(this.classes[0].id);
-        }
+        </div>
+    `).join('');
+    
+    // FIX: Use the correct method name
+    if (this.classes.length > 0) {
+        this.updateSelectedClassUI(this.classes[0].id);
     }
+}
 
+// Add this new helper method
+updateSelectedClassUI(classId) {
+    const classItem = document.querySelector(`.class-item[data-class-id="${classId}"]`);
+    if (classItem) {
+        document.querySelectorAll('.class-item').forEach(i => i.classList.remove('active'));
+        classItem.classList.add('active');
+        this.currentClass = classId;
+        this.updateSelectedClass();
+    }
+}
+    
     initAttendanceTable() {
         const tbody = document.getElementById('attendance-table-body');
         if (!tbody) return;
@@ -288,36 +292,86 @@ export class AttendanceManager {
         }
     }
 
-    setupEventListeners() {
-        // Session tabs
-        document.querySelectorAll('.session-tab').forEach(tab => {
-            tab.addEventListener('click', (e) => this.handleSessionChange(e));
-        });
-
-        // Class selection
-        document.addEventListener('click', (e) => {
-            if (e.target.closest('.class-item')) {
-                const classItem = e.target.closest('.class-item');
-                this.handleClassSelect(classItem);
-            }
-        });
-
-        // Attendance inputs
-        document.addEventListener('input', (e) => this.handleAttendanceInput(e));
-
-        // Quick actions
-        const quickActions = ['mark-all-present', 'clear-all', 'copy-am-to-pm', 'copy-pm-to-am'];
-        quickActions.forEach(action => {
-            document.getElementById(action)?.addEventListener('click', () => this[action.replace(/-/g, '')]());
-        });
-
-        // Action buttons
-        const actions = ['save-draft', 'submit-attendance', 'print-attendance', 'export-attendance', 'view-student-list'];
-        actions.forEach(action => {
-            document.getElementById(action)?.addEventListener('click', () => this[action.replace(/-/g, '')]());
-        });
+    autoCopyAMtoPM(classId) {
+    const row = document.querySelector(`tr[data-class-id="${classId}"]`);
+    if (!row) return;
+    
+    const maleAm = parseInt(row.querySelector('.male-am').value) || 0;
+    const femaleAm = parseInt(row.querySelector('.female-am').value) || 0;
+    const malePm = parseInt(row.querySelector('.male-pm').value) || 0;
+    const femalePm = parseInt(row.querySelector('.female-pm').value) || 0;
+    
+    // Only auto-copy if PM inputs are empty (0) and AM has values
+    if (malePm === 0 && femalePm === 0 && (maleAm > 0 || femaleAm > 0)) {
+        row.querySelector('.male-pm').value = maleAm;
+        row.querySelector('.female-pm').value = femaleAm;
+        
+        // Trigger input events to recalculate
+        row.querySelector('.male-pm').dispatchEvent(new Event('input'));
+        row.querySelector('.female-pm').dispatchEvent(new Event('input'));
     }
-
+}
+    
+    setupEventListeners() {
+    // Use event delegation for dynamic elements
+    document.addEventListener('click', (e) => {
+        // Session tabs
+        if (e.target.closest('.session-tab')) {
+            const tab = e.target.closest('.session-tab');
+            this.handleSessionChange({ currentTarget: tab });
+        }
+        
+        // Class selection
+        if (e.target.closest('.class-item')) {
+            const classItem = e.target.closest('.class-item');
+            this.updateSelectedClassUI(classItem.dataset.classId);
+        }
+        
+        // Quick actions
+        const actionMap = {
+            'mark-all-present': () => this.markallpresent(),
+            'clear-all': () => this.clearall(),
+            'copy-am-to-pm': () => this.copyamtpm(),
+            'copy-pm-to-am': () => this.copypmtoam()
+        };
+        
+        for (const [id, handler] of Object.entries(actionMap)) {
+            if (e.target.closest(`#${id}`)) {
+                e.preventDefault();
+                handler();
+                break;
+            }
+        }
+        
+        // Action buttons
+        const actionButtons = {
+            'save-draft': () => this.savedraft(),
+            'submit-attendance': () => this.submitattendance(),
+            'print-attendance': () => this.printattendance(),
+            'export-attendance': () => this.exportattendance(),
+            'view-student-list': () => this.viewstudentlist()
+        };
+        
+        for (const [id, handler] of Object.entries(actionButtons)) {
+            if (e.target.closest(`#${id}`)) {
+                e.preventDefault();
+                handler();
+                break;
+            }
+        }
+    });
+    
+    // Attendance inputs
+    document.addEventListener('input', (e) => this.handleAttendanceInput(e));
+    
+    // Add keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+        if (e.target.classList.contains('attendance-input')) {
+            this.handleKeyboardInput(e);
+        }
+    });
+}
+    
     handleSessionChange(event) {
         const tab = event.currentTarget;
         document.querySelectorAll('.session-tab').forEach(t => t.classList.remove('active'));
@@ -326,6 +380,35 @@ export class AttendanceManager {
         this.updateSessionView();
     }
 
+    handleKeyboardInput(event) {
+    const input = event.target;
+    const classId = input.dataset.class;
+    
+    if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        let value = parseInt(input.value) || 0;
+        const max = parseInt(input.max) || 0;
+        if (value < max) {
+            input.value = value + 1;
+            input.dispatchEvent(new Event('input'));
+        }
+    } else if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        let value = parseInt(input.value) || 0;
+        if (value > 0) {
+            input.value = value - 1;
+            input.dispatchEvent(new Event('input'));
+        }
+    } else if (event.key === 'Tab' && input.dataset.session === 'am') {
+        // When tabbing from AM, auto-focus PM equivalent
+        const gender = input.dataset.gender;
+        const pmInput = document.querySelector(`.${gender}-pm[data-class="${classId}"]`);
+        if (pmInput) {
+            setTimeout(() => pmInput.focus(), 10);
+        }
+    }
+}
+    
     updateSessionView() {
         const amInputs = document.querySelectorAll('.male-am, .female-am');
         const pmInputs = document.querySelectorAll('.male-pm, .female-pm');
@@ -382,25 +465,30 @@ export class AttendanceManager {
         }
     }
 
-    handleAttendanceInput(event) {
-        if (event.target.classList.contains('attendance-input')) {
-            const input = event.target;
-            const classId = input.dataset.class;
-            
-            // Validate input
-            const max = parseInt(input.max) || 0;
-            let value = parseInt(input.value) || 0;
-            
-            if (value < 0) value = 0;
-            if (value > max) value = max;
-            
-            input.value = value;
-            
-            // Calculate rates
-            this.calculateClassRates(classId);
-            this.updateSummary();
+handleAttendanceInput(event) {
+    if (event.target.classList.contains('attendance-input')) {
+        const input = event.target;
+        const classId = input.dataset.class;
+        
+        // Validate input
+        const max = parseInt(input.max) || 0;
+        let value = parseInt(input.value) || 0;
+        
+        if (value < 0) value = 0;
+        if (value > max) value = max;
+        
+        input.value = value;
+        
+        // Auto-copy AM to PM if it's an AM input
+        if (input.dataset.session === 'am') {
+            this.autoCopyAMtoPM(classId);
         }
+        
+        // Calculate rates
+        this.calculateClassRates(classId);
+        this.updateSummary();
     }
+}
 
     calculateClassRates(classId) {
         const row = document.querySelector(`tr[data-class-id="${classId}"]`);
