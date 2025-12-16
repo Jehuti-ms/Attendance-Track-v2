@@ -4,36 +4,41 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard</title>
+    <!-- Link your CSS files -->
+    <link rel="stylesheet" href="./assets/css/main.css">
+    <link rel="stylesheet" href="./assets/css/components.css">
+    <link rel="stylesheet" href="./assets/css/theme.css">
 </head>
 <body>
-    <h1>Dashboard</h1>
-    <p>If you can see this, auth is working!</p>
-    <button onclick="logout()">Logout</button>
+    <!-- Header container -->
+    <div id="header-container"></div>
     
-    <script src="auth-manager.js"></script>
+    <!-- Main app container -->
+    <div id="app-container">
+        <div class="loading-state">
+            <div class="loading-spinner"></div>
+            <p>Loading dashboard...</p>
+        </div>
+    </div>
+    
+    <!-- Footer container -->
+    <div id="footer-container"></div>
+    
+    <!-- Load your main app -->
+    <script type="module" src="./assets/js/attendance-app.js"></script>
+    
+    <!-- Optional: Simple logout script -->
     <script>
-        // SIMPLE DASHBOARD AUTH
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('Dashboard loaded');
-            
-            // Check auth
-            const user = JSON.parse(localStorage.getItem('attendance_user') || 'null');
-            console.log('Dashboard auth check:', user);
-            
-            if (!user || !user.email) {
-                console.log('No user, redirecting to login');
-                window.location.href = 'index.html';
-                return;
-            }
-            
-            console.log('✅ Welcome, ' + user.email);
-            document.body.innerHTML += `<p>Welcome, ${user.email}!</p>`;
-        });
-        
         function logout() {
-            localStorage.removeItem('attendance_user');
-            window.location.href = 'index.html';
+            if (confirm('Are you sure you want to logout?')) {
+                localStorage.removeItem('attendance_user');
+                window.location.href = 'index.html';
+            }
         }
+        
+        // Simple debug
+        console.log('Dashboard HTML loaded');
+        console.log('User:', JSON.parse(localStorage.getItem('attendance_user') || 'null'));
     </script>
 </body>
 </html>
