@@ -177,60 +177,80 @@ redirectTo(page) {
 async init() {
     console.log('🚀 Initializing AttendanceApp...');
     
+    // DEBUG: Check current state
+    console.log('=== INIT DEBUG ===');
+    console.log('Current page:', this.state.currentPage);
+    console.log('Pathname:', window.location.pathname);
+    console.log('Full URL:', window.location.href);
+    
+    const storedUser = localStorage.getItem('attendance_user');
+    console.log('Stored user raw:', storedUser);
+    console.log('Stored user parsed:', JSON.parse(storedUser || 'null'));
+    console.log('=== END DEBUG ===');
+    
     try {
         // 1. Get current page and user
-        const currentPage = this.getCurrentPage();
-        const user = Storage.get('attendance_user');
+        const currentPage = this.state.currentPage;
+        const authResult = await this.checkAuth();
+        const hasUser = authResult.success;
         
-        console.log(`📄 Current page: ${currentPage}`);
-        console.log(`👤 User exists: ${!!user}`);
-        console.log(`👤 User email: ${user?.email}`);
+        console.log(`📄 Page: ${currentPage}, Has user: ${hasUser}`);
         
-        // 2. Define which pages are public (don't require login)
+        // 2. Define which pages are public
         const publicPages = ['index', 'login', ''];
         const isPublicPage = publicPages.includes(currentPage);
         
-        // 3. Check if user is logged in
-        const isLoggedIn = user && user.email;
+        // 3. DECISION MATRIX:
+        console.log(`Decision: Public page? ${isPublicPage}, Has user? ${hasUser}`);
         
-        // 4. LOGIC DECISION TREE:
-        if (isLoggedIn && isPublicPage) {
-            // User is logged in but on a public page (login/index)
-            // → Redirect to dashboard
-            console.log('⚠️ Logged-in user on public page, redirecting to dashboard');
+        // CASE 1: User logged in AND on public page → redirect to dashboard
+        if (hasUser && isPublicPage) {
+            console.log('⚠️ Logged-in user on public page → redirecting to dashboard');
             window.location.replace('dashboard.html');
-            return;
-            
-        } else if (!isLoggedIn && !isPublicPage) {
-            // User NOT logged in and trying to access protected page
-            // → Redirect to login
-            console.log('🔒 No user on protected page, redirecting to login');
-            window.location.replace('index.html');
-            return;
-            
-        } else if (!isLoggedIn && isPublicPage) {
-            // User NOT logged in and on a public page
-            // → Stay on public page (show login form)
-            console.log('👋 No user, staying on public page');
-            // Continue with initialization
-            this.user = null;
-            this.state.currentUser = null;
-            
-        } else if (isLoggedIn && !isPublicPage) {
-            // User IS logged in and on a protected page
-            // → Load user data and continue
-            console.log('✅ Authenticated user accessing protected page');
-            this.user = user;
-            this.state.currentUser = user;
-            
-            // Try to sync with Firebase if available
-            await this.syncLocalUserToFirebase(user);
+            return; // STOP here
         }
         
-        // 5. Continue with app initialization (only reaches here if no redirect)
-        await this.loadUIComponents();
+        // CASE 2: No user AND on protected page → redirect to index
+        if (!hasUser && !isPublicPage) {
+            console.log('🔒 No user on protected page → redirecting to index');
+            window.location.replace('index.html');
+            return; // STOP here
+        }
+        
+        // CASE 3: User logged in AND on protected page → CONTINUE
+        if (hasUser && !isPublicPage) {
+            console.log('✅ Authenticated user accessing protected page');
+            this.user = authResult.user;
+            this.state.currentUser = authResult.user;
+            
+            // Try Firebase sync (non-blocking)
+            this.syncLocalUserToFirebase().catch(err => {
+                console.log('Firebase sync optional:', err.message);
+            });
+        }
+        
+        // CASE 4: No user AND on public page → CONTINUE (show login form)
+        if (!hasUser && isPublicPage) {
+            console.log('👋 No user on public page → showing login form');
+            this.user = null;
+            this.state.currentUser = null;
+        }
+        
+        // 4. Continue with app initialization (only if no redirect happened)
+        console.log('Continuing with app initialization...');
+        
+        // Load UI components (header/footer only for protected pages)
+        if (!isPublicPage) {
+            await this.loadUIComponents();
+        }
+        
+        // Setup event listeners
         this.setupEventListeners();
+        
+        // Load page-specific content
         await this.loadPageContent();
+        
+        // Initialize service worker
         this.initServiceWorker();
         
         console.log('✅ AttendanceApp initialized successfully');
@@ -241,22 +261,44 @@ async init() {
     }
 }
     
-// ==================== FIXED CHECK AUTH ====================
+// ==================== AUTHENTICATION ====================
 async checkAuth() {
     console.log("🔐 Performing auth check...");
     
-    // Get user from localStorage
-    const user = Storage.get('attendance_user');
-    console.log("User from storage:", user);
-    
-    // Check if user exists and has email
-    if (!user || !user.email) {
-        console.log("❌ No valid user found in checkAuth()");
+    try {
+        // Get user from localStorage
+        const userJson = localStorage.getItem('attendance_user');
+        console.log('Raw user from localStorage:', userJson);
+        
+        if (!userJson) {
+            console.log("❌ No user found in localStorage");
+            return { success: false, user: null };
+        }
+        
+        const user = JSON.parse(userJson);
+        console.log('Parsed user:', user);
+        
+        // Check if user has required properties
+        if (!user || !user.email) {
+            console.log("❌ Invalid user object - missing email");
+            localStorage.removeItem('attendance_user'); // Clean up invalid data
+            return { success: false, user: null };
+        }
+        
+        // Check if user data is too old (optional)
+        if (user.expires && new Date() > new Date(user.expires)) {
+            console.log("❌ User session expired");
+            localStorage.removeItem('attendance_user');
+            return { success: false, user: null };
+        }
+        
+        console.log(`✅ User authenticated: ${user.email}`);
+        return { success: true, user };
+        
+    } catch (error) {
+        console.error("❌ Error in checkAuth:", error);
         return { success: false, user: null };
     }
-    
-    console.log(`✅ User found: ${user.email}`);
-    return { success: true, user };
 }
 
 // ==================== FIXED GET CURRENT PAGE ====================
