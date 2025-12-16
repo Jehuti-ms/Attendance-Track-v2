@@ -11,17 +11,6 @@
     <link rel="icon" href="./assets/icons/favicon.ico">
 </head>
 <body class="auth-page">
-    <!-- Add this RIGHT AFTER <body> tag in login.html -->
-<script>
-console.log('🔍 DEBUG: Login page loaded');
-console.log('URL:', window.location.href);
-console.log('User in localStorage:', localStorage.getItem('attendance_user'));
-
-// TEMPORARY: Prevent any automatic redirects for 5 seconds
-setTimeout(() => {
-    console.log('✅ 5 seconds passed, redirects now allowed');
-}, 5000);
-</script>
     <div class="auth-container">
         <div class="auth-header">
             <div class="logo">
@@ -281,32 +270,49 @@ setTimeout(() => {
 
         // ==================== FIREBASE INIT ====================
         async function initializeFirebase() {
-            try {
-                const { auth, onAuthStateChanged } = await import('./assets/js/firebase.js');
-                firebaseAuth = auth;
+    try {
+        const { auth, onAuthStateChanged } = await import('./assets/js/firebase.js');
+        firebaseAuth = auth;
+        
+        console.log('✅ Firebase loaded');
+        updateFirebaseStatus('Firebase connected', 'success');
+        
+        // Monitor auth state - WITHOUT auto-redirect
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                console.log('👤 Firebase user session detected:', user.email);
                 
-                console.log('✅ Firebase loaded');
-                updateFirebaseStatus('Firebase connected', 'success');
-                
-                // Monitor auth state
-                onAuthStateChanged(auth, (user) => {
-                    if (user) {
-                        console.log('👤 User session active:', user.email);
-                        // If user is already logged in, redirect
-                        if (window.location.pathname.includes('login.html')) {
-                            setTimeout(() => {
-                                window.location.href = 'dashboard.html';
-                            }, 1000);
-                        }
+                // 🚨 REMOVED: Auto-redirect from login page
+                // Instead, just provide helpful UI feedback
+                if (window.location.pathname.includes('login.html')) {
+                    console.log('ℹ️ User already signed in via Firebase');
+                    
+                    // Auto-fill email field for convenience
+                    const emailField = document.getElementById('login-email');
+                    if (emailField && !emailField.value) {
+                        emailField.value = user.email;
                     }
-                });
-                
-            } catch (error) {
-                console.error('❌ Firebase init error:', error);
-                updateFirebaseStatus('Firebase not available - Using offline mode', 'error');
+                    
+                    // Show helpful status message
+                    showStatus(`Signed in as ${user.email}. Submit form to continue.`, 'info');
+                    
+                    // Optional: Focus password field for quick entry
+                    setTimeout(() => {
+                        const passwordField = document.getElementById('login-password');
+                        if (passwordField) passwordField.focus();
+                    }, 500);
+                }
+            } else {
+                console.log('👤 No active Firebase session');
             }
-        }
-
+        });
+        
+    } catch (error) {
+        console.error('❌ Firebase init error:', error);
+        updateFirebaseStatus('Firebase not available - Using offline mode', 'error');
+    }
+}
+        
         // ==================== TAB MANAGEMENT ====================
         function setupTabSwitching() {
             const tabs = document.querySelectorAll('.auth-tab');
