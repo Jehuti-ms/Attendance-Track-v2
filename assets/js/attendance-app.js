@@ -2498,10 +2498,748 @@ async loadAttendanceData() {
 }
 
 // Add methods for actions
+// ==================== ATTENDANCE METHODS =====================
 takeAttendance() {
-    console.log('Taking attendance...');
-    // Add your attendance taking logic here
-    this.showToast('Attendance taking mode activated', 'info');
+    console.log('📝 Starting attendance taking...');
+    
+    // Check if there are any classes
+    const classes = Storage.get('classes') || [];
+    const students = Storage.get('students') || [];
+    
+    if (classes.length === 0) {
+        this.showToast('No classes found. Please setup classes first.', 'error');
+        return;
+    }
+    
+    if (students.length === 0) {
+        this.showToast('No students found. Please add students first.', 'error');
+        return;
+    }
+    
+    // Show class selection modal
+    this.showClassSelectionModal();
+}
+
+showClassSelectionModal() {
+    const classes = Storage.get('classes') || [];
+    
+    // Create modal HTML
+    const modalHTML = `
+        <div class="modal-overlay" id="class-selection-modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Select Class for Attendance</h3>
+                    <button class="modal-close" onclick="window.app.closeModal()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="class-selection-list">
+                        ${classes.map(cls => `
+                            <div class="class-selection-item" data-class-id="${cls.id}">
+                                <div class="class-info">
+                                    <h4>${cls.name}</h4>
+                                    <p>${cls.code} • Year ${cls.yearGroup || 'N/A'}</p>
+                                </div>
+                                <button class="btn-primary select-class-btn" 
+                                        onclick="window.app.openAttendanceForClass('${cls.id}')">
+                                    <i class="fas fa-clipboard-check"></i> Take Attendance
+                                </button>
+                            </div>
+                        `).join('')}
+                        
+                        ${classes.length === 0 ? `
+                            <div class="empty-state">
+                                <i class="fas fa-chalkboard-teacher"></i>
+                                <p>No classes found. Please setup classes first.</p>
+                                <button class="btn-primary" onclick="window.location.href='setup.html'">
+                                    Go to Setup
+                                </button>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-secondary" onclick="window.app.closeModal()">Cancel</button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Add modal to page
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+}
+
+openAttendanceForClass(classId) {
+    const classes = Storage.get('classes') || [];
+    const students = Storage.get('students') || [];
+    const cls = classes.find(c => c.id === classId);
+    
+    if (!cls) {
+        this.showToast('Class not found', 'error');
+        return;
+    }
+    
+    // Get students in this class
+    const classStudents = students.filter(s => s.classId === classId);
+    
+    if (classStudents.length === 0) {
+        this.showToast('No students found in this class', 'error');
+        return;
+    }
+    
+    // Close class selection modal
+    this.closeModal();
+    
+    // Open attendance sheet modal
+    this.showAttendanceSheet(cls, classStudents);
+}
+
+showAttendanceSheet(cls, students) {
+    const today = new Date().toISOString().split('T')[0];
+    const formattedDate = new Date().toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+    
+    // Check if attendance already taken for today
+    const existingAttendance = Storage.get('attendance') || [];
+    const todayAttendance = existingAttendance.filter(a => 
+        a.classId === cls.id && a.date === today
+    );
+    
+    const attendanceSheetHTML = `
+        <div class="modal-overlay" id="attendance-sheet-modal">
+            <div class="modal-content attendance-sheet-modal">
+                <div class="modal-header">
+                    <h3>
+                        <i class="fas fa-clipboard-check"></i>
+                        Attendance: ${cls.name}
+                    </h3>
+                    <div class="attendance-date">
+                        ${formattedDate}
+                    </div>
+                    <button class="modal-close" onclick="window.app.closeAttendanceSheet()">&times;</button>
+                </div>
+                
+                <div class="modal-body">
+                    <div class="attendance-controls">
+                        <div class="control-group">
+                            <label>Session:</label>
+                            <select id="attendance-session" class="form-input">
+                                <option value="AM">Morning (AM)</option>
+                                <option value="PM">Afternoon (PM)</option>
+                                <option value="FULL">Full Day</option>
+                            </select>
+                        </div>
+                        
+                        <div class="control-group">
+                            <label>Quick Actions:</label>
+                            <div class="quick-actions">
+                                <button class="btn-secondary" onclick="window.app.markAllPresent()">
+                                    <i class="fas fa-check-circle"></i> Mark All Present
+                                </button>
+                                <button class="btn-secondary" onclick="window.app.markAllAbsent()">
+                                    <i class="fas fa-times-circle"></i> Mark All Absent
+                                </button>
+                                <button class="btn-secondary" onclick="window.app.clearAllAttendance()">
+                                    <i class="fas fa-eraser"></i> Clear All
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="attendance-table-container">
+                        <table class="attendance-table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Student Name</th>
+                                    <th>Student ID</th>
+                                    <th>Status</th>
+                                    <th>Remarks</th>
+                                </tr>
+                            </thead>
+                            <tbody id="attendance-table-body">
+                                ${students.map((student, index) => {
+                                    // Check if student already has attendance for today
+                                    const existingRecord = todayAttendance.find(a => a.studentId === student.id);
+                                    const status = existingRecord?.status || 'pending';
+                                    
+                                    return `
+                                        <tr data-student-id="${student.id}">
+                                            <td>${index + 1}</td>
+                                            <td class="student-name">
+                                                <i class="fas fa-user"></i>
+                                                ${student.fullName}
+                                            </td>
+                                            <td>${student.studentId}</td>
+                                            <td>
+                                                <div class="status-buttons">
+                                                    <button class="status-btn present ${status === 'present' ? 'active' : ''}" 
+                                                            onclick="window.app.markAttendance('${student.id}', 'present')">
+                                                        <i class="fas fa-check"></i> Present
+                                                    </button>
+                                                    <button class="status-btn absent ${status === 'absent' ? 'active' : ''}" 
+                                                            onclick="window.app.markAttendance('${student.id}', 'absent')">
+                                                        <i class="fas fa-times"></i> Absent
+                                                    </button>
+                                                    <button class="status-btn late ${status === 'late' ? 'active' : ''}" 
+                                                            onclick="window.app.markAttendance('${student.id}', 'late')">
+                                                        <i class="fas fa-clock"></i> Late
+                                                    </button>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <input type="text" 
+                                                       class="remarks-input" 
+                                                       data-student-id="${student.id}"
+                                                       placeholder="Notes..."
+                                                       value="${existingRecord?.remarks || ''}">
+                                            </td>
+                                        </tr>
+                                    `;
+                                }).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="attendance-summary">
+                        <div class="summary-card">
+                            <div class="summary-icon present">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                            <div class="summary-info">
+                                <span class="summary-count" id="present-count">0</span>
+                                <span class="summary-label">Present</span>
+                            </div>
+                        </div>
+                        
+                        <div class="summary-card">
+                            <div class="summary-icon absent">
+                                <i class="fas fa-times-circle"></i>
+                            </div>
+                            <div class="summary-info">
+                                <span class="summary-count" id="absent-count">0</span>
+                                <span class="summary-label">Absent</span>
+                            </div>
+                        </div>
+                        
+                        <div class="summary-card">
+                            <div class="summary-icon late">
+                                <i class="fas fa-clock"></i>
+                            </div>
+                            <div class="summary-info">
+                                <span class="summary-count" id="late-count">0</span>
+                                <span class="summary-label">Late</span>
+                            </div>
+                        </div>
+                        
+                        <div class="summary-card">
+                            <div class="summary-icon total">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <div class="summary-info">
+                                <span class="summary-count">${students.length}</span>
+                                <span class="summary-label">Total Students</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="modal-footer">
+                    <button class="btn-secondary" onclick="window.app.closeAttendanceSheet()">
+                        <i class="fas fa-times"></i> Cancel
+                    </button>
+                    <button class="btn-primary" onclick="window.app.saveAttendance('${cls.id}')">
+                        <i class="fas fa-save"></i> Save Attendance
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Add modal to page
+    document.body.insertAdjacentHTML('beforeend', attendanceSheetHTML);
+    
+    // Initialize attendance counts
+    this.updateAttendanceCounts();
+    
+    // Load existing attendance if any
+    if (todayAttendance.length > 0) {
+        this.loadExistingAttendance(todayAttendance);
+    }
+}
+
+markAttendance(studentId, status) {
+    const row = document.querySelector(`tr[data-student-id="${studentId}"]`);
+    if (!row) return;
+    
+    // Update button states
+    const buttons = row.querySelectorAll('.status-btn');
+    buttons.forEach(btn => btn.classList.remove('active'));
+    
+    const activeBtn = row.querySelector(`.status-btn.${status}`);
+    if (activeBtn) {
+        activeBtn.classList.add('active');
+    }
+    
+    // Store in temporary storage
+    const attendanceData = window.tempAttendanceData = window.tempAttendanceData || {};
+    attendanceData[studentId] = {
+        ...attendanceData[studentId],
+        status: status,
+        timestamp: new Date().toISOString()
+    };
+    
+    // Update counts
+    this.updateAttendanceCounts();
+}
+
+markAllPresent() {
+    const rows = document.querySelectorAll('#attendance-table-body tr');
+    rows.forEach(row => {
+        const studentId = row.getAttribute('data-student-id');
+        this.markAttendance(studentId, 'present');
+    });
+}
+
+markAllAbsent() {
+    const rows = document.querySelectorAll('#attendance-table-body tr');
+    rows.forEach(row => {
+        const studentId = row.getAttribute('data-student-id');
+        this.markAttendance(studentId, 'absent');
+    });
+}
+
+clearAllAttendance() {
+    const rows = document.querySelectorAll('#attendance-table-body tr');
+    rows.forEach(row => {
+        const buttons = row.querySelectorAll('.status-btn');
+        buttons.forEach(btn => btn.classList.remove('active'));
+        
+        const studentId = row.getAttribute('data-student-id');
+        if (window.tempAttendanceData && window.tempAttendanceData[studentId]) {
+            delete window.tempAttendanceData[studentId];
+        }
+    });
+    
+    this.updateAttendanceCounts();
+}
+
+updateAttendanceCounts() {
+    const rows = document.querySelectorAll('#attendance-table-body tr');
+    let presentCount = 0;
+    let absentCount = 0;
+    let lateCount = 0;
+    
+    rows.forEach(row => {
+        const studentId = row.getAttribute('data-student-id');
+        let status = 'pending';
+        
+        // Check temp data first
+        if (window.tempAttendanceData && window.tempAttendanceData[studentId]) {
+            status = window.tempAttendanceData[studentId].status;
+        } 
+        // Check for active button in UI
+        else {
+            const activeBtn = row.querySelector('.status-btn.active');
+            if (activeBtn) {
+                if (activeBtn.classList.contains('present')) status = 'present';
+                else if (activeBtn.classList.contains('absent')) status = 'absent';
+                else if (activeBtn.classList.contains('late')) status = 'late';
+            }
+        }
+        
+        switch(status) {
+            case 'present': presentCount++; break;
+            case 'absent': absentCount++; break;
+            case 'late': lateCount++; break;
+        }
+    });
+    
+    // Update display
+    const presentElement = document.getElementById('present-count');
+    const absentElement = document.getElementById('absent-count');
+    const lateElement = document.getElementById('late-count');
+    
+    if (presentElement) presentElement.textContent = presentCount;
+    if (absentElement) absentElement.textContent = absentCount;
+    if (lateElement) lateElement.textContent = lateCount;
+}
+
+loadExistingAttendance(attendanceRecords) {
+    attendanceRecords.forEach(record => {
+        const row = document.querySelector(`tr[data-student-id="${record.studentId}"]`);
+        if (row) {
+            const activeBtn = row.querySelector(`.status-btn.${record.status}`);
+            if (activeBtn) {
+                activeBtn.classList.add('active');
+            }
+            
+            const remarksInput = row.querySelector('.remarks-input');
+            if (remarksInput && record.remarks) {
+                remarksInput.value = record.remarks;
+            }
+        }
+    });
+    
+    // Update counts
+    this.updateAttendanceCounts();
+}
+
+saveAttendance(classId) {
+    const session = document.getElementById('attendance-session')?.value || 'AM';
+    const rows = document.querySelectorAll('#attendance-table-body tr');
+    const attendanceData = [];
+    const today = new Date().toISOString().split('T')[0];
+    
+    // Get class info
+    const classes = Storage.get('classes') || [];
+    const cls = classes.find(c => c.id === classId);
+    
+    if (!cls) {
+        this.showToast('Class not found', 'error');
+        return;
+    }
+    
+    // Collect attendance data
+    rows.forEach(row => {
+        const studentId = row.getAttribute('data-student-id');
+        const activeBtn = row.querySelector('.status-btn.active');
+        const remarksInput = row.querySelector('.remarks-input');
+        
+        if (activeBtn) {
+            let status = '';
+            if (activeBtn.classList.contains('present')) status = 'present';
+            else if (activeBtn.classList.contains('absent')) status = 'absent';
+            else if (activeBtn.classList.contains('late')) status = 'late';
+            
+            if (status) {
+                attendanceData.push({
+                    studentId: studentId,
+                    status: status,
+                    remarks: remarksInput?.value || '',
+                    session: session
+                });
+            }
+        }
+    });
+    
+    // Validate that all students have attendance marked
+    if (attendanceData.length === 0) {
+        this.showToast('Please mark attendance for at least one student', 'error');
+        return;
+    }
+    
+    // Get existing attendance records
+    const existingAttendance = Storage.get('attendance') || [];
+    
+    // Remove existing records for today's class/session
+    const filteredAttendance = existingAttendance.filter(a => 
+        !(a.classId === classId && a.date === today && a.session === session)
+    );
+    
+    // Add new attendance records
+    attendanceData.forEach(data => {
+        filteredAttendance.push({
+            id: `attendance_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            studentId: data.studentId,
+            classId: classId,
+            className: cls.name,
+            classCode: cls.code,
+            date: today,
+            session: session,
+            status: data.status,
+            remarks: data.remarks,
+            recordedBy: this.user.id,
+            recordedAt: new Date().toISOString()
+        });
+    });
+    
+    // Save to storage
+    Storage.set('attendance', filteredAttendance);
+    
+    // Show success message
+    this.showToast(`Attendance saved for ${attendanceData.length} students!`, 'success');
+    
+    // Close attendance sheet
+    this.closeAttendanceSheet();
+    
+    // Clear temp data
+    window.tempAttendanceData = null;
+    
+    // Refresh dashboard if on dashboard page
+    if (typeof this.refreshDashboard === 'function') {
+        this.refreshDashboard();
+    }
+}
+
+closeAttendanceSheet() {
+    const modal = document.getElementById('attendance-sheet-modal');
+    if (modal) {
+        modal.remove();
+    }
+    window.tempAttendanceData = null;
+}
+
+closeModal() {
+    const modal = document.getElementById('class-selection-modal');
+    if (modal) {
+        modal.remove();
+    }
+}
+
+printAttendance() {
+    console.log('🖨️ Printing attendance report...');
+    
+    // Get today's date
+    const today = new Date();
+    const formattedDate = today.toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+    
+    // Get attendance data
+    const attendance = Storage.get('attendance') || [];
+    const classes = Storage.get('classes') || [];
+    const students = Storage.get('students') || [];
+    
+    // Filter today's attendance
+    const todayStr = today.toISOString().split('T')[0];
+    const todayAttendance = attendance.filter(a => a.date === todayStr);
+    
+    if (todayAttendance.length === 0) {
+        this.showToast('No attendance recorded for today', 'info');
+        return;
+    }
+    
+    // Group by class
+    const attendanceByClass = {};
+    todayAttendance.forEach(record => {
+        if (!attendanceByClass[record.classId]) {
+            attendanceByClass[record.classId] = [];
+        }
+        attendanceByClass[record.classId].push(record);
+    });
+    
+    // Create printable HTML
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Attendance Report - ${formattedDate}</title>
+            <style>
+                body {
+                    font-family: Arial, sans-serif;
+                    margin: 20px;
+                    line-height: 1.6;
+                }
+                .header {
+                    text-align: center;
+                    margin-bottom: 30px;
+                    border-bottom: 2px solid #333;
+                    padding-bottom: 20px;
+                }
+                .header h1 {
+                    margin: 0;
+                    color: #333;
+                }
+                .header .date {
+                    font-size: 18px;
+                    color: #666;
+                    margin-top: 10px;
+                }
+                .class-section {
+                    margin-bottom: 40px;
+                    page-break-inside: avoid;
+                }
+                .class-title {
+                    background: #f5f5f5;
+                    padding: 10px;
+                    border-left: 4px solid #3498db;
+                    margin-bottom: 20px;
+                }
+                table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin-bottom: 20px;
+                }
+                th {
+                    background: #2c3e50;
+                    color: white;
+                    padding: 12px;
+                    text-align: left;
+                }
+                td {
+                    padding: 10px;
+                    border-bottom: 1px solid #ddd;
+                }
+                tr:nth-child(even) {
+                    background: #f9f9f9;
+                }
+                .status-present {
+                    color: #27ae60;
+                    font-weight: bold;
+                }
+                .status-absent {
+                    color: #e74c3c;
+                    font-weight: bold;
+                }
+                .status-late {
+                    color: #f39c12;
+                    font-weight: bold;
+                }
+                .summary {
+                    margin-top: 30px;
+                    padding: 20px;
+                    background: #f8f9fa;
+                    border-radius: 5px;
+                }
+                .summary h3 {
+                    margin-top: 0;
+                }
+                .summary-row {
+                    display: flex;
+                    justify-content: space-between;
+                    margin-bottom: 10px;
+                }
+                .footer {
+                    margin-top: 50px;
+                    text-align: center;
+                    font-size: 12px;
+                    color: #666;
+                    border-top: 1px solid #ddd;
+                    padding-top: 20px;
+                }
+                @media print {
+                    body {
+                        margin: 0;
+                        padding: 20px;
+                    }
+                    .no-print {
+                        display: none;
+                    }
+                    button {
+                        display: none;
+                    }
+                }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h1>Daily Attendance Report</h1>
+                <div class="date">${formattedDate}</div>
+                <div class="printed">Printed: ${new Date().toLocaleString()}</div>
+            </div>
+            
+            ${Object.entries(attendanceByClass).map(([classId, records]) => {
+                const cls = classes.find(c => c.id === classId);
+                if (!cls) return '';
+                
+                // Get students in this class
+                const classStudents = students.filter(s => s.classId === classId);
+                
+                // Calculate stats
+                const presentCount = records.filter(r => r.status === 'present').length;
+                const absentCount = records.filter(r => r.status === 'absent').length;
+                const lateCount = records.filter(r => r.status === 'late').length;
+                const attendanceRate = classStudents.length > 0 ? 
+                    Math.round((presentCount / classStudents.length) * 100) : 0;
+                
+                return `
+                    <div class="class-section">
+                        <div class="class-title">
+                            <h2>${cls.name} (${cls.code})</h2>
+                            <p>Year ${cls.yearGroup || 'N/A'} • ${classStudents.length} Students</p>
+                        </div>
+                        
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Student Name</th>
+                                    <th>Student ID</th>
+                                    <th>Status</th>
+                                    <th>Remarks</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${classStudents.map((student, index) => {
+                                    const record = records.find(r => r.studentId === student.id);
+                                    const status = record?.status || 'absent';
+                                    const statusClass = `status-${status}`;
+                                    
+                                    return `
+                                        <tr>
+                                            <td>${index + 1}</td>
+                                            <td>${student.fullName}</td>
+                                            <td>${student.studentId}</td>
+                                            <td class="${statusClass}">${status.toUpperCase()}</td>
+                                            <td>${record?.remarks || ''}</td>
+                                        </tr>
+                                    `;
+                                }).join('')}
+                            </tbody>
+                        </table>
+                        
+                        <div class="summary">
+                            <h3>Summary</h3>
+                            <div class="summary-row">
+                                <span>Total Students:</span>
+                                <span>${classStudents.length}</span>
+                            </div>
+                            <div class="summary-row">
+                                <span>Present:</span>
+                                <span>${presentCount}</span>
+                            </div>
+                            <div class="summary-row">
+                                <span>Absent:</span>
+                                <span>${absentCount}</span>
+                            </div>
+                            <div class="summary-row">
+                                <span>Late:</span>
+                                <span>${lateCount}</span>
+                            </div>
+                            <div class="summary-row">
+                                <span>Attendance Rate:</span>
+                                <span><strong>${attendanceRate}%</strong></span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('')}
+            
+            <div class="footer">
+                <p>Generated by Attendance Tracker v2.0</p>
+                <p>Report ID: AT-${today.getFullYear()}${(today.getMonth()+1).toString().padStart(2, '0')}${today.getDate().toString().padStart(2, '0')}</p>
+            </div>
+            
+            <div class="no-print" style="margin-top: 30px; text-align: center;">
+                <button onclick="window.print()" style="padding: 10px 20px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                    Print Report
+                </button>
+                <button onclick="window.close()" style="padding: 10px 20px; background: #95a5a6; color: white; border: none; border-radius: 4px; cursor: pointer; margin-left: 10px;">
+                    Close Window
+                </button>
+            </div>
+            
+            <script>
+                // Auto-print when window loads
+                window.onload = function() {
+                    setTimeout(function() {
+                        window.print();
+                    }, 500);
+                };
+            </script>
+        </body>
+        </html>
+    `);
+    
+    printWindow.document.close();
 }
 
 printAttendance() {
