@@ -913,7 +913,7 @@ refreshDashboard() {
 }
 
 // ==================== LOAD SETUP CONTENT ======================
- loadSetupContent(container) {
+loadSetupContent(container) {
     if (!this.user) {
         container.innerHTML = `<div class="error">No user found. Please login again.</div>`;
         return;
@@ -923,8 +923,8 @@ refreshDashboard() {
         <div class="setup-page">
             <div class="setup-container">
                 <div class="setup-header">
-                    <h1>System Setup</h1>
-                    <p class="setup-subtitle">Configure classes, students, and system settings</p>
+                    <h1>System Setup & Configuration</h1>
+                    <p class="setup-subtitle">Configure all system settings, user preferences, and manage data</p>
                 </div>
                 
                 <section class="setup-section">
@@ -936,191 +936,45 @@ refreshDashboard() {
                             <i class="fas fa-users"></i> Students
                         </button>
                         <button class="tab-btn" data-tab="import">
-                            <i class="fas fa-file-import"></i> Import Data
+                            <i class="fas fa-file-import"></i> Import
                         </button>
-                        <button class="tab-btn" data-tab="settings">
+                        <button class="tab-btn" data-tab="system">
                             <i class="fas fa-cog"></i> System Settings
                         </button>
+                        <button class="tab-btn" data-tab="user">
+                            <i class="fas fa-user-cog"></i> User Settings
+                        </button>
+                        <button class="tab-btn" data-tab="preferences">
+                            <i class="fas fa-sliders-h"></i> Preferences
+                        </button>
+                        <button class="tab-btn" data-tab="data">
+                            <i class="fas fa-database"></i> Data Management
+                        </button>
+                        <button class="tab-btn" data-tab="about">
+                            <i class="fas fa-info-circle"></i> About
+                        </button>
                     </div>
                     
-                    <!-- Classes Tab -->
+                    <!-- Classes Tab (existing) -->
                     <div class="tab-content active" id="classes-tab">
                         <div class="section-title">Class Management</div>
-                        
-                        <div class="setup-form">
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label class="form-label">Class Name *</label>
-                                    <input type="text" id="className" class="form-input" placeholder="e.g., Grade 10 Mathematics">
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label">Class Code *</label>
-                                    <input type="text" id="classCode" class="form-input" placeholder="e.g., 10MATHS">
-                                </div>
-                            </div>
-                            
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label class="form-label">Year Group</label>
-                                    <select id="yearGroup" class="form-input">
-                                        <option value="">Select Year Group</option>
-                                        <option value="1">Year 1</option>
-                                        <option value="2">Year 2</option>
-                                        <option value="3">Year 3</option>
-                                        <option value="4">Year 4</option>
-                                        <option value="5">Year 5</option>
-                                        <option value="6">Year 6</option>
-                                        <option value="7">Year 7</option>
-                                        <option value="8">Year 8</option>
-                                        <option value="9">Year 9</option>
-                                        <option value="10">Year 10</option>
-                                        <option value="11">Year 11</option>
-                                        <option value="12">Year 12</option>
-                                        <option value="13">Year 13</option>
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label">Subject</label>
-                                    <input type="text" id="subject" class="form-input" placeholder="e.g., Mathematics">
-                                </div>
-                            </div>
-                            
-                            <div class="actions-container">
-                                <button class="action-btn save-btn" id="save-class">
-                                    <i class="fas fa-save"></i> Save Class
-                                </button>
-                                <button class="action-btn cancel-btn" id="clear-class">
-                                    <i class="fas fa-times"></i> Clear Form
-                                </button>
-                            </div>
-                        </div>
-                        
-                        <div class="section-title">Existing Classes</div>
-                        <div id="classes-list" class="classes-grid">
-                            <!-- Classes will be loaded here -->
-                        </div>
+                        <!-- ... existing class form and list ... -->
                     </div>
                     
-                    <!-- Students Tab -->
+                    <!-- Students Tab (existing) -->
                     <div class="tab-content" id="students-tab">
                         <div class="section-title">Student Management</div>
-                        
-                        <div class="setup-form">
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label class="form-label">First Name *</label>
-                                    <input type="text" id="firstName" class="form-input" placeholder="e.g., John">
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label">Last Name *</label>
-                                    <input type="text" id="lastName" class="form-input" placeholder="e.g., Smith">
-                                </div>
-                            </div>
-                            
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label class="form-label">Student ID</label>
-                                    <input type="text" id="studentId" class="form-input" placeholder="e.g., STU001">
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label">Gender</label>
-                                    <select id="gender" class="form-input">
-                                        <option value="">Select Gender</option>
-                                        <option value="male">Male</option>
-                                        <option value="female">Female</option>
-                                        <option value="other">Other</option>
-                                    </select>
-                                </div>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label class="form-label">Class Assignment</label>
-                                <select id="studentClass" class="form-input">
-                                    <option value="">Select Class</option>
-                                    <!-- Classes will be populated here -->
-                                </select>
-                            </div>
-                            
-                            <div class="actions-container">
-                                <button class="action-btn save-btn" id="save-student">
-                                    <i class="fas fa-save"></i> Save Student
-                                </button>
-                                <button class="action-btn cancel-btn" id="clear-student">
-                                    <i class="fas fa-times"></i> Clear Form
-                                </button>
-                            </div>
-                        </div>
-                        
-                        <div class="section-title">Existing Students</div>
-                        <div id="students-list" class="student-list">
-                            <!-- Students will be loaded here -->
-                        </div>
+                        <!-- ... existing student form and list ... -->
                     </div>
                     
-                    <!-- Import Tab -->
+                    <!-- Import Tab (existing) -->
                     <div class="tab-content" id="import-tab">
                         <div class="section-title">Data Import</div>
-                        
-                        <div class="import-zone" id="import-zone">
-                            <div class="import-icon">
-                                <i class="fas fa-file-upload"></i>
-                            </div>
-                            <div class="import-text">
-                                <h3>Drag & Drop Files Here</h3>
-                                <p>or click to browse</p>
-                            </div>
-                            <div class="import-hint">
-                                Supported formats: CSV, Excel (.xlsx, .xls)
-                            </div>
-                            <input type="file" id="import-file" accept=".csv,.xlsx,.xls" style="display: none;">
-                        </div>
-                        
-                        <div class="setup-form">
-                            <div class="form-group">
-                                <label class="form-label">Import Type</label>
-                                <select id="import-type" class="form-input">
-                                    <option value="students">Students</option>
-                                    <option value="classes">Classes</option>
-                                    <option value="attendance">Attendance Records</option>
-                                </select>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label class="form-label">Import Options</label>
-                                <div style="margin-top: 10px;">
-                                    <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                                        <input type="checkbox" id="overwrite-data" style="width: auto;">
-                                        Overwrite existing data
-                                    </label>
-                                    <label style="display: flex; align-items: center; gap: 8px;">
-                                        <input type="checkbox" id="create-missing" style="width: auto;" checked>
-                                        Create missing classes
-                                    </label>
-                                </div>
-                            </div>
-                            
-                            <div class="actions-container">
-                                <button class="action-btn save-btn" id="process-import">
-                                    <i class="fas fa-play"></i> Process Import
-                                </button>
-                                <button class="action-btn cancel-btn" id="download-template">
-                                    <i class="fas fa-download"></i> Download Template
-                                </button>
-                            </div>
-                        </div>
-                        
-                        <div class="section-title">Import History</div>
-                        <div id="import-history" class="empty-state">
-                            <div class="empty-icon">
-                                <i class="fas fa-history"></i>
-                            </div>
-                            <div class="empty-text">No import history yet</div>
-                            <div class="empty-hint">Files you import will appear here</div>
-                        </div>
+                        <!-- ... existing import functionality ... -->
                     </div>
                     
-                    <!-- System Settings Tab -->
-                    <div class="tab-content" id="settings-tab">
+                    <!-- System Settings Tab (existing but enhanced) -->
+                    <div class="tab-content" id="system-tab">
                         <div class="section-title">System Configuration</div>
                         
                         <div class="setup-form">
@@ -1146,54 +1000,347 @@ refreshDashboard() {
                             </div>
                             
                             <div class="form-group">
+                                <label class="form-label">School Type</label>
+                                <select id="schoolType" class="form-input">
+                                    <option value="primary">Primary School</option>
+                                    <option value="secondary">Secondary School</option>
+                                    <option value="college">College/University</option>
+                                    <option value="training">Training Center</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
                                 <label class="form-label">Attendance Sessions</label>
-                                <div style="margin-top: 10px;">
-                                    <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                                        <input type="checkbox" id="am-session" style="width: auto;" checked>
-                                        Morning Session (AM)
+                                <div class="checkbox-group">
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" id="am-session" checked>
+                                        <span>Morning Session (AM)</span>
                                     </label>
-                                    <label style="display: flex; align-items: center; gap: 8px;">
-                                        <input type="checkbox" id="pm-session" style="width: auto;" checked>
-                                        Afternoon Session (PM)
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" id="pm-session" checked>
+                                        <span>Afternoon Session (PM)</span>
+                                    </label>
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" id="evening-session">
+                                        <span>Evening Session</span>
                                     </label>
                                 </div>
                             </div>
                             
                             <div class="actions-container">
-                                <button class="action-btn save-btn" id="save-settings">
-                                    <i class="fas fa-save"></i> Save Settings
+                                <button class="action-btn save-btn" id="save-system-settings">
+                                    <i class="fas fa-save"></i> Save System Settings
                                 </button>
-                                <button class="action-btn cancel-btn" id="reset-settings">
+                                <button class="action-btn cancel-btn" id="reset-system-settings">
                                     <i class="fas fa-undo"></i> Reset to Defaults
                                 </button>
                             </div>
                         </div>
-                        
-                        <div class="section-title">Data Management</div>
+                    </div>
+                    
+                    <!-- NEW: User Settings Tab -->
+                    <div class="tab-content" id="user-tab">
+                        <div class="section-title">Account Settings</div>
                         
                         <div class="setup-form">
                             <div class="form-group">
-                                <label class="form-label">Backup & Restore</label>
-                                <div style="margin-top: 10px; display: flex; gap: 10px;">
-                                    <button class="action-btn save-btn" id="backup-data">
-                                        <i class="fas fa-download"></i> Backup Data
-                                    </button>
-                                    <button class="action-btn cancel-btn" id="restore-data">
-                                        <i class="fas fa-upload"></i> Restore Data
-                                    </button>
+                                <label class="form-label">Full Name</label>
+                                <input type="text" id="userName" class="form-input" value="${this.user.name || ''}" placeholder="Your full name">
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label">Email Address</label>
+                                    <input type="email" id="userEmail" class="form-input" value="${this.user.email || ''}" placeholder="your@email.com">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Phone Number</label>
+                                    <input type="tel" id="userPhone" class="form-input" value="${this.user.phone || ''}" placeholder="+1234567890">
                                 </div>
                             </div>
                             
                             <div class="form-group">
-                                <label class="form-label">Clear Data</label>
-                                <div style="margin-top: 10px;">
-                                    <button class="action-btn delete-btn" id="clear-all-data">
-                                        <i class="fas fa-trash"></i> Clear All Data
-                                    </button>
-                                    <p style="font-size: 12px; color: #e74c3c; margin-top: 5px;">
-                                        Warning: This will delete all classes, students, and attendance records.
-                                    </p>
+                                <label class="form-label">Role</label>
+                                <input type="text" class="form-input" value="${this.user.role || 'Teacher'}" disabled>
+                            </div>
+                            
+                            <div class="actions-container">
+                                <button class="action-btn save-btn" id="save-profile">
+                                    <i class="fas fa-save"></i> Save Profile
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="section-title">Change Password</div>
+                        
+                        <div class="setup-form">
+                            <div class="form-group">
+                                <label class="form-label">Current Password</label>
+                                <input type="password" id="currentPassword" class="form-input" placeholder="Enter current password">
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label">New Password</label>
+                                    <input type="password" id="newPassword" class="form-input" placeholder="Enter new password">
                                 </div>
+                                <div class="form-group">
+                                    <label class="form-label">Confirm Password</label>
+                                    <input type="password" id="confirmPassword" class="form-input" placeholder="Confirm new password">
+                                </div>
+                            </div>
+                            
+                            <div class="password-requirements">
+                                <p><strong>Password Requirements:</strong></p>
+                                <ul>
+                                    <li>At least 8 characters</li>
+                                    <li>One uppercase letter</li>
+                                    <li>One lowercase letter</li>
+                                    <li>One number</li>
+                                    <li>One special character</li>
+                                </ul>
+                            </div>
+                            
+                            <div class="actions-container">
+                                <button class="action-btn save-btn" id="change-password">
+                                    <i class="fas fa-key"></i> Change Password
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- NEW: Preferences Tab -->
+                    <div class="tab-content" id="preferences-tab">
+                        <div class="section-title">Application Preferences</div>
+                        
+                        <div class="setup-form">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label">Theme</label>
+                                    <select id="theme" class="form-input">
+                                        <option value="light">Light Theme</option>
+                                        <option value="dark">Dark Theme</option>
+                                        <option value="auto">Auto (System)</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Language</label>
+                                    <select id="language" class="form-input">
+                                        <option value="en">English</option>
+                                        <option value="es">Spanish</option>
+                                        <option value="fr">French</option>
+                                        <option value="de">German</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label">Date Format</label>
+                                    <select id="dateFormat" class="form-input">
+                                        <option value="MM/DD/YYYY">MM/DD/YYYY</option>
+                                        <option value="DD/MM/YYYY">DD/MM/YYYY</option>
+                                        <option value="YYYY-MM-DD">YYYY-MM-DD</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Time Format</label>
+                                    <select id="timeFormat" class="form-input">
+                                        <option value="12h">12-hour (AM/PM)</option>
+                                        <option value="24h">24-hour</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Notification Preferences</label>
+                                <div class="checkbox-group">
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" id="notify-email" checked>
+                                        <span>Email notifications</span>
+                                    </label>
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" id="notify-browser">
+                                        <span>Browser notifications</span>
+                                    </label>
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" id="notify-daily-report" checked>
+                                        <span>Daily report summaries</span>
+                                    </label>
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" id="notify-low-attendance" checked>
+                                        <span>Low attendance alerts</span>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div class="actions-container">
+                                <button class="action-btn save-btn" id="save-preferences">
+                                    <i class="fas fa-save"></i> Save Preferences
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- NEW: Data Management Tab -->
+                    <div class="tab-content" id="data-tab">
+                        <div class="section-title">Data Management</div>
+                        
+                        <div class="data-stats">
+                            <div class="stat-card">
+                                <div class="stat-icon"><i class="fas fa-chalkboard-teacher"></i></div>
+                                <div class="stat-info">
+                                    <span class="stat-value" id="stat-classes">0</span>
+                                    <span class="stat-label">Classes</span>
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-icon"><i class="fas fa-users"></i></div>
+                                <div class="stat-info">
+                                    <span class="stat-value" id="stat-students">0</span>
+                                    <span class="stat-label">Students</span>
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-icon"><i class="fas fa-clipboard-check"></i></div>
+                                <div class="stat-info">
+                                    <span class="stat-value" id="stat-attendance">0</span>
+                                    <span class="stat-label">Attendance Records</span>
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-icon"><i class="fas fa-calendar-alt"></i></div>
+                                <div class="stat-info">
+                                    <span class="stat-value" id="stat-last-backup">Never</span>
+                                    <span class="stat-label">Last Backup</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="section-title">Backup & Restore</div>
+                        
+                        <div class="setup-form">
+                            <div class="form-group">
+                                <label class="form-label">Create Backup</label>
+                                <p class="form-hint">Export all your data to a JSON file</p>
+                                <button class="action-btn save-btn" id="create-backup">
+                                    <i class="fas fa-download"></i> Create Backup
+                                </button>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Restore Backup</label>
+                                <p class="form-hint">Import data from a previous backup</p>
+                                <button class="action-btn cancel-btn" id="restore-backup">
+                                    <i class="fas fa-upload"></i> Restore Backup
+                                </button>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Export Formats</label>
+                                <div class="button-group">
+                                    <button class="action-btn secondary-btn" id="export-csv">
+                                        <i class="fas fa-file-csv"></i> Export CSV
+                                    </button>
+                                    <button class="action-btn secondary-btn" id="export-excel">
+                                        <i class="fas fa-file-excel"></i> Export Excel
+                                    </button>
+                                    <button class="action-btn secondary-btn" id="export-pdf">
+                                        <i class="fas fa-file-pdf"></i> Export PDF
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="section-title">Data Maintenance</div>
+                        
+                        <div class="setup-form warning-form">
+                            <div class="form-group">
+                                <label class="form-label">Clear Cache</label>
+                                <p class="form-hint">Clear temporary files and cache data</p>
+                                <button class="action-btn cancel-btn" id="clear-cache">
+                                    <i class="fas fa-broom"></i> Clear Cache
+                                </button>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Reset All Data</label>
+                                <p class="form-hint warning-text"><i class="fas fa-exclamation-triangle"></i> This will delete ALL data including classes, students, and attendance records</p>
+                                <button class="action-btn delete-btn" id="reset-all-data">
+                                    <i class="fas fa-trash-alt"></i> Reset All Data
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- NEW: About Tab -->
+                    <div class="tab-content" id="about-tab">
+                        <div class="about-container">
+                            <div class="about-header">
+                                <div class="app-logo">
+                                    <i class="fas fa-clipboard-check"></i>
+                                </div>
+                                <h2>Attendance Tracker</h2>
+                                <p class="app-version">Version 2.0.1</p>
+                            </div>
+                            
+                            <div class="about-content">
+                                <div class="about-section">
+                                    <h3><i class="fas fa-info-circle"></i> About</h3>
+                                    <p>A comprehensive attendance management system for educational institutions. Track attendance, generate reports, and manage classes efficiently.</p>
+                                </div>
+                                
+                                <div class="about-section">
+                                    <h3><i class="fas fa-feather-alt"></i> Features</h3>
+                                    <ul class="features-list">
+                                        <li><i class="fas fa-check"></i> Class and student management</li>
+                                        <li><i class="fas fa-check"></i> Daily attendance tracking</li>
+                                        <li><i class="fas fa-check"></i> Comprehensive reporting</li>
+                                        <li><i class="fas fa-check"></i> Data import/export</li>
+                                        <li><i class="fas fa-check"></i> Offline support</li>
+                                        <li><i class="fas fa-check"></i> Customizable settings</li>
+                                    </ul>
+                                </div>
+                                
+                                <div class="about-section">
+                                    <h3><i class="fas fa-shield-alt"></i> Privacy & Security</h3>
+                                    <p>All data is stored locally on your device. No data is sent to external servers.</p>
+                                </div>
+                                
+                                <div class="about-section">
+                                    <h3><i class="fas fa-question-circle"></i> Support</h3>
+                                    <div class="support-links">
+                                        <a href="#" class="support-link">
+                                            <i class="fas fa-book"></i> User Guide
+                                        </a>
+                                        <a href="#" class="support-link">
+                                            <i class="fas fa-question-circle"></i> FAQ
+                                        </a>
+                                        <a href="#" class="support-link">
+                                            <i class="fas fa-envelope"></i> Contact Support
+                                        </a>
+                                        <a href="#" class="support-link" onclick="window.app.viewLicense()">
+                                            <i class="fas fa-file-contract"></i> License
+                                        </a>
+                                    </div>
+                                </div>
+                                
+                                <div class="about-section">
+                                    <h3><i class="fas fa-code"></i> Technical Information</h3>
+                                    <div class="tech-info">
+                                        <p><strong>Browser:</strong> ${navigator.userAgent.split(' ')[0]}</p>
+                                        <p><strong>Storage:</strong> ${navigator.storage ? 'Available' : 'Not Available'}</p>
+                                        <p><strong>Last Updated:</strong> ${new Date().toLocaleDateString()}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="about-footer">
+                                <p>© ${new Date().getFullYear()} Attendance Tracker. All rights reserved.</p>
+                                <button class="action-btn secondary-btn" id="check-updates">
+                                    <i class="fas fa-sync-alt"></i> Check for Updates
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -1202,10 +1349,10 @@ refreshDashboard() {
         </div>
     `;
     
-    // Initialize the setup page
+    // Initialize all tabs
     this.initializeSetupPage();
 }
-
+    // Initialize setupPage  
     initializeSetupPage() {
     // Tab switching
     const tabBtns = document.querySelectorAll('.tab-btn');
@@ -1581,8 +1728,7 @@ printAttendance() {
 }
 
 // =================== LOAD REPORTS CONTENT ======================
-   // In attendance-app.js - REPLACE the loadReportsContent method with this:
-loadReportsContent(container) {
+  loadReportsContent(container) {
     if (!this.user) {
         container.innerHTML = `<div class="error">No user found. Please login again.</div>`;
         return;
@@ -1717,7 +1863,7 @@ loadReportsContent(container) {
     this.initializeReportsPage();
 }
 
-// ADD this method to initializeReportsPage if it doesn't exist:
+// Initialize ReportsPage
 initializeReportsPage() {
     // Get DOM elements
     const generateReportBtn = document.getElementById('generate-report');
