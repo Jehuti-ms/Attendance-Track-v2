@@ -11,6 +11,17 @@
     <link rel="icon" href="./assets/icons/favicon.ico">
 </head>
 <body class="auth-page">
+    <!-- Add this RIGHT AFTER <body> tag in login.html -->
+<script>
+console.log('🔍 DEBUG: Login page loaded');
+console.log('URL:', window.location.href);
+console.log('User in localStorage:', localStorage.getItem('attendance_user'));
+
+// TEMPORARY: Prevent any automatic redirects for 5 seconds
+setTimeout(() => {
+    console.log('✅ 5 seconds passed, redirects now allowed');
+}, 5000);
+</script>
     <div class="auth-container">
         <div class="auth-header">
             <div class="logo">
