@@ -1821,7 +1821,7 @@ async loadDashboardContent() {
     
     try {
         // Dynamically import the dashboard module
-        const module = await import('./assets/js/dashboard.js');
+        const module = await import('./dashboard.js');
         
         console.log("Dashboard module loaded:", module);
         
