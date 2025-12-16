@@ -1,4 +1,4 @@
-// attendance-app.js - COMPLETE UPDATED VERSION with Firebase
+// attendance-app.js - COMPLETE FIXED VERSION
 import { Storage, Utils } from './utils.js';
 
 class AttendanceApp {
@@ -12,13 +12,16 @@ class AttendanceApp {
             settings: Storage.get('app_settings', {})
         };
 
+        this.user = null;
+        this.firebaseAvailable = false;
+        
         this.init();
     }
 
     getCurrentPage() {
         const path = window.location.pathname;
         const page = path.split('/').pop() || 'index.html';
-        return page.replace('.html', '');
+        return page.replace('.html', '').split('?')[0];
     }
 
     getBasePath() {
@@ -33,391 +36,372 @@ class AttendanceApp {
         return '/';
     }
 
-   // ==================== NAVIGATION SETUP ====================
-        setupNavigation() {
-            console.log('🔧 Setting up navigation...');
-            
-            // Highlight current page
-            this.highlightCurrentPage();
-            
-            // Setup mobile menu toggle
-            this.setupMobileMenu();
-            
-            // Setup logout functionality
-            this.setupLogoutHandler();
-            
-            // Setup navigation links
-            this.setupNavLinks();
-        }
+    // ==================== INITIALIZATION ====================
+    async init() {
+        console.log('🚀 Initializing AttendanceApp...');
         
-        highlightCurrentPage() {
-            const currentPage = window.location.pathname.split('/').pop();
-            const navLinks = document.querySelectorAll('.nav-link');
+        try {
+            // 1. Check authentication (skip for login/index pages)
+            const currentPage = this.state.currentPage;
+            if (currentPage !== 'index' && currentPage !== 'login' && currentPage !== '') {
+                const authResult = await this.checkAuth();
+                
+                if (!authResult.success) {
+                    console.log('❌ Auth failed - redirecting to login');
+                    this.showLoginPage();
+                    return;
+                }
+                
+                // Auth passed - set user
+                this.user = authResult.user;
+                this.state.currentUser = authResult.user;
+                console.log('✅ User authenticated:', authResult.user.name);
+                
+                // Try to sync with Firebase if available
+                await this.syncLocalUserToFirebase();
+            }
             
-            navLinks.forEach(link => {
-                const href = link.getAttribute('href');
-                if (href === currentPage) {
+            // 2. Load shared UI components
+            await this.loadHeader();
+            await this.loadFooter();
+            
+            // 3. Setup app-wide event listeners
+            this.setupEventListeners();
+            
+            // 4. Load page-specific content
+            await this.loadPageContent();
+            
+            // 5. Initialize service worker
+            this.initServiceWorker();
+            
+            console.log('✅ AttendanceApp initialized successfully');
+            
+        } catch (error) {
+            console.error('❌ Error initializing app:', error);
+            this.showError(error.message);
+        }
+    }
+
+    // ==================== COMPONENT LOADING ====================
+    async loadHeader() {
+        try {
+            const headerContainer = document.getElementById('header-container');
+            if (headerContainer) {
+                const basePath = this.getBasePath();
+                const response = await fetch(`${basePath}components/header.html`);
+                
+                if (!response.ok) {
+                    throw new Error(`Failed to load header: ${response.status} ${response.statusText}`);
+                }
+                
+                const html = await response.text();
+                headerContainer.innerHTML = html;
+                console.log('✅ Header loaded');
+                
+                // Setup navigation after header loads
+                this.setupNavigation();
+            }
+        } catch (error) {
+            console.error('❌ Failed to load header:', error);
+            this.renderFallbackHeader();
+        }
+    }
+
+    async loadFooter() {
+        try {
+            const footerContainer = document.getElementById('footer-container');
+            if (footerContainer) {
+                const basePath = this.getBasePath();
+                const response = await fetch(`${basePath}components/footer.html`);
+                
+                if (!response.ok) {
+                    throw new Error(`Failed to load footer: ${response.status} ${response.statusText}`);
+                }
+                
+                const html = await response.text();
+                footerContainer.innerHTML = html;
+                console.log('✅ Footer loaded');
+            }
+        } catch (error) {
+            console.error('❌ Failed to load footer:', error);
+            this.renderFallbackFooter();
+        }
+    }
+
+    renderFallbackHeader() {
+        const headerContainer = document.getElementById('header-container');
+        if (headerContainer) {
+            headerContainer.innerHTML = `
+                <header class="app-header">
+                    <nav class="nav-container">
+                        <div class="nav-brand">
+                            <h1>Attendance Tracker</h1>
+                        </div>
+                        <button class="mobile-menu-btn" aria-label="Toggle menu" aria-expanded="false">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                        </button>
+                        <ul class="nav-list">
+                            <li><a href="index.html" class="nav-link">Home</a></li>
+                            <li><a href="attendance.html" class="nav-link">Attendance</a></li>
+                            <li><a href="reports.html" class="nav-link">Reports</a></li>
+                            <li><a href="setup.html" class="nav-link">Setup</a></li>
+                            <li><a href="settings.html" class="nav-link">Settings</a></li>
+                            <li><a href="#" id="logoutBtn" class="nav-link">Logout</a></li>
+                        </ul>
+                    </nav>
+                </header>
+            `;
+            this.setupNavigation();
+        }
+    }
+
+    renderFallbackFooter() {
+        const footerContainer = document.getElementById('footer-container');
+        if (footerContainer) {
+            footerContainer.innerHTML = `
+                <footer class="app-footer">
+                    <div class="footer-content">
+                        <p>&copy; ${new Date().getFullYear()} Attendance Tracker v2</p>
+                        <p>Version: 2.0.0</p>
+                    </div>
+                </footer>
+            `;
+        }
+    }
+
+    // ==================== NAVIGATION SETUP ====================
+    setupNavigation() {
+        console.log('🔧 Setting up navigation...');
+        
+        setTimeout(() => {
+            this.highlightCurrentPage();
+            this.setupMobileMenu();
+            this.setupLogoutHandler();
+            this.setupNavLinks();
+        }, 100);
+    }
+    
+    highlightCurrentPage() {
+        const currentPage = this.getCurrentPage();
+        console.log('Current page for highlighting:', currentPage);
+        
+        const navLinks = document.querySelectorAll('.nav-link');
+        
+        navLinks.forEach(link => {
+            const href = link.getAttribute('href');
+            if (href) {
+                const linkPage = href.replace('.html', '').split('?')[0];
+                console.log(`Checking link: ${href} -> ${linkPage}`);
+                
+                if (linkPage === currentPage || (currentPage === '' && linkPage === 'index')) {
                     link.classList.add('active');
                     link.setAttribute('aria-current', 'page');
+                    console.log(`✅ Activated: ${href}`);
                 } else {
                     link.classList.remove('active');
                     link.removeAttribute('aria-current');
                 }
-            });
-        }
-        
-        setupMobileMenu() {
-            const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
-            const navList = document.querySelector('.nav-list');
-            
-            if (mobileMenuBtn && navList) {
-                mobileMenuBtn.addEventListener('click', () => {
-                    const isExpanded = mobileMenuBtn.getAttribute('aria-expanded') === 'true';
-                    mobileMenuBtn.setAttribute('aria-expanded', !isExpanded);
-                    navList.classList.toggle('active');
-                    
-                    // Animate hamburger to X
-                    mobileMenuBtn.classList.toggle('active');
-                });
-                
-                // Close menu when clicking outside
-                document.addEventListener('click', (e) => {
-                    if (!mobileMenuBtn.contains(e.target) && !navList.contains(e.target)) {
-                        navList.classList.remove('active');
-                        mobileMenuBtn.setAttribute('aria-expanded', 'false');
-                        mobileMenuBtn.classList.remove('active');
-                    }
-                });
             }
-        }
-        
-        setupLogoutHandler() {
-            const logoutBtn = document.getElementById('logoutBtn');
-            if (logoutBtn) {
-                logoutBtn.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    this.handleLogout();
-                });
-            }
-        }
-        
-        setupNavLinks() {
-            // Add any navigation link click handlers here
-            const navLinks = document.querySelectorAll('.nav-link:not([href="#"])');
-            navLinks.forEach(link => {
-                link.addEventListener('click', (e) => {
-                    // Handle navigation if needed
-                    console.log('Navigating to:', link.getAttribute('href'));
-                });
-            });
-        }
-        
-        handleLogout() {
-            if (confirm('Are you sure you want to logout?')) {
-                console.log('👋 Logging out user...');
-                
-                // Clear all user data
-                localStorage.clear();
-                sessionStorage.clear();
-                
-                // Redirect to login page
-                window.location.href = 'index.html';
-            }
-        }
-
-        // ==================== COMPONENT LOADING ====================
-async loadHeader() {
-    try {
-        const headerContainer = document.getElementById('header-container');
-        if (headerContainer) {
-            const response = await fetch('./components/header.html');
-            const html = await response.text();
-            headerContainer.innerHTML = html;
-            console.log('✅ Header loaded');
-        }
-    } catch (error) {
-        console.error('❌ Failed to load header:', error);
+        });
     }
-}
-
-async loadFooter() {
-    try {
-        const footerContainer = document.getElementById('footer-container');
-        if (footerContainer) {
-            const response = await fetch('./components/footer.html');
-            const html = await response.text();
-            footerContainer.innerHTML = html;
-            console.log('✅ Footer loaded');
-        }
-    } catch (error) {
-        console.error('❌ Failed to load footer:', error);
-    }
-}
-
-renderHeader() {
-    // Header is already rendered by loadHeader()
-    // Add any additional header rendering logic here
-    console.log('📋 Header rendered');
-}
-
-renderFooter() {
-    // Footer is already rendered by loadFooter()
-    // Add any additional footer rendering logic here
-    console.log('📋 Footer rendered');
-}
-
-    showLoginPage() {
-    console.log("🔐 Redirecting to login page...");
     
-    try {
-        // Check if we're already on login page (prevent loops)
-        if (window.location.pathname.includes('login.html')) {
-            console.log("⚠️ Already on login page");
-            return;
+    setupMobileMenu() {
+        const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
+        const navList = document.querySelector('.nav-list');
+        
+        if (mobileMenuBtn && navList) {
+            // Remove existing event listeners
+            const newMobileMenuBtn = mobileMenuBtn.cloneNode(true);
+            const newNavList = navList.cloneNode(true);
+            
+            mobileMenuBtn.parentNode.replaceChild(newMobileMenuBtn, mobileMenuBtn);
+            navList.parentNode.replaceChild(newNavList, navList);
+            
+            // Setup new event listeners
+            newMobileMenuBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const isExpanded = newMobileMenuBtn.getAttribute('aria-expanded') === 'true';
+                newMobileMenuBtn.setAttribute('aria-expanded', !isExpanded);
+                newNavList.classList.toggle('active');
+                newMobileMenuBtn.classList.toggle('active');
+            });
+            
+            // Close menu when clicking outside
+            document.addEventListener('click', (e) => {
+                if (newNavList.classList.contains('active') && 
+                    !newMobileMenuBtn.contains(e.target) && 
+                    !newNavList.contains(e.target)) {
+                    newNavList.classList.remove('active');
+                    newMobileMenuBtn.setAttribute('aria-expanded', 'false');
+                    newMobileMenuBtn.classList.remove('active');
+                }
+            });
+            
+            // Close menu on escape key
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && newNavList.classList.contains('active')) {
+                    newNavList.classList.remove('active');
+                    newMobileMenuBtn.setAttribute('aria-expanded', 'false');
+                    newMobileMenuBtn.classList.remove('active');
+                }
+            });
         }
-        
-        // Clear any existing user session data if needed
-        // localStorage.removeItem('attendance_user'); // Optional
-        
-        // Get base path dynamically
-        let basePath = './';
-        const currentPath = window.location.pathname;
-        
-        if (currentPath.includes('/Attendance-Track-v2/')) {
-            basePath = '/Attendance-Track-v2/';
-        } else if (currentPath.includes('/')) {
-            // Extract directory from current path
-            const pathParts = currentPath.split('/');
-            pathParts.pop(); // Remove current file
-            basePath = pathParts.join('/') + '/';
+    }
+    
+    setupLogoutHandler() {
+        const logoutBtn = document.getElementById('logoutBtn');
+        if (logoutBtn) {
+            // Remove existing listener
+            const newLogoutBtn = logoutBtn.cloneNode(true);
+            logoutBtn.parentNode.replaceChild(newLogoutBtn, logoutBtn);
+            
+            newLogoutBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.handleLogout();
+            });
         }
+    }
+    
+    setupNavLinks() {
+        const navLinks = document.querySelectorAll('.nav-link:not([href="#"])');
+        navLinks.forEach(link => {
+            link.addEventListener('click', () => {
+                console.log('Navigating to:', link.getAttribute('href'));
+                // Close mobile menu if open
+                const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
+                const navList = document.querySelector('.nav-list');
+                if (mobileMenuBtn && navList && navList.classList.contains('active')) {
+                    navList.classList.remove('active');
+                    mobileMenuBtn.setAttribute('aria-expanded', 'false');
+                    mobileMenuBtn.classList.remove('active');
+                }
+            });
+        });
+    }
+    
+    handleLogout() {
+        if (confirm('Are you sure you want to logout?')) {
+            console.log('👋 Logging out user...');
+            
+            // Clear user-related data only
+            localStorage.removeItem('attendance_user');
+            sessionStorage.clear();
+            
+            // Clear app-specific settings if needed
+            localStorage.removeItem('app_settings');
+            
+            // Redirect to login page
+            const basePath = this.getBasePath();
+            window.location.href = `${basePath}index.html`;
+        }
+    }
+
+    // ==================== PAGE CONTENT LOADING ====================
+    async loadPageContent() {
+        const currentPage = this.state.currentPage;
+        console.log(`📄 Loading content for page: ${currentPage}`);
         
-        console.log(`Redirecting to: ${basePath}login.html`);
-        window.location.href = `${basePath}login.html`;
+        switch(currentPage) {
+            case 'index':
+            case 'login':
+                await this.loadIndexContent();
+                break;
+            case 'dashboard':
+                await this.loadDashboardContent();
+                break;
+            case 'attendance':
+                await this.loadAttendanceContent();
+                break;
+            case 'reports':
+                await this.loadReportsContent();
+                break;
+            case 'setup':
+                await this.loadSetupContent();
+                break;
+            case 'settings':
+                await this.loadSettingsContent();
+                break;
+            default:
+                this.showError(`Page "${currentPage}" not found`);
+        }
+    }
+
+    async loadIndexContent() {
+        const appContainer = document.getElementById('app-container');
+        if (!appContainer) return;
         
-    } catch (error) {
-        console.error("❌ Error redirecting to login:", error);
-        
-        // Fallback: Show inline login UI
-        const appContainer = document.getElementById('app-container') || document.body;
         appContainer.innerHTML = `
-            <div style="text-align: center; padding: 50px;">
-                <h2>Login Required</h2>
-                <p>Please log in to continue</p>
-                <a href="login.html" style="display: inline-block; padding: 10px 20px; 
-                   background: #007bff; color: white; text-decoration: none; border-radius: 5px;">
-                    Go to Login Page
-                </a>
-                <p style="margin-top: 20px; font-size: 0.9em; color: #666;">
-                    If you're not redirected automatically, <a href="login.html">click here</a>
-                </p>
+            <div class="landing-page">
+                <div class="hero">
+                    <div class="hero-icon">📋</div>
+                    <h1>Attendance Track v2</h1>
+                    <p class="hero-subtitle">Modern attendance tracking for educational institutions</p>
+                    
+                    <div class="features">
+                        <div class="feature">
+                            <div class="feature-icon">📊</div>
+                            <h3>Real-time Tracking</h3>
+                            <p>Track attendance with instant updates</p>
+                        </div>
+                        <div class="feature">
+                            <div class="feature-icon">📱</div>
+                            <h3>Offline Support</h3>
+                            <p>Works without internet connection</p>
+                        </div>
+                        <div class="feature">
+                            <div class="feature-icon">📈</div>
+                            <h3>Detailed Reports</h3>
+                            <p>Generate comprehensive reports</p>
+                        </div>
+                    </div>
+                    
+                    <div class="hero-actions">
+                        ${this.user ? `
+                            <button class="btn btn-lg btn-primary" onclick="window.app.goToPage('dashboard.html')">
+                                Go to Dashboard
+                            </button>
+                        ` : `
+                            <button class="btn btn-lg btn-primary" onclick="window.app.goToPage('login.html')">
+                                Login with Firebase
+                            </button>
+                            <button class="btn btn-lg btn-secondary" onclick="window.app.startDemoMode()">
+                                Try Demo Mode
+                            </button>
+                        `}
+                    </div>
+                </div>
             </div>
         `;
     }
-}
 
-    // Add this method to your class
-async checkAuth() {
-    console.log("🔐 Performing auth check...");
-    
-    // Get user from localStorage
-    const user = Storage.get('attendance_user');
-    
-    if (!user || !user.email) {
-        console.log("❌ No valid user found");
-        return { success: false, user: null };
+    async loadDashboardContent() {
+        console.log("📊 Loading dashboard content...");
+        this.renderDashboard();
     }
-    
-    console.log(`✅ User found: ${user.email}`);
-    return { success: true, user };
-}
 
-// ==================== INITIALIZATION ====================
-async init() {
-    console.log('🚀 Initializing AttendanceApp...');
-    
-    try {
-        // 🎯 STEP 1: CHECK AUTH FIRST
-        const authResult = await this.checkAuth();
-        
-        if (!authResult.success) {
-            console.log('❌ Auth failed - redirecting to login');
-            this.showLoginPage();
-            return; // Stop execution
-        }
-        
-        // Auth passed - set user
-        this.user = authResult.user;
-        this.state.currentUser = authResult.user;
-        console.log('✅ User authenticated:', authResult.user.name);
-        
-        // Try to sync with Firebase if available
-        await this.syncLocalUserToFirebase(authResult.user);
-
-        // 2. Load shared UI components
-        await this.loadHeader();
-        await this.loadFooter();
-        
-        // 3. Setup GLOBAL navigation features
-        this.setupGlobalNavigation();
-        
-        // 4. Render components
-        this.renderHeader();
-        this.renderFooter();
-        
-        // 5. Setup app-wide event listeners
-        this.setupEventListeners();
-        
-        // 6. Initialize service worker
-        this.initServiceWorker();
-        
-        // 7. Setup page-specific handlers
-        this.setupPageHandlers();
-        
-        // 8. Load page content
-        await this.loadContent();
-        
-        console.log('✅ AttendanceApp initialized successfully');
-        
-    } catch (error) {
-        console.error('❌ Error initializing app:', error);
-        this.showError(error.message);
+    async loadAttendanceContent() {
+        console.log("📋 Loading attendance content...");
+        this.renderAttendance();
     }
-}
 
-// ==================== GLOBAL NAVIGATION ====================
-setupGlobalNavigation() {
-    console.log('🔧 Setting up global navigation...');
-    
-    // Setup logout handler (app-wide)
-    this.setupLogoutHandler();
-    
-    // Setup mobile menu toggle (app-wide)
-    this.setupMobileMenuToggle();
-}
+    async loadReportsContent() {
+        console.log("📈 Loading reports content...");
+        this.renderReports();
+    }
 
-setupLogoutHandler() {
-    const logoutBtn = document.getElementById('logoutBtn');
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            this.handleLogout();
-        });
+    async loadSetupContent() {
+        console.log("⚙️ Loading setup content...");
+        this.renderSetup();
     }
-}
 
-setupMobileMenuToggle() {
-    const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
-    const navList = document.querySelector('.nav-list');
-    
-    if (mobileMenuBtn && navList) {
-        mobileMenuBtn.addEventListener('click', () => {
-            const isExpanded = mobileMenuBtn.getAttribute('aria-expanded') === 'true';
-            mobileMenuBtn.setAttribute('aria-expanded', !isExpanded);
-            navList.classList.toggle('active');
-            mobileMenuBtn.classList.toggle('active');
-        });
+    async loadSettingsContent() {
+        console.log("⚙️ Loading settings content...");
+        this.renderSettings();
     }
-}
 
-handleLogout() {
-    if (confirm('Are you sure you want to logout?')) {
-        console.log('👋 Logging out user...');
-        
-        // Clear all user data
-        localStorage.clear();
-        sessionStorage.clear();
-        
-        // Redirect to login page
-        window.location.href = 'index.html';
-    }
-}
-
-// ==================== NAVIGATION HELPER ====================
-// This is a helper method that PAGE MODULES can call if they need it
-highlightCurrentPage() {
-    const currentPage = window.location.pathname.split('/').pop();
-    const navLinks = document.querySelectorAll('.nav-link');
-    
-    navLinks.forEach(link => {
-        const href = link.getAttribute('href');
-        if (href === currentPage) {
-            link.classList.add('active');
-            link.setAttribute('aria-current', 'page');
-        } else {
-            link.classList.remove('active');
-            link.removeAttribute('aria-current');
-        }
-    });
-}
-    
- // ==================== AUTH & PAGE LOADING ====================
-// In attendance-app.js - FIX checkAuthAndLoadPage method:
-/*checkAuthAndLoadPage() {
-    console.log("🔐 Checking authentication...");
-    
-    // Get user from localStorage
-    const user = Storage.get('attendance_user');
-    
-    if (!user || !user.email) {
-        console.log("❌ No user found, showing login page");
-        this.showLoginPage();
-        return false; // ⬅️ Return false on failure
-    }
-    
-    // User is authenticated, load the page content
-    console.log(`✅ User authenticated: ${user.email}`);
-    
-    // Set the user for the instance
-    this.user = user;
-    this.state.currentUser = user;
-    
-    return true; // ⬅️ Return true on success
-}
-*/
- // ==================== PAGE RENDERERS ====================
-// Also add this renderPage method to your class
-renderPage() {
-    const path = window.location.pathname;
-    const page = path.split('/').pop() || 'index.html';
-    
-    console.log('Rendering page:', page);
-    
-    // Hide loading spinner if it exists
-    const loadingEl = document.getElementById('loading-content');
-    if (loadingEl) loadingEl.style.display = 'none';
-    
-    // Render based on current page
-    switch(true) {
-        case page.includes('dashboard.html'):
-            this.renderDashboard();
-            break;
-        case page.includes('attendance.html'):
-            this.renderAttendance();
-            break;
-        case page.includes('reports.html'):
-            this.renderReports();
-            break;
-        case page.includes('settings.html'):
-            this.renderSettings();
-            break;
-        case page.includes('setup.html'):
-            this.renderSetup();
-            break;
-        case page.includes('login.html'):
-        case page.includes('index.html'):
-            // Login page handles itself
-            // If we're on login page but user is logged in, redirect to dashboard
-            if (this.user && (page.includes('login.html') || page.includes('index.html'))) {
-                window.location.href = 'dashboard.html';
-            }
-            break;
-        default:
-            // Default to dashboard if page not recognized
-            this.renderDashboard();
-    }
-}
-    // ===============RENDER DASHBOARD ===========
+    // ==================== PAGE RENDERERS ====================
     renderDashboard() {
         const appContainer = document.getElementById('app-container');
         if (!appContainer) return;
@@ -447,7 +431,7 @@ renderPage() {
                 
                 <!-- Quick Actions -->
                 <div class="actions-grid">
-                    <a href="./attendance.html" class="action-card">
+                    <a href="attendance.html" class="action-card">
                         <div class="action-icon">
                             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
@@ -460,7 +444,7 @@ renderPage() {
                         <p>Record attendance for today</p>
                     </a>
 
-                    <a href="./reports.html" class="action-card">
+                    <a href="reports.html" class="action-card">
                         <div class="action-icon">
                             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
@@ -470,7 +454,7 @@ renderPage() {
                         <p>Generate attendance reports</p>
                     </a>
 
-                    <a href="./setup.html" class="action-card">
+                    <a href="setup.html" class="action-card">
                         <div class="action-icon">
                             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <circle cx="12" cy="12" r="3"></circle>
@@ -481,7 +465,7 @@ renderPage() {
                         <p>Add classes and students</p>
                     </a>
 
-                    <a href="./settings.html" class="action-card">
+                    <a href="settings.html" class="action-card">
                         <div class="action-icon">
                             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <circle cx="12" cy="12" r="3"></circle>
@@ -507,7 +491,6 @@ renderPage() {
                         </button>
                     </div>
                     <div class="activity-list" id="recent-activity">
-                        <!-- Activity items will be loaded here -->
                         <div class="activity-item">
                             <div class="activity-icon">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#667eea" stroke-width="2">
@@ -516,7 +499,8 @@ renderPage() {
                                 </svg>
                             </div>
                             <div class="activity-content">
-                                <p>Loading recent activity...</p>
+                                <p>Welcome to Attendance Tracker v2!</p>
+                                <small>${new Date().toLocaleDateString()}</small>
                             </div>
                         </div>
                     </div>
@@ -539,1237 +523,142 @@ renderPage() {
         this.loadDashboardData();
     }
 
-    // ========== RENDER ATTENDANCE ============
     renderAttendance() {
-    const appContainer = document.getElementById('app-container');
-    if (!appContainer) return;
-    
-    // Get current date for display
-    const today = new Date();
-    const dateStr = today.toLocaleDateString('en-US', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-    });
-    
-    appContainer.innerHTML = `
-        <div class="attendance-page">
-            <div class="attendance-header">
-                <div class="header-top">
-                    <div>
-                        <div class="date-display">${dateStr}</div>
-                        <div class="term-week-display" id="term-week">Term 1 • Week 1</div>
-                    </div>
-                    <div class="session-tabs">
-                        <button class="session-tab active" data-session="morning">
-                            <span class="session-indicator am-indicator"></span>
-                            Morning Session
-                        </button>
-                        <button class="session-tab" data-session="afternoon">
-                            <span class="session-indicator pm-indicator"></span>
-                            Afternoon Session
-                        </button>
-                    </div>
-                </div>
-                
-                <div class="quick-actions">
-                    <button class="quick-action-btn" onclick="window.app.markAllPresent()">
-                        Mark All Present
-                    </button>
-                    <button class="quick-action-btn" onclick="window.app.markAllAbsent()">
-                        Mark All Absent
-                    </button>
-                    <button class="quick-action-btn" onclick="window.app.clearAllAttendance()">
-                        Clear All
-                    </button>
+        const appContainer = document.getElementById('app-container');
+        if (!appContainer) return;
+        
+        appContainer.innerHTML = `
+            <div class="attendance-page">
+                <h2>Attendance Tracking</h2>
+                <p>Select a class to take attendance</p>
+                <div id="attendance-content">
+                    Loading attendance system...
                 </div>
             </div>
-            
-            <div class="attendance-container">
-                <!-- Classes Panel -->
-                <div class="classes-panel">
-                    <h3>Select Class</h3>
-                    <div class="search-box">
-                        <input type="text" id="class-search" placeholder="Search classes..." 
-                               onkeyup="window.app.filterClasses(this.value)">
-                    </div>
-                    <div class="classes-list" id="classes-list">
-                        <div class="loading-classes">
-                            <div class="loading-spinner" style="width: 20px; height: 20px;"></div>
-                            Loading classes...
-                        </div>
-                    </div>
-                    <div style="margin-top: 20px;">
-                        <button class="btn btn-secondary btn-block" onclick="window.app.goToPage('setup.html')">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <line x1="12" y1="5" x2="12" y2="19"></line>
-                                <line x1="5" y1="12" x2="19" y2="12"></line>
-                            </svg>
-                            Add New Class
-                        </button>
-                    </div>
-                </div>
-                
-                <!-- Attendance Table -->
-                <div class="attendance-table-container">
-                    <div class="table-header">
-                        <h3 id="selected-class-title">Select a class to begin</h3>
-                        <div class="class-info" id="class-info"></div>
-                    </div>
-                    
-                    <div id="attendance-table-wrapper">
-                        <div class="empty-state">
-                            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1">
-                                <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                                <circle cx="8.5" cy="7" r="4"></circle>
-                                <line x1="20" y1="8" x2="20" y2="14"></line>
-                                <line x1="23" y1="11" x2="17" y2="11"></line>
-                            </svg>
-                            <h4>No Class Selected</h4>
-                            <p>Select a class from the left panel to take attendance</p>
-                        </div>
-                    </div>
-                    
-                    <div class="action-buttons">
-                        <button class="btn btn-secondary" onclick="window.app.clearAttendance()">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <polyline points="3 6 5 6 21 6"></polyline>
-                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                            </svg>
-                            Clear
-                        </button>
-                        <button class="btn btn-primary" onclick="window.app.saveAttendance()" id="save-attendance-btn" disabled>
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
-                                <polyline points="17 21 17 13 7 13 7 21"></polyline>
-                                <polyline points="7 3 7 8 15 8"></polyline>
-                            </svg>
-                            Save Attendance
-                        </button>
-                        <button class="btn btn-secondary" onclick="window.app.printAttendance()">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <polyline points="6 9 6 2 18 2 18 9"></polyline>
-                                <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
-                                <rect x="6" y="14" width="12" height="8"></rect>
-                            </svg>
-                            Print/Export
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    // Initialize attendance functionality
-    this.initAttendanceFunctionality();
-}
-    
-    // ========== RENDER SETTUP ================
-    renderSetup() {
-    const appContainer = document.getElementById('app-container');
-    if (!appContainer) return;
-    
-    appContainer.innerHTML = `
-        <div class="setup-page">
-            <div class="setup-header">
-                <h2>Setup Classes & Students</h2>
-                <p>Configure your classes, add students, and manage your school setup</p>
-            </div>
-            
-            <div class="setup-container">
-                <!-- Setup Tabs -->
-                <div class="setup-tabs">
-                    <button class="setup-tab active" data-tab="classes">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
-                            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
-                        </svg>
-                        Classes
-                    </button>
-                    <button class="setup-tab" data-tab="students">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                            <circle cx="9" cy="7" r="4"></circle>
-                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                        </svg>
-                        Students
-                    </button>
-                    <button class="setup-tab" data-tab="import">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                            <polyline points="7 10 12 15 17 10"></polyline>
-                            <line x1="12" y1="15" x2="12" y2="3"></line>
-                        </svg>
-                        Import/Export
-                    </button>
-                    <button class="setup-tab" data-tab="school">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-                            <polyline points="9 22 9 12 15 12 15 22"></polyline>
-                        </svg>
-                        School Info
-                    </button>
-                </div>
-                
-                <!-- Tab Content -->
-                <div class="setup-content">
-                    <!-- Classes Tab -->
-                    <div class="tab-content active" id="classes-tab">
-                        <div class="tab-header">
-                            <h3>Manage Classes</h3>
-                            <button class="btn btn-primary" onclick="window.app.showAddClassModal()">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                                </svg>
-                                Add New Class
-                            </button>
-                        </div>
-                        
-                        <div class="classes-list-container">
-                            <div id="classes-list-setup">
-                                <div class="loading-state">
-                                    <div class="loading-spinner"></div>
-                                    <p>Loading classes...</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Students Tab -->
-                    <div class="tab-content" id="students-tab">
-                        <div class="tab-header">
-                            <h3>Manage Students</h3>
-                            <div class="tab-actions">
-                                <select id="class-filter" class="form-control" onchange="window.app.filterStudentsByClass(this.value)">
-                                    <option value="">All Classes</option>
-                                </select>
-                                <button class="btn btn-primary" onclick="window.app.showAddStudentModal()">
-                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <line x1="12" y1="5" x2="12" y2="19"></line>
-                                        <line x1="5" y1="12" x2="19" y2="12"></line>
-                                    </svg>
-                                    Add Student
-                                </button>
-                            </div>
-                        </div>
-                        
-                        <div class="students-list-container">
-                            <div id="students-list">
-                                <div class="empty-state">
-                                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1">
-                                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                                        <circle cx="9" cy="7" r="4"></circle>
-                                    </svg>
-                                    <h4>No Students Found</h4>
-                                    <p>Add students or select a class to view students</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Import/Export Tab -->
-                    <div class="tab-content" id="import-tab">
-                        <div class="import-section">
-                            <h3>Import Data</h3>
-                            <p>Import classes and students from Excel/CSV files</p>
-                            <div class="import-zone" id="import-zone">
-                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#667eea" stroke-width="1">
-                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                    <polyline points="17 8 12 3 7 8"></polyline>
-                                    <line x1="12" y1="3" x2="12" y2="15"></line>
-                                </svg>
-                                <p>Drag & drop Excel or CSV files here</p>
-                                <p class="small">or</p>
-                                <input type="file" id="import-file" accept=".csv,.xlsx,.xls" hidden>
-                                <button class="btn btn-secondary" onclick="document.getElementById('import-file').click()">
-                                    Browse Files
-                                </button>
-                            </div>
-                        </div>
-                        
-                        <div class="export-section">
-                            <h3>Export Data</h3>
-                            <p>Export your attendance data for backup or analysis</p>
-                            <div class="export-options">
-                                <button class="btn btn-secondary" onclick="window.app.exportToCSV()">
-                                    Export to CSV
-                                </button>
-                                <button class="btn btn-secondary" onclick="window.app.exportToExcel()">
-                                    Export to Excel
-                                </button>
-                                <button class="btn btn-secondary" onclick="window.app.backupData()">
-                                    Backup All Data
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- School Info Tab -->
-                    <div class="tab-content" id="school-tab">
-                        <div class="school-info-form">
-                            <h3>School Information</h3>
-                            <form id="school-form">
-                                <div class="form-group">
-                                    <label>School Name</label>
-                                    <input type="text" id="school-name" class="form-control" 
-                                           value="${this.user?.school || ''}" placeholder="Enter school name">
-                                </div>
-                                <div class="form-group">
-                                    <label>School Address</label>
-                                    <textarea id="school-address" class="form-control" rows="3" 
-                                              placeholder="Enter school address"></textarea>
-                                </div>
-                                <div class="form-row">
-                                    <div class="form-group">
-                                        <label>Academic Year</label>
-                                        <input type="text" id="academic-year" class="form-control" 
-                                               placeholder="e.g., 2024-2025">
-                                    </div>
-                                    <div class="form-group">
-                                        <label>Current Term</label>
-                                        <select id="current-term" class="form-control">
-                                            <option value="1">Term 1</option>
-                                            <option value="2">Term 2</option>
-                                            <option value="3">Term 3</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="form-actions">
-                                    <button type="button" class="btn btn-secondary" onclick="window.app.resetSchoolForm()">
-                                        Reset
-                                    </button>
-                                    <button type="submit" class="btn btn-primary">
-                                        Save School Info
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    // Initialize setup functionality
-    this.initSetupFunctionality();
-}
+        `;
+    }
 
-    // ========== RENDER REPORTS ===============
-     renderReports() {
+    renderReports() {
         const appContainer = document.getElementById('app-container');
         if (!appContainer) return;
         
         appContainer.innerHTML = `
             <div class="reports-page">
-                <div class="reports-header">
-                    <h2>Attendance Reports</h2>
-                    <p>Generate and analyze attendance data</p>
-                </div>
-                
-                <div class="filters-section">
-                    <h3>Report Filters</h3>
-                    <div class="filter-grid">
-                        <div class="form-group">
-                            <label>Select Class</label>
-                            <select id="report-class" class="form-control">
-                                <option value="">All Classes</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Start Date</label>
-                            <input type="date" id="report-start-date" class="form-control">
-                        </div>
-                        <div class="form-group">
-                            <label>End Date</label>
-                            <input type="date" id="report-end-date" class="form-control" value="${new Date().toISOString().split('T')[0]}">
-                        </div>
-                        <div class="form-group">
-                            <label>Report Type</label>
-                            <select id="report-type" class="form-control">
-                                <option value="daily">Daily Summary</option>
-                                <option value="weekly">Weekly Report</option>
-                                <option value="monthly">Monthly Report</option>
-                                <option value="student">Student Report</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div style="margin-top: 20px; text-align: right;">
-                        <button class="btn btn-primary" onclick="window.app.generateReport()">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
-                            </svg>
-                            Generate Report
-                        </button>
-                    </div>
-                </div>
-                
-                <div id="report-results">
-                    <!-- Report results will be displayed here -->
-                    <div class="loading-state" style="padding: 40px;">
-                        <p>Select filters and generate a report</p>
-                    </div>
+                <h2>Attendance Reports</h2>
+                <p>Generate and analyze attendance data</p>
+                <div id="reports-content">
+                    Loading reports system...
                 </div>
             </div>
         `;
-        
-        // Set default dates
-        const startDate = document.getElementById('report-start-date');
-        if (startDate) {
-            const firstDay = new Date();
-            firstDay.setDate(1);
-            startDate.value = firstDay.toISOString().split('T')[0];
-        }
     }
-    
-    // ================== RENDER SETTINGS ==================
+
+    renderSetup() {
+        const appContainer = document.getElementById('app-container');
+        if (!appContainer) return;
+        
+        appContainer.innerHTML = `
+            <div class="setup-page">
+                <h2>Setup Classes & Students</h2>
+                <p>Configure your classes, add students, and manage your school setup</p>
+                <div id="setup-content">
+                    Loading setup system...
+                </div>
+            </div>
+        `;
+    }
+
     renderSettings() {
         const appContainer = document.getElementById('app-container');
         if (!appContainer) return;
         
         appContainer.innerHTML = `
             <div class="settings-page">
-                <div class="settings-header">
-                    <h2>Settings</h2>
-                    <p>Configure your attendance system</p>
-                </div>
-                
-                <div class="settings-grid">
-                    <div class="settings-nav">
-                        <div class="nav-section">
-                            <h4>Account</h4>
-                            <button class="nav-btn active" data-tab="profile">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                                    <circle cx="12" cy="7" r="4"></circle>
-                                </svg>
-                                Profile
-                            </button>
-                            <button class="nav-btn" data-tab="security">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                                </svg>
-                                Security
-                            </button>
-                        </div>
-                        
-                        <div class="nav-section">
-                            <h4>Preferences</h4>
-                            <button class="nav-btn" data-tab="display">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                                    <circle cx="12" cy="12" r="3"></circle>
-                                </svg>
-                                Display
-                            </button>
-                            <button class="nav-btn" data-tab="notifications">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-                                    <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-                                </svg>
-                                Notifications
-                            </button>
-                        </div>
-                        
-                        <div class="nav-section">
-                            <h4>System</h4>
-                            <button class="nav-btn" data-tab="data">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M21 12a9 9 0 0 1-9 9m9-9a9 9 0 0 0-9-9m9 9H3m9 9a9 9 0 0 1-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 0 1 9-9"></path>
-                                </svg>
-                                Data Management
-                            </button>
-                            <button class="nav-btn" data-tab="about">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <circle cx="12" cy="12" r="10"></circle>
-                                    <line x1="12" y1="16" x2="12" y2="12"></line>
-                                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
-                                </svg>
-                                About
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <div class="settings-content">
-                        <div id="settings-tab-content">
-                            <!-- Tab content will be loaded here -->
-                            <div class="tab-content active" id="profile-tab">
-                                <h3>Profile Settings</h3>
-                                <p>Loading profile settings...</p>
-                            </div>
-                        </div>
-                    </div>
+                <h2>Settings</h2>
+                <p>Configure your attendance system</p>
+                <div id="settings-content">
+                    Loading settings...
                 </div>
             </div>
         `;
+    }
+
+    // ==================== AUTHENTICATION ====================
+    async checkAuth() {
+        console.log("🔐 Performing auth check...");
         
-        this.loadSettings();
-    }
-
-    // ==================== HELPER METHODS ====================
-    // ==================== ATTENDANCE PAGE HELPERS ====================
-initAttendanceFunctionality() {
-    console.log('📋 Initializing attendance functionality...');
-    
-    // Load classes for sidebar
-    this.loadClassesForAttendance();
-    
-    // Setup session tabs
-    this.setupSessionTabs();
-    
-    // Setup date display
-    this.updateAttendanceDate();
-    
-    // Setup event listeners
-    this.setupAttendanceListeners();
-}
-
-loadClassesForAttendance() {
-    const classes = Storage.get('classes') || [];
-    const classesList = document.getElementById('classes-list');
-    
-    if (!classesList) return;
-    
-    if (classes.length === 0) {
-        classesList.innerHTML = `
-            <div class="empty-classes">
-                <p>No classes found. Please setup classes first.</p>
-                <button class="btn btn-secondary btn-sm" onclick="window.app.goToPage('setup.html')">
-                    Go to Setup
-                </button>
-            </div>
-        `;
-        return;
-    }
-    
-    classesList.innerHTML = classes.map(cls => `
-        <div class="class-item" data-class-id="${cls.id}" onclick="window.app.selectClass('${cls.id}')">
-            <div class="class-name">${cls.name}</div>
-            <div class="class-info">
-                <span class="class-grade">${cls.grade || ''}</span>
-                <span class="class-count">${cls.studentCount || 0} students</span>
-            </div>
-        </div>
-    `).join('');
-}
-
-setupSessionTabs() {
-    const sessionTabs = document.querySelectorAll('.session-tab');
-    sessionTabs.forEach(tab => {
-        tab.addEventListener('click', () => {
-            // Remove active class from all tabs
-            sessionTabs.forEach(t => t.classList.remove('active'));
-            // Add active class to clicked tab
-            tab.classList.add('active');
-            
-            const session = tab.dataset.session;
-            console.log('Switched to session:', session);
-            // You can add session-specific logic here
-        });
-    });
-}
-
-updateAttendanceDate() {
-    const dateDisplay = document.querySelector('.date-display');
-    if (dateDisplay) {
-        const today = new Date();
-        dateDisplay.textContent = today.toLocaleDateString('en-US', {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-        });
-    }
-}
-
-setupAttendanceListeners() {
-    // Setup search functionality
-    const searchInput = document.getElementById('class-search');
-    if (searchInput) {
-        searchInput.addEventListener('input', (e) => {
-            this.filterClasses(e.target.value);
-        });
-    }
-}
-
-filterClasses(searchTerm) {
-    const classItems = document.querySelectorAll('.class-item');
-    const searchLower = searchTerm.toLowerCase();
-    
-    classItems.forEach(item => {
-        const className = item.querySelector('.class-name').textContent.toLowerCase();
-        const classGrade = item.querySelector('.class-grade').textContent.toLowerCase();
+        // Get user from localStorage
+        const user = Storage.get('attendance_user');
         
-        if (className.includes(searchLower) || classGrade.includes(searchLower)) {
-            item.style.display = 'block';
-        } else {
-            item.style.display = 'none';
+        if (!user || !user.email) {
+            console.log("❌ No valid user found");
+            return { success: false, user: null };
         }
-    });
-}
-
-selectClass(classId) {
-    console.log('Selected class:', classId);
-    
-    // Remove active class from all class items
-    document.querySelectorAll('.class-item').forEach(item => {
-        item.classList.remove('active');
-    });
-    
-    // Add active class to selected item
-    const selectedItem = document.querySelector(`.class-item[data-class-id="${classId}"]`);
-    if (selectedItem) {
-        selectedItem.classList.add('active');
-    }
-    
-    // Load class details and students
-    this.loadClassAttendance(classId);
-}
-
-loadClassAttendance(classId) {
-    const classes = Storage.get('classes') || [];
-    const classData = classes.find(c => c.id === classId);
-    
-    if (!classData) {
-        console.error('Class not found:', classId);
-        return;
-    }
-    
-    // Update title
-    const title = document.getElementById('selected-class-title');
-    if (title) {
-        title.textContent = classData.name;
-    }
-    
-    // Update class info
-    const classInfo = document.getElementById('class-info');
-    if (classInfo) {
-        classInfo.innerHTML = `
-            <span>Grade: ${classData.grade || 'N/A'}</span>
-            <span>Teacher: ${classData.teacher || 'N/A'}</span>
-            <span>Students: ${classData.studentCount || 0}</span>
-        `;
-    }
-    
-    // Enable save button
-    const saveBtn = document.getElementById('save-attendance-btn');
-    if (saveBtn) {
-        saveBtn.disabled = false;
-    }
-    
-    // Load students for this class
-    this.loadStudentsForAttendance(classId);
-}
-
-loadStudentsForAttendance(classId) {
-    const students = Storage.get('students') || [];
-    const classStudents = students.filter(s => s.classId === classId);
-    
-    const tableWrapper = document.getElementById('attendance-table-wrapper');
-    if (!tableWrapper) return;
-    
-    if (classStudents.length === 0) {
-        tableWrapper.innerHTML = `
-            <div class="empty-state">
-                <h4>No Students in this Class</h4>
-                <p>Add students in the setup page</p>
-                <button class="btn btn-secondary" onclick="window.app.goToPage('setup.html')">
-                    Go to Setup
-                </button>
-            </div>
-        `;
-        return;
-    }
-    
-    // Group by year group if available
-    const groupedStudents = this.groupStudentsByYear(classStudents);
-    
-    tableWrapper.innerHTML = `
-        <table class="attendance-table">
-            <thead>
-                <tr>
-                    <th>Year Group</th>
-                    <th>Class</th>
-                    <th>Male Present</th>
-                    <th>Male Absent</th>
-                    <th>Female Present</th>
-                    <th>Female Absent</th>
-                    <th>Total Present</th>
-                    <th>% Present</th>
-                </tr>
-            </thead>
-            <tbody id="attendance-table-body">
-                ${this.generateAttendanceRows(groupedStudents)}
-            </tbody>
-        </table>
-    `;
-    
-    // Setup attendance input listeners
-    this.setupAttendanceInputs();
-}
-
-groupStudentsByYear(students) {
-    const groups = {};
-    
-    students.forEach(student => {
-        const year = student.yearGroup || 'All';
-        if (!groups[year]) {
-            groups[year] = { male: 0, female: 0, students: [] };
-        }
-        groups[year].students.push(student);
-        if (student.gender === 'male') {
-            groups[year].male++;
-        } else {
-            groups[year].female++;
-        }
-    });
-    
-    return groups;
-}
-
-generateAttendanceRows(groupedStudents) {
-    let html = '';
-    
-    for (const [year, data] of Object.entries(groupedStudents)) {
-        html += `
-            <tr>
-                <td class="year-group-cell">${year}</td>
-                <td class="class-cell">${data.students[0]?.className || 'N/A'}</td>
-                <td>
-                    <input type="number" class="attendance-input male-present" 
-                           value="0" min="0" max="${data.male}"
-                           data-year="${year}" data-gender="male" data-status="present">
-                </td>
-                <td>
-                    <input type="number" class="attendance-input male-absent" 
-                           value="${data.male}" min="0" max="${data.male}"
-                           data-year="${year}" data-gender="male" data-status="absent" readonly>
-                </td>
-                <td>
-                    <input type="number" class="attendance-input female-present" 
-                           value="0" min="0" max="${data.female}"
-                           data-year="${year}" data-gender="female" data-status="present">
-                </td>
-                <td>
-                    <input type="number" class="attendance-input female-absent" 
-                           value="${data.female}" min="0" max="${data.female}"
-                           data-year="${year}" data-gender="female" data-status="absent" readonly>
-                </td>
-                <td class="total-present" data-year="${year}">0</td>
-                <td class="percentage-cell" data-year="${year}">0%</td>
-            </tr>
-        `;
-    }
-    
-    return html;
-}
-
-setupAttendanceInputs() {
-    const inputs = document.querySelectorAll('.attendance-input:not([readonly])');
-    inputs.forEach(input => {
-        input.addEventListener('input', (e) => {
-            this.updateAttendanceCalculations(e.target);
-        });
-    });
-}
-
-updateAttendanceCalculations(changedInput) {
-    const year = changedInput.dataset.year;
-    const gender = changedInput.dataset.gender;
-    const status = changedInput.dataset.status;
-    
-    // Get all inputs for this year
-    const malePresent = document.querySelector(`.male-present[data-year="${year}"]`);
-    const maleAbsent = document.querySelector(`.male-absent[data-year="${year}"]`);
-    const femalePresent = document.querySelector(`.female-present[data-year="${year}"]`);
-    const femaleAbsent = document.querySelector(`.female-absent[data-year="${year}"]`);
-    
-    if (!malePresent || !maleAbsent || !femalePresent || !femaleAbsent) return;
-    
-    // Calculate absent values (total - present)
-    const totalMale = parseInt(malePresent.max);
-    const malePresentVal = parseInt(malePresent.value) || 0;
-    maleAbsent.value = totalMale - malePresentVal;
-    
-    const totalFemale = parseInt(femalePresent.max);
-    const femalePresentVal = parseInt(femalePresent.value) || 0;
-    femaleAbsent.value = totalFemale - femalePresentVal;
-    
-    // Calculate totals
-    const totalPresent = malePresentVal + femalePresentVal;
-    const totalStudents = totalMale + totalFemale;
-    const percentage = totalStudents > 0 ? Math.round((totalPresent / totalStudents) * 100) : 0;
-    
-    // Update totals row
-    const totalCell = document.querySelector(`.total-present[data-year="${year}"]`);
-    const percentageCell = document.querySelector(`.percentage-cell[data-year="${year}"]`);
-    
-    if (totalCell) totalCell.textContent = totalPresent;
-    if (percentageCell) {
-        percentageCell.textContent = `${percentage}%`;
-        percentageCell.className = `percentage-cell ${percentage < 50 ? 'low-percentage' : ''}`;
-    }
-}
-
-markAllPresent() {
-    const presentInputs = document.querySelectorAll('.attendance-input[data-status="present"]:not([readonly])');
-    presentInputs.forEach(input => {
-        const max = parseInt(input.max);
-        input.value = max;
-        this.updateAttendanceCalculations(input);
-    });
-}
-
-markAllAbsent() {
-    const presentInputs = document.querySelectorAll('.attendance-input[data-status="present"]:not([readonly])');
-    presentInputs.forEach(input => {
-        input.value = 0;
-        this.updateAttendanceCalculations(input);
-    });
-}
-
-clearAttendance() {
-    if (confirm('Clear all attendance data for this class?')) {
-        this.markAllAbsent();
-    }
-}
-
-saveAttendance() {
-    const classItem = document.querySelector('.class-item.active');
-    if (!classItem) {
-        alert('Please select a class first');
-        return;
-    }
-    
-    const classId = classItem.dataset.classId;
-    const classes = Storage.get('classes') || [];
-    const classData = classes.find(c => c.id === classId);
-    
-    if (!classData) {
-        alert('Class not found');
-        return;
-    }
-    
-    // Collect attendance data
-    const attendanceData = [];
-    const rows = document.querySelectorAll('#attendance-table-body tr');
-    
-    rows.forEach(row => {
-        const year = row.querySelector('.year-group-cell').textContent;
-        const className = row.querySelector('.class-cell').textContent;
-        const malePresent = parseInt(row.querySelector('.male-present').value) || 0;
-        const femalePresent = parseInt(row.querySelector('.female-present').value) || 0;
-        const totalPresent = malePresent + femalePresent;
-        const totalStudents = parseInt(row.querySelector('.male-present').max) + 
-                             parseInt(row.querySelector('.female-present').max);
-        const percentage = totalStudents > 0 ? Math.round((totalPresent / totalStudents) * 100) : 0;
         
-        attendanceData.push({
-            date: new Date().toISOString().split('T')[0],
-            classId: classId,
-            className: className,
-            yearGroup: year,
-            malePresent: malePresent,
-            femalePresent: femalePresent,
-            totalPresent: totalPresent,
-            totalStudents: totalStudents,
-            percentage: percentage,
-            session: document.querySelector('.session-tab.active')?.dataset.session || 'morning',
-            recordedBy: this.user?.name || 'Unknown',
-            timestamp: new Date().toISOString()
-        });
-    });
-    
-    // Save to localStorage
-    const existingAttendance = Storage.get('attendance') || [];
-    const newAttendance = [...existingAttendance, ...attendanceData];
-    Storage.set('attendance', newAttendance);
-    
-    // Try to save to Firebase if available
-    if (this.firebaseAvailable) {
-        this.saveAttendanceToFirebase(attendanceData);
-    }
-    
-    alert('Attendance saved successfully!');
-    console.log('Attendance saved:', attendanceData);
-}
-
-// ==================== SETUP PAGE HELPERS ====================
-initSetupFunctionality() {
-    console.log('⚙️ Initializing setup functionality...');
-    
-    // Load existing data
-    this.loadSetupData();
-    
-    // Setup tab switching
-    this.setupSetupTabs();
-    
-    // Setup form handlers
-    this.setupFormHandlers();
-    
-    // Populate class filter
-    this.populateClassFilter();
-}
-
-setupSetupTabs() {
-    const tabs = document.querySelectorAll('.setup-tab');
-    const tabContents = document.querySelectorAll('.tab-content');
-    
-    tabs.forEach(tab => {
-        tab.addEventListener('click', () => {
-            const tabId = tab.dataset.tab;
-            
-            // Update active tab
-            tabs.forEach(t => t.classList.remove('active'));
-            tab.classList.add('active');
-            
-            // Show corresponding content
-            tabContents.forEach(content => {
-                content.classList.remove('active');
-                if (content.id === `${tabId}-tab`) {
-                    content.classList.add('active');
-                }
-            });
-        });
-    });
-}
-
-loadSetupData() {
-    // Load classes
-    const classes = Storage.get('classes') || [];
-    const classesList = document.getElementById('classes-list-setup');
-    
-    if (classesList) {
-        if (classes.length === 0) {
-            classesList.innerHTML = `
-                <div class="empty-state">
-                    <h4>No Classes Yet</h4>
-                    <p>Click "Add New Class" to create your first class</p>
-                </div>
-            `;
-        } else {
-            classesList.innerHTML = classes.map(cls => `
-                <div class="setup-class-item">
-                    <div class="class-header">
-                        <h4>${cls.name}</h4>
-                        <div class="class-actions">
-                            <button class="btn-icon" onclick="window.app.editClass('${cls.id}')" title="Edit">
-                                ✏️ Edit
-                            </button>
-                            <button class="btn-icon" onclick="window.app.deleteClass('${cls.id}')" title="Delete">
-                                🗑️ Delete
-                            </button>
-                        </div>
-                    </div>
-                    <div class="class-details">
-                        <span>Grade: ${cls.grade || 'Not set'}</span>
-                        <span>Students: ${cls.studentCount || 0}</span>
-                        <span>Teacher: ${cls.teacher || 'Not assigned'}</span>
-                    </div>
-                </div>
-            `).join('');
+        // Check if user data is expired (optional)
+        if (user.expires && new Date() > new Date(user.expires)) {
+            console.log("❌ User session expired");
+            Storage.remove('attendance_user');
+            return { success: false, user: null };
         }
-    }
-    
-    // Load students count
-    this.updateStudentCounts();
-}
-
-populateClassFilter() {
-    const classFilter = document.getElementById('class-filter');
-    if (!classFilter) return;
-    
-    const classes = Storage.get('classes') || [];
-    
-    classFilter.innerHTML = `
-        <option value="">All Classes</option>
-        ${classes.map(cls => `
-            <option value="${cls.id}">${cls.name}</option>
-        `).join('')}
-    `;
-}
-
-setupFormHandlers() {
-    // School form
-    const schoolForm = document.getElementById('school-form');
-    if (schoolForm) {
-        schoolForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            this.saveSchoolInfo();
-        });
-    }
-    
-    // Import file handler
-    const importFile = document.getElementById('import-file');
-    if (importFile) {
-        importFile.addEventListener('change', (e) => {
-            this.handleFileImport(e.target.files[0]);
-        });
-    }
-}
-
-saveSchoolInfo() {
-    const schoolName = document.getElementById('school-name').value;
-    const schoolAddress = document.getElementById('school-address').value;
-    const academicYear = document.getElementById('academic-year').value;
-    const currentTerm = document.getElementById('current-term').value;
-    
-    const schoolInfo = {
-        name: schoolName,
-        address: schoolAddress,
-        academicYear: academicYear,
-        currentTerm: currentTerm,
-        updatedAt: new Date().toISOString()
-    };
-    
-    // Update user's school info
-    if (this.user) {
-        this.user.school = schoolName;
-        Storage.set('attendance_user', this.user);
-    }
-    
-    // Save school info
-    Storage.set('school_info', schoolInfo);
-    
-    alert('School information saved successfully!');
-    console.log('School info saved:', schoolInfo);
-}
-
-showAddClassModal() {
-    const modalHtml = `
-        <div class="modal" id="add-class-modal">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3>Add New Class</h3>
-                    <button class="modal-close" onclick="window.app.closeModal()">×</button>
-                </div>
-                <div class="modal-body">
-                    <form id="add-class-form">
-                        <div class="form-group">
-                            <label>Class Name *</label>
-                            <input type="text" id="class-name" required class="form-control" 
-                                   placeholder="e.g., Form 1A, Grade 5B">
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Grade/Year</label>
-                                <input type="text" id="class-grade" class="form-control" 
-                                       placeholder="e.g., Grade 5, Year 7">
-                            </div>
-                            <div class="form-group">
-                                <label>Subject</label>
-                                <input type="text" id="class-subject" class="form-control" 
-                                       placeholder="e.g., Mathematics, English">
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label>Teacher Name</label>
-                            <input type="text" id="class-teacher" class="form-control" 
-                                   value="${this.user?.name || ''}" placeholder="Teacher's name">
-                        </div>
-                        <div class="form-group">
-                            <label>Class Description</label>
-                            <textarea id="class-description" class="form-control" rows="3" 
-                                      placeholder="Optional description"></textarea>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" onclick="window.app.closeModal()">Cancel</button>
-                    <button class="btn btn-primary" onclick="window.app.saveNewClass()">Save Class</button>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    document.body.insertAdjacentHTML('beforeend', modalHtml);
-}
-
-closeModal() {
-    const modal = document.getElementById('add-class-modal');
-    if (modal) {
-        modal.remove();
-    }
-}
-
-saveNewClass() {
-    const className = document.getElementById('class-name').value;
-    const classGrade = document.getElementById('class-grade').value;
-    const classSubject = document.getElementById('class-subject').value;
-    const classTeacher = document.getElementById('class-teacher').value;
-    const classDescription = document.getElementById('class-description').value;
-    
-    if (!className) {
-        alert('Please enter a class name');
-        return;
-    }
-    
-    const newClass = {
-        id: 'class_' + Date.now(),
-        name: className,
-        grade: classGrade,
-        subject: classSubject,
-        teacher: classTeacher,
-        description: classDescription,
-        studentCount: 0,
-        createdAt: new Date().toISOString()
-    };
-    
-    // Save to localStorage
-    const classes = Storage.get('classes') || [];
-    classes.push(newClass);
-    Storage.set('classes', classes);
-    
-    // Close modal and refresh
-    this.closeModal();
-    this.loadSetupData();
-    
-    alert('Class added successfully!');
-    console.log('New class saved:', newClass);
-}
-
-editClass(classId) {
-    const classes = Storage.get('classes') || [];
-    const classData = classes.find(c => c.id === classId);
-    
-    if (!classData) {
-        alert('Class not found');
-        return;
-    }
-    
-    // Similar modal to add class but with pre-filled values
-    // Implementation similar to showAddClassModal but with edit functionality
-    console.log('Edit class:', classId, classData);
-}
-
-deleteClass(classId) {
-    if (!confirm('Are you sure you want to delete this class? This will also delete all students in this class.')) {
-        return;
-    }
-    
-    // Delete class
-    let classes = Storage.get('classes') || [];
-    classes = classes.filter(c => c.id !== classId);
-    Storage.set('classes', classes);
-    
-    // Delete students in this class
-    let students = Storage.get('students') || [];
-    students = students.filter(s => s.classId !== classId);
-    Storage.set('students', students);
-    
-    // Refresh display
-    this.loadSetupData();
-    
-    alert('Class deleted successfully');
-}
-
-showAddStudentModal() {
-    // Similar modal for adding students
-    console.log('Show add student modal');
-}
-
-updateStudentCounts() {
-    const classes = Storage.get('classes') || [];
-    const students = Storage.get('students') || [];
-    
-    // Update student counts in classes
-    classes.forEach(cls => {
-        const studentCount = students.filter(s => s.classId === cls.id).length;
-        cls.studentCount = studentCount;
-    });
-    
-    Storage.set('classes', classes);
-}
-
-exportToCSV() {
-    console.log('Exporting to CSV...');
-    // CSV export logic
-}
-
-exportToExcel() {
-    console.log('Exporting to Excel...');
-    // Excel export logic
-}
-
-backupData() {
-    const backup = {
-        version: '1.0',
-        timestamp: new Date().toISOString(),
-        user: this.user,
-        classes: Storage.get('classes') || [],
-        students: Storage.get('students') || [],
-        attendance: Storage.get('attendance') || [],
-        settings: Storage.get('settings') || {}
-    };
-    
-    const dataStr = JSON.stringify(backup, null, 2);
-    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-    
-    const exportFileDefaultName = `attendance-backup-${new Date().toISOString().split('T')[0]}.json`;
-    
-    const linkElement = document.createElement('a');
-    linkElement.setAttribute('href', dataUri);
-    linkElement.setAttribute('download', exportFileDefaultName);
-    linkElement.click();
-    
-    console.log('Backup created:', backup);
-}
-
-// ==================== GENERAL HELPERS ====================
-goToPage(page) {
-    window.location.href = page;
-}
-
-showError(message) {
-    console.error('Error:', message);
-    alert(`Error: ${message}`);
-}
-    
-    // ========== FIREBASE AUTH METHODS ==========
-    // attendance-app.js - Update the syncLocalUserToFirebase function
-async syncLocalUserToFirebase() {
-    try {
-        const email = localStorage.getItem('userEmail') || 'dmoseley@gams.edu.bb';
-        const password = localStorage.getItem('userPassword');
         
-        console.log("Attempting Firebase auto-login for:", email);
+        console.log(`✅ User found: ${user.email}`);
+        return { success: true, user };
+    }
+
+    showLoginPage() {
+        console.log("🔐 Redirecting to login page...");
         
-        // Only attempt if we have both email and password
-        if (!email || !password) {
-            console.log("No credentials stored for Firebase login");
+        // Check if we're already on login page
+        if (this.getCurrentPage() === 'index') {
+            console.log("⚠️ Already on login page");
             return;
         }
         
-        // Check if Firebase is available
-        if (typeof firebase === 'undefined') {
-            console.log("Firebase not loaded yet");
-            return;
+        // Get base path
+        const basePath = this.getBasePath();
+        
+        // Clear user data if needed
+        if (this.getCurrentPage() !== 'index') {
+            localStorage.removeItem('attendance_user');
         }
         
-        const userCredential = await firebase.auth().signInWithEmailAndPassword(email, password);
-        console.log("✅ Firebase auto-login successful:", userCredential.user.email);
-        return userCredential.user;
-    } catch (error) {
-        console.error("Firebase auto-login failed:", error.message);
-        
-        // Specific error handling
-        if (error.code === 'auth/invalid-credential') {
-            console.log("Invalid credentials. User may need to login manually.");
-        } else if (error.code === 'auth/user-not-found') {
-            console.log("User not found in Firebase.");
-        } else if (error.code === 'auth/wrong-password') {
-            console.log("Incorrect password.");
-        } else if (error.code === 'auth/network-request-failed') {
-            console.log("Network error. Check internet connection.");
-        }
-        
-        // Continue with localStorage only
-        return null;
+        console.log(`Redirecting to: ${basePath}index.html`);
+        window.location.href = `${basePath}index.html`;
     }
-}
+
+    // ==================== FIREBASE METHODS ====================
+    async syncLocalUserToFirebase() {
+        try {
+            console.log("Attempting Firebase auto-login...");
+            
+            // Check if Firebase is available
+            if (typeof firebase === 'undefined') {
+                console.log("Firebase not loaded yet");
+                this.firebaseAvailable = false;
+                return null;
+            }
+            
+            const email = this.user?.email;
+            const password = localStorage.getItem('userPassword');
+            
+            if (!email || !password) {
+                console.log("No credentials stored for Firebase login");
+                this.firebaseAvailable = false;
+                return null;
+            }
+            
+            const userCredential = await firebase.auth().signInWithEmailAndPassword(email, password);
+            console.log("✅ Firebase auto-login successful:", userCredential.user.email);
+            this.firebaseAvailable = true;
+            return userCredential.user;
+        } catch (error) {
+            console.error("Firebase auto-login failed:", error.message);
+            this.firebaseAvailable = false;
+            return null;
+        }
+    }
+
     async createFirebaseUser(email, password, name) {
         try {
             const { createUserWithEmailAndPassword } = await import(
@@ -1802,417 +691,19 @@ async syncLocalUserToFirebase() {
         }
     }
 
-    async checkFirebaseAuth() {
-        try {
-            const { auth } = await import('./firebase.js');
-            
-            console.log('Firebase auth object:', auth);
-            console.log('Current user:', auth.currentUser);
-            
-            if (auth.currentUser) {
-                console.log('Firebase user already logged in:', auth.currentUser.email);
-                this.state.currentUser = {
-                    id: auth.currentUser.uid,
-                    email: auth.currentUser.email,
-                    name: auth.currentUser.displayName || auth.currentUser.email.split('@')[0],
-                    role: 'teacher'
-                };
-                Storage.set('attendance_user', this.state.currentUser);
-                return true;
-            }
-            return false;
-        } catch (error) {
-            console.error('Firebase auth check failed:', error);
-            console.log('Falling back to localStorage authentication');
-            return false;
-        }
+    // ==================== HELPER METHODS ====================
+    async loadDashboardData() {
+        // This would load actual dashboard data
+        console.log('Loading dashboard data...');
     }
 
-    // ========== LOGIN HANDLER (for login page) ==========
-    async handleLogin() {
-        const email = document.getElementById('email')?.value || 'teacher@school.edu';
-        const password = document.getElementById('password')?.value || 'demo123';
-        
-        console.log('Attempting Firebase login with:', email);
-        
-        try {
-            // Import Firebase auth functions
-            const { signInWithEmailAndPassword } = await import(
-                'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js'
-            );
-            const { auth } = await import('./firebase.js');
-            
-            // Try Firebase login
-            const userCredential = await signInWithEmailAndPassword(auth, email, password);
-            const user = userCredential.user;
-            
-            console.log('✅ Firebase login successful:', user.email);
-            
-            // Update user in state
-            this.state.currentUser = {
-                id: user.uid,
-                email: user.email,
-                name: user.displayName || user.email.split('@')[0],
-                role: 'teacher'
-            };
-            
-            // Save to localStorage
-            Storage.set('attendance_user', this.state.currentUser);
-            
-            Utils.showToast('Firebase login successful!', 'success');
-            
-            // Redirect to dashboard
-            setTimeout(() => {
-                this.goToDashboard();
-            }, 1000);
-            
-        } catch (error) {
-            console.error('❌ Firebase login error:', error.code, error.message);
-            
-            // Check if it's a "user-not-found" error
-            if (error.code === 'auth/user-not-found') {
-                // Create the user first, then login
-                await this.createFirebaseUser(email, password, email.split('@')[0]);
-                Utils.showToast('New account created! Logged in.', 'success');
-                
-                setTimeout(() => {
-                    this.goToDashboard();
-                }, 1000);
-                
-            } else if (error.code === 'auth/wrong-password') {
-                Utils.showToast('Wrong password. Try "demo123"', 'error');
-            } else {
-                Utils.showToast(`Login failed: ${error.message}`, 'error');
-                // Fallback to demo mode
-                this.startDemoMode();
-            }
-        }
+    refreshDashboard() {
+        this.loadDashboardData();
+        this.showToast('Dashboard refreshed', 'success');
     }
 
-    // ========== HEADER & UI METHODS ==========
-    async loadHeader() {
-        const headerContainer = document.getElementById('header-container');
-        if (!headerContainer) return;
-        
-        headerContainer.innerHTML = `
-            <header>
-                <div class="header-left">
-                    <div class="app-icon">📋</div>
-                    <div>
-                        <h1>Attendance Track v2</h1>
-                        <div class="online-status" id="online-status">
-                            ● ${this.state.isOnline ? 'Online' : 'Offline'}
-                        </div>
-                    </div>
-                </div>
-                <div class="header-right">
-                    ${this.state.currentUser ? `
-                        <div class="user-info">
-                            <div class="user-avatar">👤</div>
-                            <div class="user-details">
-                                <div class="user-name">${this.state.currentUser.name}</div>
-                                <div class="user-role">${this.state.currentUser.role || 'Teacher'}</div>
-                                <div class="user-auth" style="font-size: 0.8rem; color: #666;">
-                                    ${this.state.currentUser.id?.startsWith('demo-') ? 'Demo Mode' : 'Firebase'}
-                                </div>
-                            </div>
-                        </div>
-                        <button class="btn btn-outline" onclick="app.logout()">Logout</button>
-                    ` : `
-                        ${this.state.currentPage !== 'login' ? `
-                            <button class="btn btn-primary" onclick="app.goToLogin()">Login</button>
-                        ` : ''}
-                        ${this.state.currentPage === 'index' ? `
-                            <button class="btn btn-secondary" onclick="app.startDemoMode()">Try Demo</button>
-                        ` : ''}
-                    `}
-                </div>
-            </header>
-        `;
-        
-        // Update online status color
-        const onlineStatus = document.getElementById('online-status');
-        if (onlineStatus) {
-            onlineStatus.style.color = this.state.isOnline ? '#28a745' : '#dc3545';
-        }
-    }
-
-    async loadContent() {
-        const appContainer = document.getElementById('app-container');
-        if (!appContainer) return;
-        
-        // Hide loading
-        const loadingContent = document.getElementById('loading-content');
-        if (loadingContent) {
-            loadingContent.style.display = 'none';
-        }
-        
-        // Load content based on page
-        switch(this.state.currentPage) {
-            case 'index':
-                await this.loadIndexContent(appContainer);
-                break;
-            case 'login':
-                await this.loadLoginContent(appContainer);
-                break;
-            case 'dashboard':
-                await this.loadDashboardContent(appContainer);
-                break;
-            case 'attendance':
-                await this.loadAttendanceContent(appContainer);
-                break;
-            case 'reports':
-                await this.loadReportsContent(appContainer);
-                break;
-            case 'setup':
-                await this.loadSetupContent(appContainer);
-                break;
-            case 'settings':
-                await this.loadSettingsContent(appContainer);
-                break;
-            case 'maintenance':
-                await this.loadMaintenanceContent(appContainer);
-                break;
-            default:
-                this.showPageNotFound();
-        }
-    }
-
-    // ========== PAGE CONTENT METHODS ==========
-    async loadLoginContent(container) {
-        container.innerHTML = `
-            <div class="login-page">
-                <div class="login-card">
-                    <div class="login-header">
-                        <div class="login-icon">🔐</div>
-                        <h1>Login</h1>
-                        <p>Access your attendance tracking system</p>
-                    </div>
-                    
-                    <form id="login-form" class="login-form">
-                        <div class="form-group">
-                            <label for="email">Email Address</label>
-                            <input 
-                                type="email" 
-                                id="email" 
-                                name="email"
-                                placeholder="teacher@school.edu"
-                                required
-                                value="teacher@school.edu"
-                            >
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="password">Password</label>
-                            <input 
-                                type="password" 
-                                id="password" 
-                                name="password"
-                                placeholder="Enter your password"
-                                required
-                                value="demo123"
-                            >
-                        </div>
-                        
-                        <button type="submit" class="btn btn-primary btn-block">
-                            Sign In with Firebase
-                        </button>
-                        
-                        <div class="login-options">
-                            <button type="button" class="btn btn-link" onclick="app.startDemoMode()">
-                                Try Demo Mode (No Firebase)
-                            </button>
-                            <button type="button" class="btn btn-link" onclick="app.goToIndex()">
-                                Back to Home
-                            </button>
-                        </div>
-                        
-                        <div id="firebase-status" style="margin-top: 20px; padding: 10px; background: #f8f9fa; border-radius: 4px; text-align: center;">
-                            <small>Firebase Status: <span id="status-text">Checking...</span></small>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        `;
-        
-        // Add Firebase status check
-        setTimeout(async () => {
-            try {
-                const { auth } = await import('./firebase.js');
-                const statusText = document.getElementById('status-text');
-                
-                if (auth) {
-                    statusText.textContent = 'Connected ✅';
-                    statusText.style.color = '#28a745';
-                } else {
-                    statusText.textContent = 'Not connected ❌';
-                    statusText.style.color = '#dc3545';
-                }
-            } catch (error) {
-                document.getElementById('status-text').textContent = 'Error loading Firebase';
-                document.getElementById('status-text').style.color = '#dc3545';
-            }
-        }, 100);
-        
-        // Setup login form handler
-        this.setupPageHandlers();
-    }
-
-    async loadIndexContent(container) {
-        container.innerHTML = `
-            <div class="landing-page">
-                <div class="hero">
-                    <div class="hero-icon">📋</div>
-                    <h1>Attendance Track v2</h1>
-                    <p class="hero-subtitle">Modern attendance tracking for educational institutions</p>
-                    
-                    <div class="features">
-                        <div class="feature">
-                            <div class="feature-icon">📊</div>
-                            <h3>Real-time Tracking</h3>
-                            <p>Track attendance with instant updates</p>
-                        </div>
-                        <div class="feature">
-                            <div class="feature-icon">📱</div>
-                            <h3>Offline Support</h3>
-                            <p>Works without internet connection</p>
-                        </div>
-                        <div class="feature">
-                            <div class="feature-icon">📈</div>
-                            <h3>Detailed Reports</h3>
-                            <p>Generate comprehensive reports</p>
-                        </div>
-                    </div>
-                    
-                    <div class="hero-actions">
-                        ${this.state.currentUser ? `
-                            <button class="btn btn-lg btn-primary" onclick="app.goToDashboard()">
-                                Go to Dashboard
-                            </button>
-                        ` : `
-                            <button class="btn btn-lg btn-primary" onclick="app.goToLogin()">
-                                Login with Firebase
-                            </button>
-                            <button class="btn btn-lg btn-secondary" onclick="app.startDemoMode()">
-                                Try Demo Mode
-                            </button>
-                        `}
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-
-// attendance-app.js - FIXED loadDashboardContent function
-async loadDashboardContent() {
-    console.log("📊 Loading dashboard content...");
-    
-    try {
-        // CORRECT PATH: './dashboard.js' NOT './assets/js/dashboard.js'
-        // Because attendance-app.js is already in assets/js folder
-        const module = await import('./dashboard.js');
-        
-        console.log("📦 Module loaded successfully:", module);
-        
-        if (module && module.DashboardManager) {
-            console.log("✅ DashboardManager found in module");
-            this.dashboardManager = new module.DashboardManager();
-            console.log("✅ DashboardManager initialized successfully");
-        } else if (module && module.default && module.default.DashboardManager) {
-            // Try default export
-            console.log("🔄 Using default export");
-            this.dashboardManager = new module.default.DashboardManager();
-        } else {
-            console.error("❌ DashboardManager not found in module exports");
-            console.log("Available exports:", Object.keys(module));
-            this.createBasicDashboard();
-        }
-        
-    } catch (error) {
-        console.error("❌ Failed to load dashboard module:", error);
-        
-        // Fallback options
-        if (typeof DashboardManager !== 'undefined') {
-            console.log("🔄 Using global DashboardManager");
-            this.dashboardManager = new DashboardManager();
-        } else {
-            console.log("⚠️ Creating basic dashboard fallback");
-            this.createBasicDashboard();
-        }
-    }
-}
-
-    async loadAttendanceContent(container) {
-        if (!this.state.currentUser) {
-            this.goToLogin();
-            return;
-        }
-        
-        // Import AttendanceManager dynamically
-        import('./attendance.js').then(module => {
-            this.attendanceManager = new module.AttendanceManager(this);
-            this.attendanceManager.init();
-        }).catch(error => {
-            console.error('Failed to load attendance module:', error);
-            this.loadBasicAttendanceContent(container);
-        });
-    }
-
-    async loadBasicDashboardContent(container) {
-        container.innerHTML = `
-            <div style="padding: 40px; text-align: center;">
-                <div style="font-size: 3rem; margin-bottom: 20px;">📊</div>
-                <h2>Dashboard</h2>
-                <p>Welcome to Attendance Track v2</p>
-                <button class="btn btn-primary" onclick="app.goToAttendance()">
-                    Take Attendance
-                </button>
-            </div>
-        `;
-    }
-
-    async loadBasicAttendanceContent(container) {
-        container.innerHTML = `
-            <div style="padding: 40px; text-align: center;">
-                <div style="font-size: 3rem; margin-bottom: 20px;">📋</div>
-                <h2>Attendance</h2>
-                <p>Loading attendance system...</p>
-                <button class="btn btn-primary" onclick="window.location.reload()">
-                    Retry
-                </button>
-            </div>
-        `;
-    }
-
-    // ========== NAVIGATION METHODS ==========
-    navigateTo(page) {
-        console.log(`Navigating to: ${page}`);
-        const basePath = this.getBasePath();
-        const targetUrl = basePath + page + '.html';
-        window.location.href = targetUrl;
-    }
-
-    goToIndex() { this.navigateTo('index'); }
-    goToLogin() { this.navigateTo('login'); }
-    goToDashboard() { this.navigateTo('dashboard'); }
-    goToAttendance() { this.navigateTo('attendance'); }
-    goToReports() { this.navigateTo('reports'); }
-    goToSetup() { this.navigateTo('setup'); }
-    goToSettings() { this.navigateTo('settings'); }
-    goToMaintenance() { this.navigateTo('maintenance'); }
-
-    // ========== AUTH METHODS ==========
-    setupPageHandlers() {
-        // Login form handler
-        if (this.state.currentPage === 'login') {
-            const loginForm = document.getElementById('login-form');
-            if (loginForm) {
-                loginForm.addEventListener('submit', (e) => {
-                    e.preventDefault();
-                    this.handleLogin();
-                });
-            }
-        }
+    goToPage(page) {
+        window.location.href = page;
     }
 
     startDemoMode() {
@@ -2226,61 +717,30 @@ async loadDashboardContent() {
         };
         
         Storage.set('attendance_user', demoUser);
+        this.user = demoUser;
         this.state.currentUser = demoUser;
         
-        Utils.showToast('Demo mode activated!', 'success');
+        this.showToast('Demo mode activated!', 'success');
         
         setTimeout(() => {
-            this.goToDashboard();
+            this.goToPage('dashboard.html');
         }, 1000);
     }
 
-    logout() {
-        // Try Firebase logout if available
-        import('./firebase.js').then(({ auth }) => {
-            import('https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js').then(({ signOut }) => {
-                signOut(auth).catch(error => {
-                    console.log('Firebase logout error (may not be logged in):', error);
-                });
-            });
-        }).catch(error => {
-            console.log('Firebase not available for logout');
-        });
-        
-        // Clear local data
-        Storage.remove('attendance_user');
-        Storage.remove('demo_mode');
-        this.state.currentUser = null;
-        
-        Utils.showToast('Logged out successfully', 'success');
-        
-        setTimeout(() => {
-            this.goToIndex();
-        }, 1000);
-    }
-
-    // ========== EVENT LISTENERS ==========
+    // ==================== EVENT LISTENERS ====================
     setupEventListeners() {
-        // Online/offline status
+        // Online/offline detection
         window.addEventListener('online', () => {
             this.state.isOnline = true;
-            this.updateOnlineStatus();
-            Utils.showToast('You are back online', 'success');
+            console.log('🌐 App is online');
+            this.showToast('Online - Syncing data...', 'success');
         });
         
         window.addEventListener('offline', () => {
             this.state.isOnline = false;
-            this.updateOnlineStatus();
-            Utils.showToast('You are offline', 'warning');
+            console.log('📴 App is offline');
+            this.showToast('Offline - Working locally', 'warning');
         });
-    }
-
-    updateOnlineStatus() {
-        const onlineStatus = document.getElementById('online-status');
-        if (onlineStatus) {
-            onlineStatus.textContent = `● ${this.state.isOnline ? 'Online' : 'Offline'}`;
-            onlineStatus.style.color = this.state.isOnline ? '#28a745' : '#dc3545';
-        }
     }
 
     initServiceWorker() {
@@ -2296,42 +756,49 @@ async loadDashboardContent() {
         }
     }
 
+    // ==================== UTILITY METHODS ====================
+    showToast(message, type = 'info') {
+        // Create toast element
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type}`;
+        toast.textContent = message;
+        toast.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 24px;
+            background: ${type === 'success' ? '#4CAF50' : type === 'error' ? '#f44336' : '#2196F3'};
+            color: white;
+            border-radius: 4px;
+            z-index: 10000;
+            animation: slideIn 0.3s ease;
+        `;
+        
+        document.body.appendChild(toast);
+        
+        // Remove after 3 seconds
+        setTimeout(() => {
+            toast.style.animation = 'slideOut 0.3s ease';
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    }
+
     showError(message) {
-        const appContainer = document.getElementById('app-container');
-        if (appContainer) {
-            appContainer.innerHTML = `
-                <div class="error-page">
-                    <div class="error-icon">⚠️</div>
-                    <h2>Something went wrong</h2>
-                    <p>${message}</p>
-                    <button class="btn btn-primary" onclick="window.location.reload()">
-                        Reload Page
-                    </button>
+        console.error('❌ Error:', message);
+        
+        // Show error toast
+        this.showToast(message, 'error');
+        
+        // Optional: Show error in error container if it exists
+        const errorContainer = document.getElementById('error-container');
+        if (errorContainer) {
+            errorContainer.innerHTML = `
+                <div class="alert alert-error">
+                    <strong>Error:</strong> ${message}
                 </div>
             `;
         }
     }
-
-    showPageNotFound() {
-        const appContainer = document.getElementById('app-container');
-        if (!appContainer) return;
-        
-        appContainer.innerHTML = `
-            <div class="error-page">
-                <div class="error-icon">📄</div>
-                <h2>Page Not Found</h2>
-                <p>The page "${this.state.currentPage}" doesn't exist yet.</p>
-                <button class="btn btn-primary" onclick="app.goToDashboard()">
-                    Go to Dashboard
-                </button>
-                <button class="btn btn-secondary" onclick="app.goToIndex()" style="margin-left: 10px;">
-                    Back to Home
-                </button>
-            </div>
-        `;
-    }
-
-    // ... add other page content methods as needed
 }
 
 // Create global instance
