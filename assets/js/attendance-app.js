@@ -1373,8 +1373,10 @@ loadSetupContent(container) {
     // Initialize all tabs
     this.initializeSetupPage();
 }
-    // Initialize setupPage  
-    initializeSetupPage() {
+   initializeSetupPage() {
+    // Store reference to this for event handlers
+    const app = this;
+    
     // Tab switching
     const tabBtns = document.querySelectorAll('.tab-btn');
     const tabContents = document.querySelectorAll('.tab-content');
@@ -1397,10 +1399,10 @@ loadSetupContent(container) {
             
             // Load data for active tab
             if (tabId === 'classes') {
-                this.loadClassesList();
+                app.loadClassesList();
             } else if (tabId === 'students') {
-                this.loadStudentsList();
-                this.populateClassDropdown();
+                app.loadStudentsList();
+                app.populateClassDropdown();
             }
         });
     });
@@ -1410,11 +1412,11 @@ loadSetupContent(container) {
     const clearClassBtn = document.getElementById('clear-class');
     
     if (saveClassBtn) {
-        saveClassBtn.addEventListener('click', () => this.saveClass());
+        saveClassBtn.addEventListener('click', () => app.saveClass());
     }
     
     if (clearClassBtn) {
-        clearClassBtn.addEventListener('click', () => this.clearClassForm());
+        clearClassBtn.addEventListener('click', () => app.clearClassForm());
     }
     
     // Student management
@@ -1422,11 +1424,11 @@ loadSetupContent(container) {
     const clearStudentBtn = document.getElementById('clear-student');
     
     if (saveStudentBtn) {
-        saveStudentBtn.addEventListener('click', () => this.saveStudent());
+        saveStudentBtn.addEventListener('click', () => app.saveStudent());
     }
     
     if (clearStudentBtn) {
-        clearStudentBtn.addEventListener('click', () => this.clearStudentForm());
+        clearStudentBtn.addEventListener('click', () => app.clearStudentForm());
     }
     
     // Import functionality
@@ -1451,23 +1453,23 @@ loadSetupContent(container) {
             importZone.style.borderColor = '#ddd';
             importZone.style.background = '#f8f9fa';
             if (e.dataTransfer.files.length > 0) {
-                this.handleFileImport(e.dataTransfer.files[0]);
+                app.handleFileImport(e.dataTransfer.files[0]);
             }
         });
         
         importFile.addEventListener('change', (e) => {
             if (e.target.files.length > 0) {
-                this.handleFileImport(e.target.files[0]);
+                app.handleFileImport(e.target.files[0]);
             }
         });
     }
     
     if (processImportBtn) {
-        processImportBtn.addEventListener('click', () => this.processImport());
+        processImportBtn.addEventListener('click', () => app.processImport());
     }
     
     if (downloadTemplateBtn) {
-        downloadTemplateBtn.addEventListener('click', () => this.downloadTemplate());
+        downloadTemplateBtn.addEventListener('click', () => app.downloadTemplate());
     }
     
     // Settings
@@ -1478,32 +1480,32 @@ loadSetupContent(container) {
     const clearAllDataBtn = document.getElementById('clear-all-data');
     
     if (saveSettingsBtn) {
-        saveSettingsBtn.addEventListener('click', () => this.saveSystemSettings());
+        saveSettingsBtn.addEventListener('click', () => app.saveSystemSettings());
     }
     
     if (resetSettingsBtn) {
-        resetSettingsBtn.addEventListener('click', () => this.resetSystemSettings());
+        resetSettingsBtn.addEventListener('click', () => app.resetSystemSettings());
     }
     
     if (backupDataBtn) {
-        backupDataBtn.addEventListener('click', () => this.backupData());
+        backupDataBtn.addEventListener('click', () => app.backupData());
     }
     
     if (restoreDataBtn) {
-        restoreDataBtn.addEventListener('click', () => this.restoreData());
+        restoreDataBtn.addEventListener('click', () => app.restoreData());
     }
     
     if (clearAllDataBtn) {
-        clearAllDataBtn.addEventListener('click', () => this.clearAllData());
+        clearAllDataBtn.addEventListener('click', () => app.clearAllData());
     }
     
     // Load initial data
-    this.loadClassesList();
-    this.loadStudentsList();
-    this.populateClassDropdown();
-    this.loadSystemSettings();
+    app.loadClassesList();
+    app.loadStudentsList();
+    app.populateClassDropdown();
+    app.loadSystemSettings();
 }
-
+    
 // ==================== SETUP PAGE METHODS =====================
 // 1. CLASS MANAGEMENT METHODS
 saveClass() {
