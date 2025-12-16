@@ -1955,36 +1955,6 @@ showSampleData() {
     reportContent.classList.remove('hidden');
 }
     
-// ================ SETTINGS CONTENT ====================
-    async loadSettingsContent() {
-        const appContainer = document.getElementById('app-container');
-        appContainer.innerHTML = `
-            <div class="settings-page">
-                <h2>Settings</h2>
-                <p>Configure your system preferences</p>
-                
-                <div class="settings-grid">
-                    <div class="settings-card">
-                        <h3>Profile</h3>
-                        <p>Update your account information</p>
-                        <button class="btn btn-secondary">Edit Profile</button>
-                    </div>
-                    
-                    <div class="settings-card">
-                        <h3>Preferences</h3>
-                        <p>Customize your experience</p>
-                        <button class="btn btn-secondary">Edit Preferences</button>
-                    </div>
-                    
-                    <div class="settings-card">
-                        <h3>Data Management</h3>
-                        <p>Backup and restore data</p>
-                        <button class="btn btn-secondary">Manage Data</button>
-                    </div>
-                </div>
-            </div>
-        `;
-    }
 
     // ==================== AUTH METHODS ====================
     async handleLogin() {
