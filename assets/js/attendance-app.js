@@ -33,8 +33,101 @@ class AttendanceApp {
         return '/';
     }
 
-    // ==================== INITIALIZATION ====================
-    async init() {
+   // ==================== NAVIGATION SETUP ====================
+        setupNavigation() {
+            console.log('🔧 Setting up navigation...');
+            
+            // Highlight current page
+            this.highlightCurrentPage();
+            
+            // Setup mobile menu toggle
+            this.setupMobileMenu();
+            
+            // Setup logout functionality
+            this.setupLogoutHandler();
+            
+            // Setup navigation links
+            this.setupNavLinks();
+        }
+        
+        highlightCurrentPage() {
+            const currentPage = window.location.pathname.split('/').pop();
+            const navLinks = document.querySelectorAll('.nav-link');
+            
+            navLinks.forEach(link => {
+                const href = link.getAttribute('href');
+                if (href === currentPage) {
+                    link.classList.add('active');
+                    link.setAttribute('aria-current', 'page');
+                } else {
+                    link.classList.remove('active');
+                    link.removeAttribute('aria-current');
+                }
+            });
+        }
+        
+        setupMobileMenu() {
+            const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
+            const navList = document.querySelector('.nav-list');
+            
+            if (mobileMenuBtn && navList) {
+                mobileMenuBtn.addEventListener('click', () => {
+                    const isExpanded = mobileMenuBtn.getAttribute('aria-expanded') === 'true';
+                    mobileMenuBtn.setAttribute('aria-expanded', !isExpanded);
+                    navList.classList.toggle('active');
+                    
+                    // Animate hamburger to X
+                    mobileMenuBtn.classList.toggle('active');
+                });
+                
+                // Close menu when clicking outside
+                document.addEventListener('click', (e) => {
+                    if (!mobileMenuBtn.contains(e.target) && !navList.contains(e.target)) {
+                        navList.classList.remove('active');
+                        mobileMenuBtn.setAttribute('aria-expanded', 'false');
+                        mobileMenuBtn.classList.remove('active');
+                    }
+                });
+            }
+        }
+        
+        setupLogoutHandler() {
+            const logoutBtn = document.getElementById('logoutBtn');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    this.handleLogout();
+                });
+            }
+        }
+        
+        setupNavLinks() {
+            // Add any navigation link click handlers here
+            const navLinks = document.querySelectorAll('.nav-link:not([href="#"])');
+            navLinks.forEach(link => {
+                link.addEventListener('click', (e) => {
+                    // Handle navigation if needed
+                    console.log('Navigating to:', link.getAttribute('href'));
+                });
+            });
+        }
+        
+        handleLogout() {
+            if (confirm('Are you sure you want to logout?')) {
+                console.log('👋 Logging out user...');
+                
+                // Clear all user data
+                localStorage.clear();
+                sessionStorage.clear();
+                
+                // Redirect to login page
+                window.location.href = 'index.html';
+            }
+        }
+        }
+    
+// ==================== INITIALIZATION ====================
+async init() {
     console.log('🚀 Initializing AttendanceApp...');
     
     try {
@@ -49,24 +142,28 @@ class AttendanceApp {
             await this.syncLocalUserToFirebase(user);
         }
 
-        // Load UI components
+        // Load UI components FIRST
         await this.loadHeader();
-        await this.loadContent();
+        await this.loadFooter();
         
-        // Setup page-specific handlers
-        this.setupPageHandlers();
+        // Setup navigation AFTER components are loaded
+        this.setupNavigation();
+        this.renderHeader();
+        this.renderFooter();
         
         // Setup event listeners
         this.setupEventListeners();
         
         // Initialize service worker
         this.initServiceWorker();
-
-        this.setupNavigation();
-        this.renderHeader();
-        this.renderFooter();
         
-        // THIS IS THE KEY CHANGE - Call checkAuthAndLoadPage correctly
+        // Setup page-specific handlers
+        this.setupPageHandlers();
+        
+        // Load content based on current page
+        await this.loadContent();
+        
+        // Check auth and load page - this should come LAST
         this.checkAuthAndLoadPage();
         
         console.log('✅ AttendanceApp initialized successfully');
@@ -76,6 +173,7 @@ class AttendanceApp {
         this.showError(error.message);
     }
 }
+    
 
  // ==================== AUTH & PAGE LOADING ====================
 checkAuthAndLoadPage() {
