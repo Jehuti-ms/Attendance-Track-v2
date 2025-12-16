@@ -1,4 +1,4 @@
-// assets/js/firebase.js - CORRECTED VERSION
+// assets/js/firebase.js - CORRECT VERSION WITH YOUR CONFIG
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
 import { getAuth } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
 import { 
@@ -16,16 +16,15 @@ import {
     serverTimestamp
 } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 
-// ⚠️ REPLACE WITH YOUR ACTUAL FIREBASE CONFIG ⚠️
-// Make sure this is EXACTLY from your Firebase Console
+// ✅ YOUR FIREBASE CONFIG (remove measurementId for now)
 const firebaseConfig = {
-  apiKey: "AIzaSyBPhe4eHZk__J27luIXzOPz6OGiubXkttE",
-  authDomain: "attendance-track-v2.firebaseapp.com",
-  projectId: "attendance-track-v2",
-  storageBucket: "attendance-track-v2.firebasestorage.app",
-  messagingSenderId: "598438033902",
-  appId: "1:598438033902:web:3ba1e0e2be0a16ea7e36ff",
-  
+    apiKey: "AIzaSyBPhe4eHZk__J27luIXzOPz6OGiubXkttE",
+    authDomain: "attendance-track-v2.firebaseapp.com",
+    projectId: "attendance-track-v2",
+    storageBucket: "attendance-track-v2.firebasestorage.app",
+    messagingSenderId: "598438033902",
+    appId: "1:598438033902:web:3ba1e0e2be0a16ea7e36ff"
+    // measurementId: "G-5QLW6M8VMM" // Remove this line for now
 };
 
 // Initialize Firebase
