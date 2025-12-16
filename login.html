@@ -364,112 +364,112 @@
         }
 
         // ==================== LOGIN HANDLER ====================
-        async function handleLogin(e) {
-            e.preventDefault();
-            
-            const email = document.getElementById('login-email').value.trim();
-            const password = document.getElementById('login-password').value;
-            const rememberMe = document.getElementById('remember-me').checked;
-            
-            // Validation
-            if (!email || !password) {
-                showStatus('Please enter email and password', 'error');
-                return;
-            }
-            
-            // Show loading
-            const btn = document.getElementById('login-submit');
-            setButtonLoading(btn, true);
-            
-            try {
-                // Check if this is demo account
-                if (email === DEMO_EMAIL && password === DEMO_PASSWORD) {
-                    await handleDemoLogin();
-                    return;
-                }
-                
-                // Firebase login
-                if (!firebaseAuth) {
-                    throw new Error('Firebase not available');
-                }
-                
-                const { signInWithEmailAndPassword } = await import(
-                    'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js'
-                );
-                
-                const userCredential = await signInWithEmailAndPassword(firebaseAuth, email, password);
-                const user = userCredential.user;
-                
-                // Save user data
-                await saveUserToLocalStorage({
-                    id: user.uid,
-                    email: user.email,
-                    name: user.displayName || email.split('@')[0],
-                    role: 'teacher',
-                    school: 'My School',
-                    firebaseUID: user.uid,
-                    lastLogin: new Date().toISOString()
-                });
-
-                // 🎯 ADD DEBUG VERIFICATION:
-                    console.log('🔍 VERIFYING SAVE:');
-                    const savedUser = JSON.parse(localStorage.getItem('attendance_user'));
-                    console.log('Saved user:', savedUser);
-                    console.log('Has email?', !!savedUser?.email);
-                    console.log('Complete object:', JSON.stringify(savedUser, null, 2));
-                    
-                    showStatus('Login successful! Redirecting...', 'success');
-
-                // Remember me
-                if (rememberMe) {
-                    localStorage.setItem('remember_email', email);
-                } else {
-                    localStorage.removeItem('remember_email');
-                }
-                
-                showStatus('Login successful! Redirecting...', 'success');
-                
-                // Redirect
-                setTimeout(() => {
-                    window.location.href = 'dashboard.html';
-                }, 1500);
-                
-            } catch (error) {
-                console.error('Login error:', error);
-                
-                let errorMessage = 'Login failed';
-                switch (error.code) {
-                    case 'auth/invalid-credential':
-                    case 'auth/user-not-found':
-                    case 'auth/wrong-password':
-                        errorMessage = 'Invalid email or password';
-                        break;
-                    case 'auth/user-disabled':
-                        errorMessage = 'Account has been disabled';
-                        break;
-                    case 'auth/too-many-requests':
-                        errorMessage = 'Too many attempts. Try again later';
-                        break;
-                    case 'auth/network-request-failed':
-                        errorMessage = 'Network error. Check your connection';
-                        break;
-                    default:
-                        errorMessage = `Error: ${error.message}`;
-                }
-                
-                showStatus(errorMessage, 'error');
-                
-                // Offer demo mode
-                setTimeout(() => {
-                    if (confirm('Login failed. Try Demo Mode instead?')) {
-                        startDemoMode();
-                    }
-                }, 2000);
-                
-            } finally {
-                setButtonLoading(btn, false);
-            }
+       async function handleLogin(e) {
+    e.preventDefault();
+    
+    const email = document.getElementById('login-email').value.trim();
+    const password = document.getElementById('login-password').value;
+    const rememberMe = document.getElementById('remember-me').checked;
+    
+    // Validation
+    if (!email || !password) {
+        showStatus('Please enter email and password', 'error');
+        return;
+    }
+    
+    // Show loading
+    const btn = document.getElementById('login-submit');
+    setButtonLoading(btn, true);
+    
+    try {
+        // Check if this is demo account
+        if (email === DEMO_EMAIL && password === DEMO_PASSWORD) {
+            await handleDemoLogin();
+            return;
         }
+        
+        // Firebase login
+        if (!firebaseAuth) {
+            throw new Error('Firebase not available');
+        }
+        
+        const { signInWithEmailAndPassword } = await import(
+            'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js'
+        );
+        
+        const userCredential = await signInWithEmailAndPassword(firebaseAuth, email, password);
+        const user = userCredential.user;
+        
+        // Save user data
+        await saveUserToLocalStorage({
+            id: user.uid,
+            email: user.email,
+            name: user.displayName || email.split('@')[0],
+            role: 'teacher',
+            school: 'My School',
+            firebaseUID: user.uid,
+            lastLogin: new Date().toISOString()
+        });
+
+        // 🎯 DEBUG VERIFICATION (KEEP THIS):
+        console.log('🔍 VERIFYING SAVE:');
+        const savedUser = JSON.parse(localStorage.getItem('attendance_user'));
+        console.log('Saved user:', savedUser);
+        console.log('Has email?', !!savedUser?.email);
+        console.log('Complete object:', JSON.stringify(savedUser, null, 2));
+        
+        // Remember me
+        if (rememberMe) {
+            localStorage.setItem('remember_email', email);
+        } else {
+            localStorage.removeItem('remember_email');
+        }
+        
+        showStatus('Login successful! Redirecting...', 'success');
+        
+        // Redirect
+        setTimeout(() => {
+            console.log('🔄 Redirecting to dashboard...');
+            console.log('User at redirect time:', localStorage.getItem('attendance_user'));
+            window.location.href = 'dashboard.html?login=success&t=' + Date.now();
+        }, 1500);
+        
+    } catch (error) {
+        console.error('Login error:', error);
+        
+        let errorMessage = 'Login failed';
+        switch (error.code) {
+            case 'auth/invalid-credential':
+            case 'auth/user-not-found':
+            case 'auth/wrong-password':
+                errorMessage = 'Invalid email or password';
+                break;
+            case 'auth/user-disabled':
+                errorMessage = 'Account has been disabled';
+                break;
+            case 'auth/too-many-requests':
+                errorMessage = 'Too many attempts. Try again later';
+                break;
+            case 'auth/network-request-failed':
+                errorMessage = 'Network error. Check your connection';
+                break;
+            default:
+                errorMessage = `Error: ${error.message}`;
+        }
+        
+        showStatus(errorMessage, 'error');
+        
+        // Offer demo mode
+        setTimeout(() => {
+            if (confirm('Login failed. Try Demo Mode instead?')) {
+                startDemoMode();
+            }
+        }, 2000);
+        
+    } finally {
+        setButtonLoading(btn, false);
+    }
+}
 
         // ==================== SIGN-UP HANDLER ====================
         async function handleSignUp(e) {
