@@ -165,6 +165,56 @@ renderFooter() {
     // Add any additional footer rendering logic here
     console.log('📋 Footer rendered');
 }
+
+    showLoginPage() {
+    console.log("🔐 Redirecting to login page...");
+    
+    try {
+        // Check if we're already on login page (prevent loops)
+        if (window.location.pathname.includes('login.html')) {
+            console.log("⚠️ Already on login page");
+            return;
+        }
+        
+        // Clear any existing user session data if needed
+        // localStorage.removeItem('attendance_user'); // Optional
+        
+        // Get base path dynamically
+        let basePath = './';
+        const currentPath = window.location.pathname;
+        
+        if (currentPath.includes('/Attendance-Track-v2/')) {
+            basePath = '/Attendance-Track-v2/';
+        } else if (currentPath.includes('/')) {
+            // Extract directory from current path
+            const pathParts = currentPath.split('/');
+            pathParts.pop(); // Remove current file
+            basePath = pathParts.join('/') + '/';
+        }
+        
+        console.log(`Redirecting to: ${basePath}login.html`);
+        window.location.href = `${basePath}login.html`;
+        
+    } catch (error) {
+        console.error("❌ Error redirecting to login:", error);
+        
+        // Fallback: Show inline login UI
+        const appContainer = document.getElementById('app-container') || document.body;
+        appContainer.innerHTML = `
+            <div style="text-align: center; padding: 50px;">
+                <h2>Login Required</h2>
+                <p>Please log in to continue</p>
+                <a href="login.html" style="display: inline-block; padding: 10px 20px; 
+                   background: #007bff; color: white; text-decoration: none; border-radius: 5px;">
+                    Go to Login Page
+                </a>
+                <p style="margin-top: 20px; font-size: 0.9em; color: #666;">
+                    If you're not redirected automatically, <a href="login.html">click here</a>
+                </p>
+            </div>
+        `;
+    }
+}
     
 // ==================== INITIALIZATION ====================
 async init() {
