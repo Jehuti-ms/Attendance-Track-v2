@@ -1,4 +1,4 @@
-// attendance-app.js - COMPLETE FIXED VERSION
+// attendance-app.js - COMPLETE UPDATED VERSION with Firebase
 import { Storage, Utils } from './utils.js';
 
 class AttendanceApp {
@@ -32,71 +32,211 @@ class AttendanceApp {
         }
         return '/';
     }
-    
-   async init() {
-    console.log('🚀 Initializing AttendanceApp...');
-    
-    try {
-        // First check if we have Firebase auth
-        const hasFirebaseAuth = await this.checkFirebaseAuth();
-        console.log('Firebase auth status:', hasFirebaseAuth ? 'Logged in' : 'Not logged in');
+
+    async init() {
+        console.log('🚀 Initializing AttendanceApp...');
         
-        // Check authentication (from localStorage or Firebase)
-        const user = Storage.get('attendance_user');
-        if (user) {
-            this.state.currentUser = user;
-            console.log('User found:', user.name);
+        try {
+            // Check localStorage user first
+            const user = Storage.get('attendance_user');
+            
+            if (user) {
+                this.state.currentUser = user;
+                console.log('LocalStorage user found:', user.name);
+                
+                // Try to sync with Firebase if available
+                await this.syncLocalUserToFirebase(user);
+            }
+
+            // Load UI components
+            await this.loadHeader();
+            await this.loadContent();
+            
+            // Setup page-specific handlers
+            this.setupPageHandlers();
+            
+            // Setup event listeners
+            this.setupEventListeners();
+            
+            // Initialize service worker
+            this.initServiceWorker();
+            
+            console.log('✅ AttendanceApp initialized successfully');
+            
+        } catch (error) {
+            console.error('❌ Error initializing app:', error);
+            this.showError(error.message);
         }
-
-        // Load UI components
-        await this.loadHeader();
-        await this.loadContent();
-        
-        // Setup page-specific handlers
-        this.setupPageHandlers();
-        
-        // Setup event listeners
-        this.setupEventListeners();
-        
-        // Initialize service worker
-        this.initServiceWorker();
-        
-        console.log('✅ AttendanceApp initialized successfully');
-        
-    } catch (error) {
-        console.error('❌ Error initializing app:', error);
-        this.showError(error.message);
     }
-}
 
-    // In attendance-app.js, update checkFirebaseAuth method:
-async checkFirebaseAuth() {
-    try {
-        // Import dynamically to avoid early loading errors
-        const { auth } = await import('./firebase.js');
-        
-        console.log('Firebase auth object:', auth);
-        console.log('Current user:', auth.currentUser);
-        
-        if (auth.currentUser) {
-            console.log('Firebase user already logged in:', auth.currentUser.email);
+    // ========== FIREBASE AUTH METHODS ==========
+    async syncLocalUserToFirebase(localUser) {
+        try {
+            // Dynamically import Firebase to avoid loading errors
+            const { auth } = await import('./firebase.js');
+            
+            // If Firebase user already exists, we're good
+            if (auth.currentUser) {
+                console.log('Firebase user already logged in:', auth.currentUser.email);
+                return true;
+            }
+            
+            // Try to login with Firebase using localStorage credentials
+            const { signInWithEmailAndPassword } = await import(
+                'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js'
+            );
+            
+            // Use the email from localStorage or default
+            const email = localUser.email || 'teacher@school.edu';
+            const password = 'demo123'; // Default password for Firebase
+            
+            console.log('Attempting Firebase auto-login for:', email);
+            
+            const userCredential = await signInWithEmailAndPassword(auth, email, password);
+            console.log('✅ Firebase auto-login successful:', userCredential.user.email);
+            
+            // Update localStorage user with Firebase UID
+            this.state.currentUser.id = userCredential.user.uid;
+            Storage.set('attendance_user', this.state.currentUser);
+            
+            return true;
+            
+        } catch (error) {
+            console.log('Firebase auto-login failed, continuing with localStorage:', error.message);
+            
+            // If user doesn't exist in Firebase, create it
+            if (error.code === 'auth/user-not-found') {
+                return await this.createFirebaseUser(
+                    localUser.email || 'teacher@school.edu',
+                    'demo123',
+                    localUser.name || 'Teacher'
+                );
+            }
+            
+            return false;
+        }
+    }
+
+    async createFirebaseUser(email, password, name) {
+        try {
+            const { createUserWithEmailAndPassword } = await import(
+                'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js'
+            );
+            const { auth } = await import('./firebase.js');
+            
+            console.log('Creating new Firebase user:', email);
+            
+            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+            const user = userCredential.user;
+            
+            console.log('✅ Firebase user created:', user.email);
+            
+            // Update localStorage with new Firebase user info
             this.state.currentUser = {
-                id: auth.currentUser.uid,
-                email: auth.currentUser.email,
-                name: auth.currentUser.displayName || auth.currentUser.email.split('@')[0],
+                id: user.uid,
+                email: user.email,
+                name: name || user.email.split('@')[0],
                 role: 'teacher'
             };
+            
             Storage.set('attendance_user', this.state.currentUser);
+            
             return true;
+            
+        } catch (error) {
+            console.error('❌ Failed to create Firebase user:', error);
+            return false;
         }
-        return false;
-    } catch (error) {
-        console.error('Firebase auth check failed:', error);
-        console.log('Falling back to localStorage authentication');
-        return false;
     }
-}
-    
+
+    async checkFirebaseAuth() {
+        try {
+            const { auth } = await import('./firebase.js');
+            
+            console.log('Firebase auth object:', auth);
+            console.log('Current user:', auth.currentUser);
+            
+            if (auth.currentUser) {
+                console.log('Firebase user already logged in:', auth.currentUser.email);
+                this.state.currentUser = {
+                    id: auth.currentUser.uid,
+                    email: auth.currentUser.email,
+                    name: auth.currentUser.displayName || auth.currentUser.email.split('@')[0],
+                    role: 'teacher'
+                };
+                Storage.set('attendance_user', this.state.currentUser);
+                return true;
+            }
+            return false;
+        } catch (error) {
+            console.error('Firebase auth check failed:', error);
+            console.log('Falling back to localStorage authentication');
+            return false;
+        }
+    }
+
+    // ========== LOGIN HANDLER (for login page) ==========
+    async handleLogin() {
+        const email = document.getElementById('email')?.value || 'teacher@school.edu';
+        const password = document.getElementById('password')?.value || 'demo123';
+        
+        console.log('Attempting Firebase login with:', email);
+        
+        try {
+            // Import Firebase auth functions
+            const { signInWithEmailAndPassword } = await import(
+                'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js'
+            );
+            const { auth } = await import('./firebase.js');
+            
+            // Try Firebase login
+            const userCredential = await signInWithEmailAndPassword(auth, email, password);
+            const user = userCredential.user;
+            
+            console.log('✅ Firebase login successful:', user.email);
+            
+            // Update user in state
+            this.state.currentUser = {
+                id: user.uid,
+                email: user.email,
+                name: user.displayName || user.email.split('@')[0],
+                role: 'teacher'
+            };
+            
+            // Save to localStorage
+            Storage.set('attendance_user', this.state.currentUser);
+            
+            Utils.showToast('Firebase login successful!', 'success');
+            
+            // Redirect to dashboard
+            setTimeout(() => {
+                this.goToDashboard();
+            }, 1000);
+            
+        } catch (error) {
+            console.error('❌ Firebase login error:', error.code, error.message);
+            
+            // Check if it's a "user-not-found" error
+            if (error.code === 'auth/user-not-found') {
+                // Create the user first, then login
+                await this.createFirebaseUser(email, password, email.split('@')[0]);
+                Utils.showToast('New account created! Logged in.', 'success');
+                
+                setTimeout(() => {
+                    this.goToDashboard();
+                }, 1000);
+                
+            } else if (error.code === 'auth/wrong-password') {
+                Utils.showToast('Wrong password. Try "demo123"', 'error');
+            } else {
+                Utils.showToast(`Login failed: ${error.message}`, 'error');
+                // Fallback to demo mode
+                this.startDemoMode();
+            }
+        }
+    }
+
+    // ========== HEADER & UI METHODS ==========
     async loadHeader() {
         const headerContainer = document.getElementById('header-container');
         if (!headerContainer) return;
@@ -119,6 +259,9 @@ async checkFirebaseAuth() {
                             <div class="user-details">
                                 <div class="user-name">${this.state.currentUser.name}</div>
                                 <div class="user-role">${this.state.currentUser.role || 'Teacher'}</div>
+                                <div class="user-auth" style="font-size: 0.8rem; color: #666;">
+                                    ${this.state.currentUser.id?.startsWith('demo-') ? 'Demo Mode' : 'Firebase'}
+                                </div>
                             </div>
                         </div>
                         <button class="btn btn-outline" onclick="app.logout()">Logout</button>
@@ -182,6 +325,86 @@ async checkFirebaseAuth() {
         }
     }
 
+    // ========== PAGE CONTENT METHODS ==========
+    async loadLoginContent(container) {
+        container.innerHTML = `
+            <div class="login-page">
+                <div class="login-card">
+                    <div class="login-header">
+                        <div class="login-icon">🔐</div>
+                        <h1>Login</h1>
+                        <p>Access your attendance tracking system</p>
+                    </div>
+                    
+                    <form id="login-form" class="login-form">
+                        <div class="form-group">
+                            <label for="email">Email Address</label>
+                            <input 
+                                type="email" 
+                                id="email" 
+                                name="email"
+                                placeholder="teacher@school.edu"
+                                required
+                                value="teacher@school.edu"
+                            >
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="password">Password</label>
+                            <input 
+                                type="password" 
+                                id="password" 
+                                name="password"
+                                placeholder="Enter your password"
+                                required
+                                value="demo123"
+                            >
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary btn-block">
+                            Sign In with Firebase
+                        </button>
+                        
+                        <div class="login-options">
+                            <button type="button" class="btn btn-link" onclick="app.startDemoMode()">
+                                Try Demo Mode (No Firebase)
+                            </button>
+                            <button type="button" class="btn btn-link" onclick="app.goToIndex()">
+                                Back to Home
+                            </button>
+                        </div>
+                        
+                        <div id="firebase-status" style="margin-top: 20px; padding: 10px; background: #f8f9fa; border-radius: 4px; text-align: center;">
+                            <small>Firebase Status: <span id="status-text">Checking...</span></small>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        `;
+        
+        // Add Firebase status check
+        setTimeout(async () => {
+            try {
+                const { auth } = await import('./firebase.js');
+                const statusText = document.getElementById('status-text');
+                
+                if (auth) {
+                    statusText.textContent = 'Connected ✅';
+                    statusText.style.color = '#28a745';
+                } else {
+                    statusText.textContent = 'Not connected ❌';
+                    statusText.style.color = '#dc3545';
+                }
+            } catch (error) {
+                document.getElementById('status-text').textContent = 'Error loading Firebase';
+                document.getElementById('status-text').style.color = '#dc3545';
+            }
+        }, 100);
+        
+        // Setup login form handler
+        this.setupPageHandlers();
+    }
+
     async loadIndexContent(container) {
         container.innerHTML = `
             <div class="landing-page">
@@ -215,7 +438,7 @@ async checkFirebaseAuth() {
                             </button>
                         ` : `
                             <button class="btn btn-lg btn-primary" onclick="app.goToLogin()">
-                                Login to Start
+                                Login with Firebase
                             </button>
                             <button class="btn btn-lg btn-secondary" onclick="app.startDemoMode()">
                                 Try Demo Mode
@@ -227,413 +450,60 @@ async checkFirebaseAuth() {
         `;
     }
 
-    async loadLoginContent(container) {
-        container.innerHTML = `
-            <div class="login-page">
-                <div class="login-card">
-                    <div class="login-header">
-                        <div class="login-icon">🔐</div>
-                        <h1>Login</h1>
-                        <p>Access your attendance tracking system</p>
-                    </div>
-                    
-                    <form id="login-form" class="login-form">
-                        <div class="form-group">
-                            <label for="email">Email Address</label>
-                            <input 
-                                type="email" 
-                                id="email" 
-                                name="email"
-                                placeholder="teacher@school.edu"
-                                required
-                                value="demo@school.edu"
-                            >
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="password">Password</label>
-                            <input 
-                                type="password" 
-                                id="password" 
-                                name="password"
-                                placeholder="Enter your password"
-                                required
-                                value="demo123"
-                            >
-                        </div>
-                        
-                        <button type="submit" class="btn btn-primary btn-block">
-                            Sign In
-                        </button>
-                        
-                        <div class="login-options">
-                            <button type="button" class="btn btn-link" onclick="app.startDemoMode()">
-                                Try Demo Mode
-                            </button>
-                            <button type="button" class="btn btn-link" onclick="app.goToIndex()">
-                                Back to Home
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        `;
-    }
-
     async loadDashboardContent(container) {
         if (!this.state.currentUser) {
             this.goToLogin();
             return;
         }
         
-        // Load stats
-        const classes = Storage.get('attendance_classes', []);
-        const records = Storage.get('attendance_records', []);
-        
-        const totalStudents = classes.reduce((sum, cls) => sum + (cls.students || 0), 0);
-        const totalClasses = classes.length;
-        
-        container.innerHTML = `
-            <div class="dashboard">
-                <div class="dashboard-header">
-                    <h2>Welcome, ${this.state.currentUser.name}!</h2>
-                    <p>${this.state.currentUser.role || 'Teacher'} Dashboard</p>
-                </div>
-                
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-icon">👥</div>
-                        <div class="stat-content">
-                            <div class="stat-number">${totalStudents}</div>
-                            <div class="stat-label">Total Students</div>
-                        </div>
-                    </div>
-                    
-                    <div class="stat-card">
-                        <div class="stat-icon">📚</div>
-                        <div class="stat-content">
-                            <div class="stat-number">${totalClasses}</div>
-                            <div class="stat-label">Classes</div>
-                        </div>
-                    </div>
-                    
-                    <div class="stat-card">
-                        <div class="stat-icon">📊</div>
-                        <div class="stat-content">
-                            <div class="stat-number">${records.length}</div>
-                            <div class="stat-label">Records</div>
-                        </div>
-                    </div>
-                    
-                    <div class="stat-card">
-                        <div class="stat-icon">🎯</div>
-                        <div class="stat-content">
-                            <div class="stat-number">92%</div>
-                            <div class="stat-label">Attendance Rate</div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="quick-actions">
-                    <h3>Quick Actions</h3>
-                    <div class="actions-grid">
-                        <button class="action-card" onclick="app.goToAttendance()">
-                            <div class="action-icon">📝</div>
-                            <div class="action-content">
-                                <h4>Take Attendance</h4>
-                                <p>Record today's attendance</p>
-                            </div>
-                        </button>
-                        
-                        <button class="action-card" onclick="app.goToReports()">
-                            <div class="action-icon">📈</div>
-                            <div class="action-content">
-                                <h4>View Reports</h4>
-                                <p>Generate attendance reports</p>
-                            </div>
-                        </button>
-                        
-                        <button class="action-card" onclick="app.goToSetup()">
-                            <div class="action-icon">⚙️</div>
-                            <div class="action-content">
-                                <h4>Setup</h4>
-                                <p>Configure your system</p>
-                            </div>
-                        </button>
-                        
-                        <button class="action-card" onclick="app.goToSettings()">
-                            <div class="action-icon">🔧</div>
-                            <div class="action-content">
-                                <h4>Settings</h4>
-                                <p>Manage preferences</p>
-                            </div>
-                        </button>
-                        
-                        <button class="action-card" onclick="app.goToMaintenance()">
-                            <div class="action-icon">💾</div>
-                            <div class="action-content">
-                                <h4>Maintenance</h4>
-                                <p>Manage data and backups</p>
-                            </div>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        `;
+        // Import DashboardManager dynamically
+        import('./dashboard.js').then(module => {
+            this.dashboardManager = new module.DashboardManager(this);
+            this.dashboardManager.init();
+        }).catch(error => {
+            console.error('Failed to load dashboard module:', error);
+            this.loadBasicDashboardContent(container);
+        });
     }
 
-    async loadSetupContent(container) {
+    async loadAttendanceContent(container) {
         if (!this.state.currentUser) {
             this.goToLogin();
             return;
         }
         
-        container.innerHTML = `
-            <div class="setup-page">
-                <div class="page-header">
-                    <h2>System Setup</h2>
-                    <p>Configure your institution settings</p>
-                </div>
-                
-                <div class="setup-content">
-                    <div class="setup-card">
-                        <h3>🏫 School Information</h3>
-                        <div class="form-group">
-                            <label>School Name</label>
-                            <input type="text" id="school-name" placeholder="Enter school name" value="Demo Academy">
-                        </div>
-                        <div class="form-group">
-                            <label>Academic Year</label>
-                            <input type="text" id="academic-year" placeholder="e.g., 2024-2025" value="2024-2025">
-                        </div>
-                        <button class="btn btn-primary" onclick="app.saveSchoolInfo()">Save School Info</button>
-                    </div>
-                    
-                    <div class="setup-card">
-                        <h3>📚 Manage Classes</h3>
-                        <div id="classes-list">
-                            <p>No classes added yet.</p>
-                        </div>
-                        <div class="form-group">
-                            <label>Add New Class</label>
-                            <input type="text" id="new-class-name" placeholder="Class name">
-                            <input type="number" id="new-class-size" placeholder="Number of students" style="margin-top: 10px;">
-                        </div>
-                        <button class="btn btn-secondary" onclick="app.addNewClass()">Add Class</button>
-                    </div>
-                    
-                    <div class="setup-actions">
-                        <button class="btn btn-success" onclick="app.completeSetup()">Complete Setup</button>
-                        <button class="btn btn-outline" onclick="app.goToDashboard()">Back to Dashboard</button>
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        // Load existing classes
-        this.loadClassesList();
+        // Import AttendanceManager dynamically
+        import('./attendance.js').then(module => {
+            this.attendanceManager = new module.AttendanceManager(this);
+            this.attendanceManager.init();
+        }).catch(error => {
+            console.error('Failed to load attendance module:', error);
+            this.loadBasicAttendanceContent(container);
+        });
     }
 
-    async loadSettingsContent(container) {
-        if (!this.state.currentUser) {
-            this.goToLogin();
-            return;
-        }
-        
+    async loadBasicDashboardContent(container) {
         container.innerHTML = `
-            <div class="settings-page">
-                <div class="page-header">
-                    <h2>Settings</h2>
-                    <p>Configure application preferences</p>
-                </div>
-                
-                <div class="settings-content">
-                    <div class="settings-card">
-                        <h3>⚙️ General Settings</h3>
-                        <div class="setting-item">
-                            <label>Theme</label>
-                            <select id="theme-select">
-                                <option value="light">Light</option>
-                                <option value="dark">Dark</option>
-                                <option value="auto">Auto</option>
-                            </select>
-                        </div>
-                        <div class="setting-item">
-                            <label>Language</label>
-                            <select id="language-select">
-                                <option>English</option>
-                                <option>Spanish</option>
-                                <option>French</option>
-                            </select>
-                        </div>
-                        <button class="btn btn-primary" onclick="app.saveSettings()">Save Settings</button>
-                    </div>
-                    
-                    <div class="settings-card">
-                        <h3>🔒 Account</h3>
-                        <p>Logged in as: ${this.state.currentUser.email}</p>
-                        <button class="btn btn-secondary" onclick="app.goToDashboard()">Back to Dashboard</button>
-                        <button class="btn btn-outline" onclick="app.logout()" style="margin-left: 10px;">Logout</button>
-                    </div>
-                </div>
+            <div style="padding: 40px; text-align: center;">
+                <div style="font-size: 3rem; margin-bottom: 20px;">📊</div>
+                <h2>Dashboard</h2>
+                <p>Welcome to Attendance Track v2</p>
+                <button class="btn btn-primary" onclick="app.goToAttendance()">
+                    Take Attendance
+                </button>
             </div>
         `;
     }
 
-    async loadMaintenanceContent(container) {
-        if (!this.state.currentUser) {
-            this.goToLogin();
-            return;
-        }
-        
+    async loadBasicAttendanceContent(container) {
         container.innerHTML = `
-            <div class="maintenance-page">
-                <div class="page-header">
-                    <h2>Data Maintenance</h2>
-                    <p>Manage backups and system data</p>
-                </div>
-                
-                <div class="maintenance-content">
-                    <div class="maintenance-card">
-                        <h3>💾 Backup Data</h3>
-                        <p>Create a backup of all attendance records and settings</p>
-                        <button class="btn btn-primary" onclick="app.createBackup()">Create Backup</button>
-                    </div>
-                    
-                    <div class="maintenance-card">
-                        <h3>🔄 Restore Data</h3>
-                        <p>Restore from a previous backup file</p>
-                        <input type="file" id="backup-file" accept=".json" style="margin-bottom: 15px;">
-                        <button class="btn btn-secondary" onclick="app.restoreBackup()">Restore Backup</button>
-                    </div>
-                    
-                    <div class="maintenance-card danger">
-                        <h3>⚠️ Danger Zone</h3>
-                        <p>Clear all data (this cannot be undone!)</p>
-                        <button class="btn btn-danger" onclick="app.clearAllData()">Clear All Data</button>
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-
-async loadAttendanceContent(container) {
-    if (!this.state.currentUser) {
-        this.goToLogin();
-        return;
-    }
-    
-    // Import the AttendanceManager dynamically
-    import('./attendance.js').then(module => {
-        this.attendanceManager = new module.AttendanceManager(this);
-        this.attendanceManager.init();
-    }).catch(error => {
-        console.error('Failed to load attendance module:', error);
-        this.loadBasicAttendanceContent(container);
-    });
-}
-
-async loadBasicAttendanceContent(container) {
-    // Fallback content if module fails to load
-    container.innerHTML = `
-        <div id="attendance-content" style="display: block;" class="attendance-page">
-            <div class="attendance-header">
-                <div class="header-top">
-                    <div>
-                        <h1 style="margin: 0; font-size: 2rem;">📊 Daily Attendance</h1>
-                        <div class="term-week-display">
-                            <span id="current-term">Term 1</span> • 
-                            <span id="current-week">Week 1</span>
-                        </div>
-                    </div>
-                    <div class="date-display" id="current-date">
-                        ${new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }).replace(/\//g, ' / ')}
-                    </div>
-                </div>
-                
-                <div class="session-tabs">
-                    <div class="session-tab active" data-session="both">
-                        <span>☀️🌙</span>
-                        Both Sessions
-                    </div>
-                    <div class="session-tab" data-session="am">
-                        <span>☀️</span>
-                        AM Session Only
-                    </div>
-                    <div class="session-tab" data-session="pm">
-                        <span>🌙</span>
-                        PM Session Only
-                    </div>
-                </div>
-            </div>
-            
-            <div class="attendance-container">
-                <div class="attendance-table-container">
-                    <div style="text-align: center; padding: 50px;">
-                        <div style="font-size: 3rem; margin-bottom: 20px;">📋</div>
-                        <h3>Attendance System Loading...</h3>
-                        <p>If this persists, please refresh the page.</p>
-                        <button class="btn btn-primary" onclick="window.location.reload()">
-                            Refresh Page
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    // Hide loading
-    const loadingContent = document.getElementById('loading-content');
-    if (loadingContent) {
-        loadingContent.style.display = 'none';
-    }
-}
-
-    async loadReportsContent(container) {
-        if (!this.state.currentUser) {
-            this.goToLogin();
-            return;
-        }
-        
-        container.innerHTML = `
-            <div class="reports-page">
-                <div class="page-header">
-                    <h2>Reports</h2>
-                    <p>Generate and view attendance reports</p>
-                </div>
-                
-                <div class="reports-content">
-                    <div class="reports-card">
-                        <h3>📊 Generate Report</h3>
-                        <div class="form-group">
-                            <label>Report Type</label>
-                            <select id="report-type">
-                                <option value="daily">Daily Attendance</option>
-                                <option value="weekly">Weekly Summary</option>
-                                <option value="monthly">Monthly Report</option>
-                                <option value="custom">Custom Period</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Date Range</label>
-                            <div style="display: flex; gap: 10px;">
-                                <input type="date" id="start-date">
-                                <input type="date" id="end-date">
-                            </div>
-                        </div>
-                        <button class="btn btn-primary" onclick="app.generateReport()">Generate Report</button>
-                    </div>
-                    
-                    <div class="reports-card">
-                        <h3>📤 Export Options</h3>
-                        <p>Export report in different formats</p>
-                        <div class="export-options">
-                            <button class="btn btn-secondary" onclick="app.exportToPDF()">📄 PDF</button>
-                            <button class="btn btn-secondary" onclick="app.exportToExcel()">📊 Excel</button>
-                            <button class="btn btn-secondary" onclick="app.exportToCSV()">📝 CSV</button>
-                        </div>
-                    </div>
-                </div>
+            <div style="padding: 40px; text-align: center;">
+                <div style="font-size: 3rem; margin-bottom: 20px;">📋</div>
+                <h2>Attendance</h2>
+                <p>Loading attendance system...</p>
+                <button class="btn btn-primary" onclick="window.location.reload()">
+                    Retry
+                </button>
             </div>
         `;
     }
@@ -643,8 +513,6 @@ async loadBasicAttendanceContent(container) {
         console.log(`Navigating to: ${page}`);
         const basePath = this.getBasePath();
         const targetUrl = basePath + page + '.html';
-        
-        // Navigate immediately
         window.location.href = targetUrl;
     }
 
@@ -657,97 +525,7 @@ async loadBasicAttendanceContent(container) {
     goToSettings() { this.navigateTo('settings'); }
     goToMaintenance() { this.navigateTo('maintenance'); }
 
-    // ========== SETUP PAGE METHODS ==========
-    loadClassesList() {
-        const classes = Storage.get('attendance_classes', []);
-        const classesList = document.getElementById('classes-list');
-        
-        if (!classesList) return;
-        
-        if (classes.length === 0) {
-            classesList.innerHTML = '<p>No classes added yet.</p>';
-            return;
-        }
-        
-        classesList.innerHTML = `
-            <div class="classes-table">
-                <table style="width: 100%; border-collapse: collapse;">
-                    <thead>
-                        <tr style="background: #f8f9fa;">
-                            <th style="padding: 10px; text-align: left;">Class Name</th>
-                            <th style="padding: 10px; text-align: left;">Students</th>
-                            <th style="padding: 10px; text-align: left;">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${classes.map((cls, index) => `
-                            <tr style="border-bottom: 1px solid #eee;">
-                                <td style="padding: 10px;">${cls.name}</td>
-                                <td style="padding: 10px;">${cls.students || 0}</td>
-                                <td style="padding: 10px;">
-                                    <button class="btn btn-sm" onclick="app.editClass(${index})">Edit</button>
-                                    <button class="btn btn-sm btn-danger" onclick="app.deleteClass(${index})" style="margin-left: 5px;">Delete</button>
-                                </td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            </div>
-        `;
-    }
-
-    saveSchoolInfo() {
-        const schoolName = document.getElementById('school-name')?.value;
-        const academicYear = document.getElementById('academic-year')?.value;
-        
-        if (schoolName && academicYear) {
-            const schoolInfo = { schoolName, academicYear };
-            Storage.set('school_info', schoolInfo);
-            Utils.showToast('School information saved!', 'success');
-        } else {
-            Utils.showToast('Please fill in all fields', 'warning');
-        }
-    }
-
-    addNewClass() {
-        const className = document.getElementById('new-class-name')?.value;
-        const classSize = document.getElementById('new-class-size')?.value;
-        
-        if (!className || !classSize) {
-            Utils.showToast('Please enter class name and size', 'warning');
-            return;
-        }
-        
-        const classes = Storage.get('attendance_classes', []);
-        classes.push({
-            id: 'class-' + Date.now(),
-            name: className,
-            students: parseInt(classSize),
-            createdAt: new Date().toISOString()
-        });
-        
-        Storage.set('attendance_classes', classes);
-        Utils.showToast('Class added successfully!', 'success');
-        
-        // Clear inputs
-        document.getElementById('new-class-name').value = '';
-        document.getElementById('new-class-size').value = '';
-        
-        // Refresh list
-        this.loadClassesList();
-    }
-
-    completeSetup() {
-        Storage.set('setup_completed', true);
-        Storage.set('setup_date', new Date().toISOString());
-        Utils.showToast('Setup completed successfully!', 'success');
-        
-        setTimeout(() => {
-            this.goToDashboard();
-        }, 1500);
-    }
-
-    // ========== LOGIN & AUTH METHODS ==========
+    // ========== AUTH METHODS ==========
     setupPageHandlers() {
         // Login form handler
         if (this.state.currentPage === 'login') {
@@ -759,36 +537,6 @@ async loadBasicAttendanceContent(container) {
                 });
             }
         }
-    }
-
-    handleLogin() {
-        const email = document.getElementById('email')?.value;
-        const password = document.getElementById('password')?.value;
-        
-        if (!email || !password) {
-            Utils.showToast('Please enter email and password', 'warning');
-            return;
-        }
-        
-        // Simple demo login - accept any credentials
-        const user = {
-            id: Utils.generateId(),
-            name: email.split('@')[0] || 'Demo Teacher',
-            email: email,
-            role: 'teacher',
-            school: 'Demo Academy',
-            loginTime: new Date().toISOString()
-        };
-        
-        Storage.set('attendance_user', user);
-        this.state.currentUser = user;
-        
-        Utils.showToast('Login successful!', 'success');
-        
-        // Redirect to dashboard
-        setTimeout(() => {
-            this.goToDashboard();
-        }, 1000);
     }
 
     startDemoMode() {
@@ -812,6 +560,18 @@ async loadBasicAttendanceContent(container) {
     }
 
     logout() {
+        // Try Firebase logout if available
+        import('./firebase.js').then(({ auth }) => {
+            import('https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js').then(({ signOut }) => {
+                signOut(auth).catch(error => {
+                    console.log('Firebase logout error (may not be logged in):', error);
+                });
+            });
+        }).catch(error => {
+            console.log('Firebase not available for logout');
+        });
+        
+        // Clear local data
         Storage.remove('attendance_user');
         Storage.remove('demo_mode');
         this.state.currentUser = null;
@@ -819,7 +579,7 @@ async loadBasicAttendanceContent(container) {
         Utils.showToast('Logged out successfully', 'success');
         
         setTimeout(() => {
-            this.goToIndex(); // FIXED: Added goToIndex function
+            this.goToIndex();
         }, 1000);
     }
 
@@ -894,6 +654,8 @@ async loadBasicAttendanceContent(container) {
             </div>
         `;
     }
+
+    // ... add other page content methods as needed
 }
 
 // Create global instance
