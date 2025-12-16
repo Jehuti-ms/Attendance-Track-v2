@@ -95,6 +95,21 @@ async handleLogin(email, password, rememberMe = false) {
     }
 }
 
+    // handle Logout
+handleLogout() {
+    if (confirm('Are you sure you want to logout?')) {
+        Storage.remove('attendance_user');
+        this.user = null;
+        this.state.currentUser = null;
+        
+        this.showToast('Logged out successfully', 'success');
+        
+        setTimeout(() => {
+            window.location.href = 'index.html';
+        }, 500);
+    }
+}
+    
 // ==================== SIGNUP HANDLER ====================
 async handleSignup(name, email, password, role, school, termsAccepted) {
     console.log('📝 Handling signup:', email);
@@ -559,8 +574,10 @@ async loadPageContent() {
         
         switch(currentPage) {
             case 'index':
+                await this.loadIndexContent(appContainer);  // CHANGED: Added parameter
+                break;
             case 'login':
-                // Login page handles its own content
+                await this.loadLoginContent(appContainer);  // CHANGED: Added parameter
                 break;
             case 'dashboard':
                 await this.loadDashboardContent(appContainer);
@@ -585,84 +602,93 @@ async loadPageContent() {
         this.showError(`Failed to load ${currentPage} page`);
     }
 }
-
+    
     // ==================== PAGE CONTENT RENDERERS ====================
-    async loadIndexContent() {
-        const appContainer = document.getElementById('app-container');
-        appContainer.innerHTML = `
-            <div class="landing-page">
-                <div class="hero">
-                    <div class="hero-icon">📋</div>
-                    <h1>Attendance Tracker v2</h1>
-                    <p>Modern attendance tracking for schools</p>
-                    
-                    <div class="hero-actions">
-                        ${this.user ? `
-                            <a href="dashboard.html" class="btn btn-lg btn-primary">
-                                Go to Dashboard
-                            </a>
-                            <button onclick="window.app.handleLogout()" class="btn btn-lg btn-secondary">
-                                Logout
-                            </button>
-                        ` : `
-                            <a href="login.html" class="btn btn-lg btn-primary">
-                                Login
-                            </a>
-                            <button onclick="window.app.startDemoMode()" class="btn btn-lg btn-secondary">
-                                Try Demo Mode
-                            </button>
-                        `}
-                    </div>
+    async loadIndexContent(container) {
+    if (!container) {
+        console.error('❌ No container provided for index page');
+        return;
+    }
+    
+    container.innerHTML = `
+        <div class="landing-page">
+            <div class="hero">
+                <div class="hero-icon">📋</div>
+                <h1>Attendance Tracker v2</h1>
+                <p>Modern attendance tracking for schools</p>
+                
+                <div class="hero-actions">
+                    ${this.user ? `
+                        <a href="dashboard.html" class="btn btn-lg btn-primary">
+                            Go to Dashboard
+                        </a>
+                        <button onclick="window.app.handleLogout()" class="btn btn-lg btn-secondary">
+                            Logout
+                        </button>
+                    ` : `
+                        <a href="login.html" class="btn btn-lg btn-primary">
+                            Login
+                        </a>
+                        <button onclick="window.app.startDemoMode()" class="btn btn-lg btn-secondary">
+                            Try Demo Mode
+                        </button>
+                    `}
                 </div>
             </div>
-        `;
+        </div>
+    `;
+}
+    
+    async loadLoginContent(container) {
+    if (!container) {
+        console.error('❌ No container provided for login page');
+        return;
     }
+    
+    container.innerHTML = `
+        <div class="login-container">
+            <div class="login-card">
+                <h2>Login</h2>
+                <p>Enter your credentials to access the system</p>
+                
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="loginEmail" placeholder="teacher@school.edu" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" id="loginPassword" placeholder="Enter password" required>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary btn-block">Login</button>
+                        <button type="button" onclick="window.app.startDemoMode()" class="btn btn-secondary btn-block">
+                            Use Demo Mode
+                        </button>
+                    </div>
+                </form>
+                
+                <div class="login-info">
+                    <p><strong>Demo Credentials:</strong></p>
+                    <p>Email: teacher@school.edu</p>
+                    <p>Password: demo123</p>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Setup login form handler
+    const loginForm = document.getElementById('loginForm');
+    if (loginForm) {
+        loginForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.handleLogin();
+        });
+    }
+}
 
-    async loadLoginContent() {
-        const appContainer = document.getElementById('app-container');
-        appContainer.innerHTML = `
-            <div class="login-container">
-                <div class="login-card">
-                    <h2>Login</h2>
-                    <p>Enter your credentials to access the system</p>
-                    
-                    <form id="loginForm">
-                        <div class="form-group">
-                            <label>Email</label>
-                            <input type="email" id="loginEmail" placeholder="teacher@school.edu" required>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label>Password</label>
-                            <input type="password" id="loginPassword" placeholder="Enter password" required>
-                        </div>
-                        
-                        <div class="form-actions">
-                            <button type="submit" class="btn btn-primary btn-block">Login</button>
-                            <button type="button" onclick="window.app.startDemoMode()" class="btn btn-secondary btn-block">
-                                Use Demo Mode
-                            </button>
-                        </div>
-                    </form>
-                    
-                    <div class="login-info">
-                        <p><strong>Demo Credentials:</strong></p>
-                        <p>Email: teacher@school.edu</p>
-                        <p>Password: demo123</p>
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        // Setup login form handler
-        const loginForm = document.getElementById('loginForm');
-        if (loginForm) {
-            loginForm.addEventListener('submit', (e) => {
-                e.preventDefault();
-                this.handleLogin();
-            });
-        }
-    }
     
 // ================== LOAD DASHBOARD CONTENT =====================
     // In attendance-app.js - Update the loadDashboardContent method:
@@ -1595,40 +1621,250 @@ backupData() {
 }
     
 // ================== LOAD ATTENDANCE CONTENT =================
-    async loadAttendanceContent() {
-        const appContainer = document.getElementById('app-container');
-        appContainer.innerHTML = `
-            <div class="attendance-page">
-                <div class="attendance-header">
-                    <h2>Attendance Tracking</h2>
-                    <p>Select a class to take attendance</p>
+   // In attendance-app.js
+loadAttendanceContent(container) {
+    if (!this.user) {
+        container.innerHTML = `<div class="error">No user found. Please login again.</div>`;
+        return;
+    }
+    
+    // Get today's date in format: MM / DD / YYYY
+    const today = new Date();
+    const formattedDate = `${today.getMonth() + 1} / ${today.getDate()} / ${today.getFullYear()}`;
+    
+    container.innerHTML = `
+        <div class="attendance-report">
+            <div class="header">
+                <h1>Attendance Track</h1>
+                <h2>Daily Attendance</h2>
+            </div>
+            
+            <div class="info-section">
+                <div class="info-item">
+                    <label>Date:</label>
+                    <span class="date-value">${formattedDate}</span>
                 </div>
-                
-                <div class="attendance-container">
-                    <div class="classes-panel">
-                        <h3>Select Class</h3>
-                        <div class="classes-list">
-                            <div class="no-classes">
-                                <p>No classes set up yet</p>
-                                <a href="setup.html" class="btn btn-primary">Setup Classes</a>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="attendance-main">
-                        <div class="attendance-placeholder">
-                            <div class="placeholder-icon">📋</div>
-                            <h3>Select a Class</h3>
-                            <p>Choose a class from the left panel to begin taking attendance</p>
-                        </div>
-                    </div>
+                <div class="info-item">
+                    <label>Term:</label>
+                    <span class="term-value">Term 1</span>
+                </div>
+                <div class="info-item">
+                    <label>Week:</label>
+                    <span class="week-value">Week 1</span>
                 </div>
             </div>
-        `;
-    }
-
+            
+            <div class="session-selection">
+                <div class="session-option">
+                    <input type="checkbox" id="both-sessions" checked disabled>
+                    <label for="both-sessions">Both Sessions</label>
+                </div>
+                <div class="session-option">
+                    <input type="checkbox" id="am-only">
+                    <label for="am-only">AM Session Only</label>
+                </div>
+                <div class="session-option">
+                    <input type="checkbox" id="pm-only">
+                    <label for="pm-only">PM Session Only</label>
+                </div>
+            </div>
+            
+            <div class="table-container">
+                <table class="summary-table">
+                    <thead>
+                        <tr>
+                            <th>Year Group</th>
+                            <th>Class</th>
+                            <th>Total</th>
+                            <th colspan="2">Male Present</th>
+                            <th colspan="2">Female Present</th>
+                            <th>AM Rate</th>
+                            <th>PM Rate</th>
+                            <th>Daily Rate</th>
+                            <th>Cumulative</th>
+                            <th>vs Avg</th>
+                        </tr>
+                        <tr class="sub-header">
+                            <th colspan="3"></th>
+                            <th>AM</th>
+                            <th>PM</th>
+                            <th>AM</th>
+                            <th>PM</th>
+                            <th colspan="5"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="summary-table-body">
+                        <!-- Class rows will be inserted here -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="attendance-actions">
+                <button class="btn-primary" onclick="window.app.takeAttendance()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="8.5" cy="7" r="4"></circle>
+                        <line x1="20" y1="8" x2="20" y2="14"></line>
+                        <line x1="23" y1="11" x2="17" y2="11"></line>
+                    </svg>
+                    Take Attendance
+                </button>
+                <button class="btn-secondary" onclick="window.app.printAttendance()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                        <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                        <rect x="6" y="14" width="12" height="8"></rect>
+                    </svg>
+                    Print Report
+                </button>
+            </div>
+        </div>
+        
+        <!-- Page 2: Student Details -->
+        <div class="page-break student-details-page">
+            <div class="header">
+                <h2>Student Attendance Details</h2>
+                <div class="print-date">Printed: ${new Date().toLocaleDateString()}</div>
+            </div>
+            <div id="student-details-container">
+                <!-- Student details will be inserted here -->
+            </div>
+        </div>
+    `;
     
+    // Load the attendance data
+    this.loadAttendanceData();
+}
 
+// Add this method to load attendance data
+async loadAttendanceData() {
+    console.log('📋 Loading attendance data...');
+    
+    try {
+        // Load classes from storage
+        const classes = Storage.get('classes') || [];
+        const students = Storage.get('students') || [];
+        const attendance = Storage.get('attendance') || [];
+        
+        const summaryTable = document.getElementById('summary-table-body');
+        const studentDetailsContainer = document.getElementById('student-details-container');
+        
+        if (!summaryTable || !studentDetailsContainer) {
+            console.error('Required elements not found');
+            return;
+        }
+        
+        // Clear previous content
+        summaryTable.innerHTML = '';
+        studentDetailsContainer.innerHTML = '';
+        
+        // For each class, create summary row and student details
+        classes.forEach((classItem, index) => {
+            // Get students in this class
+            const classStudents = students.filter(s => s.classId === classItem.id);
+            const classAttendance = attendance.filter(a => a.classId === classItem.id);
+            
+            // Calculate attendance stats
+            const today = new Date().toISOString().split('T')[0];
+            const todayAttendance = classAttendance.find(a => a.date === today);
+            
+            // Summary row for page 1
+            const summaryRow = document.createElement('tr');
+            summaryRow.innerHTML = `
+                <td>${classItem.yearGroup || '3rd Years'}</td>
+                <td><strong>${classItem.code || classItem.name}</strong></td>
+                <td>${classStudents.length}</td>
+                <td>${todayAttendance?.malePresentAM || 0}</td>
+                <td>${todayAttendance?.malePresentPM || 0}</td>
+                <td>${todayAttendance?.femalePresentAM || 0}</td>
+                <td>${todayAttendance?.femalePresentPM || 0}</td>
+                <td>${todayAttendance?.amRate || '0%'}</td>
+                <td>${todayAttendance?.pmRate || '0%'}</td>
+                <td>${todayAttendance?.dailyRate || '0%'}</td>
+                <td>${classAttendance.length > 0 ? 'N/A' : 'No Data'}</td>
+                <td>${classAttendance.length > 0 ? 'N/A' : 'No Data'}</td>
+            `;
+            summaryTable.appendChild(summaryRow);
+            
+            // Student details for page 2
+            const classSection = document.createElement('div');
+            classSection.className = 'class-section';
+            classSection.innerHTML = `
+                <h3>${classItem.yearGroup || '3rd Years'} - ${classItem.code || classItem.name}</h3>
+                <table class="student-table">
+                    <thead>
+                        <tr>
+                            <th>No.</th>
+                            <th>Student Name</th>
+                            <th>Gender</th>
+                            <th>AM</th>
+                            <th>PM</th>
+                            <th>Status</th>
+                            <th>Remarks</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${classStudents.map((student, idx) => `
+                            <tr>
+                                <td>${idx + 1}</td>
+                                <td>${student.name}</td>
+                                <td>${student.gender || 'N/A'}</td>
+                                <td><input type="checkbox" data-student-id="${student.id}" data-session="am"></td>
+                                <td><input type="checkbox" data-student-id="${student.id}" data-session="pm"></td>
+                                <td class="status-cell"><span class="status pending">Pending</span></td>
+                                <td><input type="text" class="remarks" data-student-id="${student.id}" placeholder="Notes..."></td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+            studentDetailsContainer.appendChild(classSection);
+            
+            // Add page break between classes except the last one
+            if (index < classes.length - 1) {
+                const pageBreak = document.createElement('div');
+                pageBreak.className = 'page-break';
+                studentDetailsContainer.appendChild(pageBreak);
+            }
+        });
+        
+        // If no classes exist
+        if (classes.length === 0) {
+            summaryTable.innerHTML = `
+                <tr>
+                    <td colspan="12" class="no-data">
+                        No classes found. Please setup classes first.
+                    </td>
+                </tr>
+            `;
+            
+            studentDetailsContainer.innerHTML = `
+                <div class="no-data-message">
+                    <p>No classes or students found.</p>
+                    <p>Go to <a href="setup.html">Setup</a> to add classes and students.</p>
+                </div>
+            `;
+        }
+        
+    } catch (error) {
+        console.error('Error loading attendance data:', error);
+        this.showToast('Error loading attendance data', 'error');
+    }
+}
+
+// Add methods for actions
+takeAttendance() {
+    console.log('Taking attendance...');
+    // Add your attendance taking logic here
+    this.showToast('Attendance taking mode activated', 'info');
+}
+
+printAttendance() {
+    console.log('Printing attendance report...');
+    window.print();
+}
+
+// =================== REPORTS CONTENT ======================
     async loadReportsContent() {
         const appContainer = document.getElementById('app-container');
         appContainer.innerHTML = `
