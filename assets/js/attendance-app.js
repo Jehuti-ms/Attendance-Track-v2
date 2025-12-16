@@ -1440,53 +1440,47 @@ showError(message) {
 }
     
     // ========== FIREBASE AUTH METHODS ==========
-    async syncLocalUserToFirebase(localUser) {
-        try {
-            // Dynamically import Firebase to avoid loading errors
-            const { auth } = await import('./firebase.js');
-            
-            // If Firebase user already exists, we're good
-            if (auth.currentUser) {
-                console.log('Firebase user already logged in:', auth.currentUser.email);
-                return true;
-            }
-            
-            // Try to login with Firebase using localStorage credentials
-            const { signInWithEmailAndPassword } = await import(
-                'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js'
-            );
-            
-            // Use the email from localStorage or default
-            const email = localUser.email || 'teacher@school.edu';
-            const password = 'demo123'; // Default password for Firebase
-            
-            console.log('Attempting Firebase auto-login for:', email);
-            
-            const userCredential = await signInWithEmailAndPassword(auth, email, password);
-            console.log('✅ Firebase auto-login successful:', userCredential.user.email);
-            
-            // Update localStorage user with Firebase UID
-            this.state.currentUser.id = userCredential.user.uid;
-            Storage.set('attendance_user', this.state.currentUser);
-            
-            return true;
-            
-        } catch (error) {
-            console.log('Firebase auto-login failed, continuing with localStorage:', error.message);
-            
-            // If user doesn't exist in Firebase, create it
-            if (error.code === 'auth/user-not-found') {
-                return await this.createFirebaseUser(
-                    localUser.email || 'teacher@school.edu',
-                    'demo123',
-                    localUser.name || 'Teacher'
-                );
-            }
-            
-            return false;
+    // attendance-app.js - Update the syncLocalUserToFirebase function
+async syncLocalUserToFirebase() {
+    try {
+        const email = localStorage.getItem('userEmail') || 'dmoseley@gams.edu.bb';
+        const password = localStorage.getItem('userPassword');
+        
+        console.log("Attempting Firebase auto-login for:", email);
+        
+        // Only attempt if we have both email and password
+        if (!email || !password) {
+            console.log("No credentials stored for Firebase login");
+            return;
         }
+        
+        // Check if Firebase is available
+        if (typeof firebase === 'undefined') {
+            console.log("Firebase not loaded yet");
+            return;
+        }
+        
+        const userCredential = await firebase.auth().signInWithEmailAndPassword(email, password);
+        console.log("✅ Firebase auto-login successful:", userCredential.user.email);
+        return userCredential.user;
+    } catch (error) {
+        console.error("Firebase auto-login failed:", error.message);
+        
+        // Specific error handling
+        if (error.code === 'auth/invalid-credential') {
+            console.log("Invalid credentials. User may need to login manually.");
+        } else if (error.code === 'auth/user-not-found') {
+            console.log("User not found in Firebase.");
+        } else if (error.code === 'auth/wrong-password') {
+            console.log("Incorrect password.");
+        } else if (error.code === 'auth/network-request-failed') {
+            console.log("Network error. Check internet connection.");
+        }
+        
+        // Continue with localStorage only
+        return null;
     }
-
+}
     async createFirebaseUser(email, password, name) {
         try {
             const { createUserWithEmailAndPassword } = await import(
