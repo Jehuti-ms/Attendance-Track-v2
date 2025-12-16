@@ -436,41 +436,52 @@
 
     // ==================== DIRECT LOGIN (FALLBACK) ====================
     function directLogin(email, password, rememberMe) {
-        try {
-            // Create user object
-            const user = {
-                id: 'user_' + Date.now(),
-                email: email,
-                name: email.split('@')[0],
-                role: 'teacher',
-                school: 'My School',
-                lastLogin: new Date().toISOString()
-            };
-            
-            // Save to storage
-            localStorage.setItem('attendance_user', JSON.stringify(user));
-            
-            // Remember email if requested
-            if (rememberMe) {
-                localStorage.setItem('remember_email', email);
-            } else {
-                localStorage.removeItem('remember_email');
-            }
-            
-            showStatus('Login successful! Redirecting...', 'success');
-            
-            // Redirect to dashboard
-            setTimeout(() => {
-                window.location.href = 'dashboard.html';
-            }, 1000);
-            
-        } catch (error) {
-            console.error('Direct login error:', error);
-            showStatus('Login failed: ' + error.message, 'error');
-            setButtonLoading(document.getElementById('login-submit'), false);
+    try {
+        console.log('🔐 Direct login attempt for:', email);
+        
+        // Create COMPLETE user object
+        const user = {
+            id: 'user_' + Date.now(),
+            email: email,
+            name: email.split('@')[0],
+            role: 'teacher',
+            school: 'My School',
+            lastLogin: new Date().toISOString(),
+            // Add expiration (24 hours from now)
+            expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+        };
+        
+        console.log('Saving user:', user);
+        
+        // Save to storage
+        localStorage.setItem('attendance_user', JSON.stringify(user));
+        
+        // Verify it was saved
+        const saved = localStorage.getItem('attendance_user');
+        console.log('Verification - saved user:', saved);
+        
+        // Remember email if requested
+        if (rememberMe) {
+            localStorage.setItem('remember_email', email);
+        } else {
+            localStorage.removeItem('remember_email');
         }
+        
+        showStatus('Login successful! Redirecting...', 'success');
+        
+        // Use replace() to prevent back button issues
+        setTimeout(() => {
+            console.log('Redirecting to dashboard...');
+            window.location.replace('dashboard.html');
+        }, 1000);
+        
+    } catch (error) {
+        console.error('Direct login error:', error);
+        showStatus('Login failed: ' + error.message, 'error');
+        setButtonLoading(document.getElementById('login-submit'), false);
     }
-
+}
+        
     function handleDemoLogin() {
         const demoUser = {
             id: 'demo_' + Date.now(),
