@@ -3,333 +3,70 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Take Attendance - Attendance Track v2</title>
-    <link rel="stylesheet" href="assets/css/main.css">
-    <link rel="stylesheet" href="assets/css/components.css">
-    <link rel="stylesheet" href="assets/css/theme.css">
-    <link rel="manifest" href="manifest.json">
-    <link rel="icon" href="assets/icons/favicon.ico">
-    <style>
-   /* Attendance Page Specific Styles */
-        .attendance-page {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        
-        .attendance-header {
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-            color: white;
-            padding: 25px;
-            border-radius: 10px;
-            margin-bottom: 30px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        }
-        
-        .header-top {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-        
-        .date-display {
-            font-size: 1.8rem;
-            font-weight: bold;
-        }
-        
-        .term-week-display {
-            font-size: 1.1rem;
-            opacity: 0.9;
-        }
-        
-        .session-tabs {
-            display: flex;
-            gap: 10px;
-            margin-top: 15px;
-        }
-        
-        .session-tab {
-            padding: 12px 25px;
-            background: rgba(255,255,255,0.1);
-            border: 2px solid transparent;
-            border-radius: 6px;
-            color: white;
-            cursor: pointer;
-            font-weight: 500;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .session-tab:hover {
-            background: rgba(255,255,255,0.2);
-        }
-        
-        .session-tab.active {
-            background: white;
-            color: #1e3c72;
-            border-color: white;
-        }
-        
-        .attendance-container {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 30px;
-        }
-        
-        @media (min-width: 1200px) {
-            .attendance-container {
-                grid-template-columns: 350px 1fr;
-            }
-        }
-        
-        /* Classes Panel */
-        .classes-panel {
-            background: white;
-            border-radius: 10px;
-            padding: 25px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            max-height: 800px;
-            overflow-y: auto;
-        }
-        
-        .classes-list {
-            margin-top: 20px;
-        }
-        
-        .class-item {
-            padding: 15px;
-            border: 2px solid #eee;
-            border-radius: 8px;
-            margin-bottom: 15px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-        
-        .class-item:hover {
-            border-color: #2a5298;
-            transform: translateX(5px);
-        }
-        
-        .class-item.active {
-            border-color: #2a5298;
-            background: #f0f5ff;
-        }
-        
-        /* Attendance Table - Exactly like your image */
-        .attendance-table-container {
-            background: white;
-            border-radius: 10px;
-            padding: 25px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            overflow-x: auto;
-        }
-        
-        .attendance-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.95rem;
-        }
-        
-        .attendance-table th {
-            background: #f8f9fa;
-            padding: 15px 10px;
-            text-align: center;
-            font-weight: 600;
-            color: #333;
-            border-bottom: 2px solid #dee2e6;
-            white-space: nowrap;
-        }
-        
-        .attendance-table td {
-            padding: 12px 10px;
-            text-align: center;
-            border-bottom: 1px solid #eee;
-        }
-        
-        .attendance-table tr:hover {
-            background: #f8f9fa;
-        }
-        
-        .year-group-cell {
-            font-weight: 600;
-            color: #1e3c72;
-            text-align: left !important;
-        }
-        
-        .class-cell {
-            font-weight: 600;
-            color: #2a5298;
-        }
-        
-        /* Attendance Input Controls */
-        .attendance-input-group {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-        }
-        
-        .gender-column {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-        }
-        
-        .attendance-input {
-            width: 60px;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            text-align: center;
-            font-weight: 500;
-        }
-        
-        .attendance-input:focus {
-            border-color: #2a5298;
-            outline: none;
-        }
-        
-        .percentage-cell {
-            font-weight: bold;
-            color: #28a745;
-        }
-        
-        .low-percentage {
-            color: #dc3545;
-        }
-        
-        /* Action Buttons */
-        .action-buttons {
-            display: flex;
-            gap: 15px;
-            justify-content: flex-end;
-            margin-top: 30px;
-            padding-top: 20px;
-            border-top: 1px solid #eee;
-        }
-        
-        .btn {
-            padding: 12px 25px;
-            border: none;
-            border-radius: 6px;
-            font-weight: 500;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            transition: all 0.3s ease;
-        }
-        
-        .btn-primary {
-            background: linear-gradient(135deg, #2a5298 0%, #1e3c72 100%);
-            color: white;
-        }
-        
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(42, 82, 152, 0.3);
-        }
-        
-        .btn-secondary {
-            background: #f8f9fa;
-            color: #333;
-            border: 1px solid #ddd;
-        }
-        
-        .btn-secondary:hover {
-            background: #e9ecef;
-        }
-        
-        /* Loading State */
-        .loading-state {
-            text-align: center;
-            padding: 60px 20px;
-        }
-        
-        .loading-spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #2a5298;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 20px;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        /* Session Indicators */
-        .session-indicator {
-            display: inline-block;
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            margin-left: 5px;
-        }
-        
-        .am-indicator {
-            background: #28a745;
-        }
-        
-        .pm-indicator {
-            background: #ffc107;
-        }
-        
-        /* Quick Actions */
-        .quick-actions {
-            display: flex;
-            gap: 10px;
-            margin-top: 15px;
-            flex-wrap: wrap;
-        }
-        
-        .quick-action-btn {
-            padding: 8px 15px;
-            background: #f8f9fa;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 0.9rem;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        
-        .quick-action-btn:hover {
-            background: #e9ecef;
-        }
-    </style>  
+    <title>Attendance Report - Attendance Tracker</title>
+    
+    <!-- CSS Files -->
+    <link rel="stylesheet" href="./assets/css/main.css">
+    <link rel="stylesheet" href="./assets/css/components.css">
+    <link rel="stylesheet" href="./assets/css/theme.css">
+    <link rel="stylesheet" href="./assets/css/attendance.css">
+    
+    <!-- PWA -->
+    <link rel="manifest" href="./manifest.json">
+    <link rel="icon" type="image/png" href="./assets/icons/icon-192.png">
 </head>
 <body>
-    <div id="app">
-        <!-- Header will be injected by attendance-app.js -->
-        <div id="header-container"></div>
-        
-        <main id="app-container">
-            <!-- Loading state - attendance-app.js will handle this -->
-            <div id="loading-content" class="loading-state">
-                <div class="loading-spinner"></div>
-                <div>Loading attendance system...</div>
-            </div>
-            
-            <!-- Attendance Content will be injected by attendance-app.js -->
-        </main>
-        
-        <!-- Footer -->
-        <div id="footer-container"></div>
+    <!-- Header container -->
+    <div id="header-container"></div>
+    
+    <!-- Main app container -->
+    <div id="app-container">
+        <div class="loading-state">
+            <div class="loading-spinner"></div>
+            <p>Loading attendance report...</p>
+        </div>
     </div>
     
-    <!-- Vendor scripts -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
-    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <!-- Footer container -->
+    <div id="footer-container"></div>
     
-    <!-- Your app scripts - SIMPLIFIED -->
-    <script type="module" src="assets/js/utils.js"></script>
-    <script type="module" src="assets/js/attendance-app.js"></script>
+    <!-- Load your main app -->
+    <script type="module" src="./assets/js/attendance-app.js"></script>
+    
+    <!-- Attendance-specific initialization -->
+    <script>
+        document.addEventListener('DOMContentLoaded', async function() {
+            try {
+                // Wait for app to be loaded
+                while (!window.app) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                }
+                
+                // Check authentication
+                const isAuthenticated = await window.app.checkAuth();
+                if (!isAuthenticated) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+                
+                // Load header and footer
+                window.app.loadHeader(document.getElementById('header-container'));
+                window.app.loadFooter(document.getElementById('footer-container'));
+                
+                // Load attendance content
+                window.app.loadAttendanceContent(document.getElementById('app-container'));
+                
+            } catch (error) {
+                console.error('Error loading attendance page:', error);
+                document.getElementById('app-container').innerHTML = `
+                    <div class="error-state">
+                        <h3>Error Loading Page</h3>
+                        <p>${error.message}</p>
+                        <a href="dashboard.html" class="btn-primary">Return to Dashboard</a>
+                    </div>
+                `;
+            }
+        });
+    </script>
 </body>
 </html>
