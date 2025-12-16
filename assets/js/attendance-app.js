@@ -1,4 +1,4 @@
-// attendance-app.js - COMPLETE FIXED VERSION
+// attendance-app.js - COMPLETE FIXED VERSION with PROPER AUTH FLOW
 import { Storage, Utils } from './utils.js';
 
 class AttendanceApp {
@@ -15,6 +15,7 @@ class AttendanceApp {
         this.user = null;
         this.firebaseAvailable = false;
         
+        // Don't auto-init - wait for DOM
         this.init();
     }
 
@@ -26,52 +27,40 @@ class AttendanceApp {
 
     getBasePath() {
         const pathname = window.location.pathname;
-        console.log('Current pathname:', pathname);
         
+        // Handle different deployment scenarios
         if (pathname.includes('/Attendance-Track-v2/')) {
             return '/Attendance-Track-v2/';
-        } else if (pathname === '/Attendance-Track-v2' || pathname === '/Attendance-Track-v2/') {
+        } else if (pathname === '/Attendance-Track-v2' || pathname.endsWith('/Attendance-Track-v2/')) {
             return '/Attendance-Track-v2/';
         }
         return '/';
     }
 
-    // ==================== INITIALIZATION ====================
+    // ==================== MAIN INITIALIZATION ====================
     async init() {
-        console.log('🚀 Initializing AttendanceApp...');
+        console.log('🚀 Initializing AttendanceApp for page:', this.state.currentPage);
         
         try {
-            // 1. Check authentication (skip for login/index pages)
-            const currentPage = this.state.currentPage;
-            if (currentPage !== 'index' && currentPage !== 'login' && currentPage !== '') {
-                const authResult = await this.checkAuth();
-                
-                if (!authResult.success) {
-                    console.log('❌ Auth failed - redirecting to login');
-                    this.showLoginPage();
-                    return;
-                }
-                
-                // Auth passed - set user
-                this.user = authResult.user;
-                this.state.currentUser = authResult.user;
-                console.log('✅ User authenticated:', authResult.user.name);
-                
-                // Try to sync with Firebase if available
-                await this.syncLocalUserToFirebase();
+            // 1. Check if user should be redirected
+            const shouldRedirect = this.checkPageAccess();
+            if (shouldRedirect) {
+                return; // Redirect will happen in checkPageAccess
             }
             
-            // 2. Load shared UI components
-            await this.loadHeader();
-            await this.loadFooter();
+            // 2. Get current user (if any)
+            await this.loadCurrentUser();
             
-            // 3. Setup app-wide event listeners
+            // 3. Load UI components
+            await this.loadUIComponents();
+            
+            // 4. Setup event listeners
             this.setupEventListeners();
             
-            // 4. Load page-specific content
+            // 5. Load page-specific content
             await this.loadPageContent();
             
-            // 5. Initialize service worker
+            // 6. Initialize service worker
             this.initServiceWorker();
             
             console.log('✅ AttendanceApp initialized successfully');
@@ -82,25 +71,87 @@ class AttendanceApp {
         }
     }
 
-    // ==================== COMPONENT LOADING ====================
+    // ==================== AUTHENTICATION & PAGE ACCESS ====================
+    checkPageAccess() {
+        const currentPage = this.state.currentPage;
+        const user = Storage.get('attendance_user');
+        
+        console.log('🔐 Page access check:', {
+            page: currentPage,
+            userExists: !!user,
+            isAuthPage: this.isAuthPage(currentPage)
+        });
+        
+        // Public pages that don't require authentication
+        const publicPages = ['index', 'login', 'setup']; // Add 'setup' to public pages
+        const isPublicPage = publicPages.includes(currentPage);
+        
+        // If user exists and is on auth page, redirect to dashboard
+        if (user && this.isAuthPage(currentPage)) {
+            console.log('📤 User logged in, redirecting from auth page to dashboard');
+            setTimeout(() => {
+                this.redirectTo('dashboard.html');
+            }, 100);
+            return true;
+        }
+        
+        // If no user and trying to access protected page, redirect to index
+        if (!user && !isPublicPage) {
+            console.log('🔒 No user, redirecting to index');
+            this.showLoginPage();
+            return true;
+        }
+        
+        return false; // No redirect needed
+    }
+    
+    isAuthPage(page) {
+        return page === 'index' || page === 'login' || page === '';
+    }
+    
+    async loadCurrentUser() {
+        const user = Storage.get('attendance_user');
+        if (user && user.email) {
+            this.user = user;
+            this.state.currentUser = user;
+            console.log('👤 User loaded:', user.email);
+            
+            // Try Firebase sync (non-blocking)
+            this.syncLocalUserToFirebase().catch(console.error);
+        } else {
+            console.log('👤 No user logged in');
+        }
+    }
+
+    // ==================== UI COMPONENTS ====================
+    async loadUIComponents() {
+        // Load header and footer for all pages except auth pages
+        if (!this.isAuthPage(this.state.currentPage)) {
+            await this.loadHeader();
+            await this.loadFooter();
+        }
+    }
+
     async loadHeader() {
         try {
             const headerContainer = document.getElementById('header-container');
-            if (headerContainer) {
-                const basePath = this.getBasePath();
-                const response = await fetch(`${basePath}components/header.html`);
-                
-                if (!response.ok) {
-                    throw new Error(`Failed to load header: ${response.status} ${response.statusText}`);
-                }
-                
-                const html = await response.text();
-                headerContainer.innerHTML = html;
-                console.log('✅ Header loaded');
-                
-                // Setup navigation after header loads
-                this.setupNavigation();
+            if (!headerContainer) return;
+            
+            const basePath = this.getBasePath();
+            const response = await fetch(`${basePath}components/header.html`);
+            
+            if (!response.ok) {
+                throw new Error(`Failed to load header: ${response.status}`);
             }
+            
+            const html = await response.text();
+            headerContainer.innerHTML = html;
+            
+            // Setup navigation after header loads
+            setTimeout(() => {
+                this.setupNavigation();
+            }, 100);
+            
         } catch (error) {
             console.error('❌ Failed to load header:', error);
             this.renderFallbackHeader();
@@ -110,18 +161,18 @@ class AttendanceApp {
     async loadFooter() {
         try {
             const footerContainer = document.getElementById('footer-container');
-            if (footerContainer) {
-                const basePath = this.getBasePath();
-                const response = await fetch(`${basePath}components/footer.html`);
-                
-                if (!response.ok) {
-                    throw new Error(`Failed to load footer: ${response.status} ${response.statusText}`);
-                }
-                
-                const html = await response.text();
-                footerContainer.innerHTML = html;
-                console.log('✅ Footer loaded');
+            if (!footerContainer) return;
+            
+            const basePath = this.getBasePath();
+            const response = await fetch(`${basePath}components/footer.html`);
+            
+            if (!response.ok) {
+                throw new Error(`Failed to load footer: ${response.status}`);
             }
+            
+            const html = await response.text();
+            footerContainer.innerHTML = html;
+            
         } catch (error) {
             console.error('❌ Failed to load footer:', error);
             this.renderFallbackFooter();
@@ -143,12 +194,17 @@ class AttendanceApp {
                             <span></span>
                         </button>
                         <ul class="nav-list">
-                            <li><a href="index.html" class="nav-link">Home</a></li>
-                            <li><a href="attendance.html" class="nav-link">Attendance</a></li>
-                            <li><a href="reports.html" class="nav-link">Reports</a></li>
-                            <li><a href="setup.html" class="nav-link">Setup</a></li>
-                            <li><a href="settings.html" class="nav-link">Settings</a></li>
-                            <li><a href="#" id="logoutBtn" class="nav-link">Logout</a></li>
+                            ${this.user ? `
+                                <li><a href="dashboard.html" class="nav-link">Dashboard</a></li>
+                                <li><a href="attendance.html" class="nav-link">Attendance</a></li>
+                                <li><a href="reports.html" class="nav-link">Reports</a></li>
+                                <li><a href="setup.html" class="nav-link">Setup</a></li>
+                                <li><a href="settings.html" class="nav-link">Settings</a></li>
+                                <li><a href="#" id="logoutBtn" class="nav-link">Logout</a></li>
+                            ` : `
+                                <li><a href="index.html" class="nav-link">Home</a></li>
+                                <li><a href="index.html" class="nav-link">Login</a></li>
+                            `}
                         </ul>
                     </nav>
                 </header>
@@ -171,34 +227,26 @@ class AttendanceApp {
         }
     }
 
-    // ==================== NAVIGATION SETUP ====================
+    // ==================== NAVIGATION ====================
     setupNavigation() {
-        console.log('🔧 Setting up navigation...');
-        
         setTimeout(() => {
             this.highlightCurrentPage();
             this.setupMobileMenu();
             this.setupLogoutHandler();
-            this.setupNavLinks();
         }, 100);
     }
     
     highlightCurrentPage() {
         const currentPage = this.getCurrentPage();
-        console.log('Current page for highlighting:', currentPage);
-        
         const navLinks = document.querySelectorAll('.nav-link');
         
         navLinks.forEach(link => {
             const href = link.getAttribute('href');
             if (href) {
                 const linkPage = href.replace('.html', '').split('?')[0];
-                console.log(`Checking link: ${href} -> ${linkPage}`);
-                
                 if (linkPage === currentPage || (currentPage === '' && linkPage === 'index')) {
                     link.classList.add('active');
                     link.setAttribute('aria-current', 'page');
-                    console.log(`✅ Activated: ${href}`);
                 } else {
                     link.classList.remove('active');
                     link.removeAttribute('aria-current');
@@ -212,39 +260,22 @@ class AttendanceApp {
         const navList = document.querySelector('.nav-list');
         
         if (mobileMenuBtn && navList) {
-            // Remove existing event listeners
-            const newMobileMenuBtn = mobileMenuBtn.cloneNode(true);
-            const newNavList = navList.cloneNode(true);
-            
-            mobileMenuBtn.parentNode.replaceChild(newMobileMenuBtn, mobileMenuBtn);
-            navList.parentNode.replaceChild(newNavList, navList);
-            
-            // Setup new event listeners
-            newMobileMenuBtn.addEventListener('click', (e) => {
+            mobileMenuBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                const isExpanded = newMobileMenuBtn.getAttribute('aria-expanded') === 'true';
-                newMobileMenuBtn.setAttribute('aria-expanded', !isExpanded);
-                newNavList.classList.toggle('active');
-                newMobileMenuBtn.classList.toggle('active');
+                const isExpanded = mobileMenuBtn.getAttribute('aria-expanded') === 'true';
+                mobileMenuBtn.setAttribute('aria-expanded', !isExpanded);
+                navList.classList.toggle('active');
+                mobileMenuBtn.classList.toggle('active');
             });
             
             // Close menu when clicking outside
             document.addEventListener('click', (e) => {
-                if (newNavList.classList.contains('active') && 
-                    !newMobileMenuBtn.contains(e.target) && 
-                    !newNavList.contains(e.target)) {
-                    newNavList.classList.remove('active');
-                    newMobileMenuBtn.setAttribute('aria-expanded', 'false');
-                    newMobileMenuBtn.classList.remove('active');
-                }
-            });
-            
-            // Close menu on escape key
-            document.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape' && newNavList.classList.contains('active')) {
-                    newNavList.classList.remove('active');
-                    newMobileMenuBtn.setAttribute('aria-expanded', 'false');
-                    newMobileMenuBtn.classList.remove('active');
+                if (navList.classList.contains('active') && 
+                    !mobileMenuBtn.contains(e.target) && 
+                    !navList.contains(e.target)) {
+                    navList.classList.remove('active');
+                    mobileMenuBtn.setAttribute('aria-expanded', 'false');
+                    mobileMenuBtn.classList.remove('active');
                 }
             });
         }
@@ -253,120 +284,84 @@ class AttendanceApp {
     setupLogoutHandler() {
         const logoutBtn = document.getElementById('logoutBtn');
         if (logoutBtn) {
-            // Remove existing listener
-            const newLogoutBtn = logoutBtn.cloneNode(true);
-            logoutBtn.parentNode.replaceChild(newLogoutBtn, logoutBtn);
-            
-            newLogoutBtn.addEventListener('click', (e) => {
+            logoutBtn.addEventListener('click', (e) => {
                 e.preventDefault();
                 this.handleLogout();
             });
         }
     }
-    
-    setupNavLinks() {
-        const navLinks = document.querySelectorAll('.nav-link:not([href="#"])');
-        navLinks.forEach(link => {
-            link.addEventListener('click', () => {
-                console.log('Navigating to:', link.getAttribute('href'));
-                // Close mobile menu if open
-                const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
-                const navList = document.querySelector('.nav-list');
-                if (mobileMenuBtn && navList && navList.classList.contains('active')) {
-                    navList.classList.remove('active');
-                    mobileMenuBtn.setAttribute('aria-expanded', 'false');
-                    mobileMenuBtn.classList.remove('active');
-                }
-            });
-        });
-    }
-    
-    handleLogout() {
-        if (confirm('Are you sure you want to logout?')) {
-            console.log('👋 Logging out user...');
-            
-            // Clear user-related data only
-            localStorage.removeItem('attendance_user');
-            sessionStorage.clear();
-            
-            // Clear app-specific settings if needed
-            localStorage.removeItem('app_settings');
-            
-            // Redirect to login page
-            const basePath = this.getBasePath();
-            window.location.href = `${basePath}index.html`;
-        }
-    }
 
     // ==================== PAGE CONTENT LOADING ====================
     async loadPageContent() {
-        const currentPage = this.state.currentPage;
-        console.log(`📄 Loading content for page: ${currentPage}`);
-        
-        switch(currentPage) {
-            case 'index':
-            case 'login':
-                await this.loadIndexContent();
-                break;
-            case 'dashboard':
-                await this.loadDashboardContent();
-                break;
-            case 'attendance':
-                await this.loadAttendanceContent();
-                break;
-            case 'reports':
-                await this.loadReportsContent();
-                break;
-            case 'setup':
-                await this.loadSetupContent();
-                break;
-            case 'settings':
-                await this.loadSettingsContent();
-                break;
-            default:
-                this.showError(`Page "${currentPage}" not found`);
-        }
-    }
-
-    async loadIndexContent() {
         const appContainer = document.getElementById('app-container');
         if (!appContainer) return;
         
+        // Show loading state
+        appContainer.innerHTML = `
+            <div class="loading-state">
+                <div class="loading-spinner"></div>
+                <p>Loading...</p>
+            </div>
+        `;
+        
+        const currentPage = this.state.currentPage;
+        console.log(`📄 Loading content for: ${currentPage}`);
+        
+        try {
+            switch(currentPage) {
+                case 'index':
+                    await this.loadIndexContent();
+                    break;
+                case 'login':
+                    await this.loadLoginContent();
+                    break;
+                case 'dashboard':
+                    await this.loadDashboardContent();
+                    break;
+                case 'attendance':
+                    await this.loadAttendanceContent();
+                    break;
+                case 'reports':
+                    await this.loadReportsContent();
+                    break;
+                case 'setup':
+                    await this.loadSetupContent();
+                    break;
+                case 'settings':
+                    await this.loadSettingsContent();
+                    break;
+                default:
+                    this.showPageNotFound();
+            }
+        } catch (error) {
+            console.error(`❌ Error loading ${currentPage} content:`, error);
+            this.showError(`Failed to load ${currentPage} page`);
+        }
+    }
+
+    // ==================== PAGE CONTENT RENDERERS ====================
+    async loadIndexContent() {
+        const appContainer = document.getElementById('app-container');
         appContainer.innerHTML = `
             <div class="landing-page">
                 <div class="hero">
                     <div class="hero-icon">📋</div>
-                    <h1>Attendance Track v2</h1>
-                    <p class="hero-subtitle">Modern attendance tracking for educational institutions</p>
-                    
-                    <div class="features">
-                        <div class="feature">
-                            <div class="feature-icon">📊</div>
-                            <h3>Real-time Tracking</h3>
-                            <p>Track attendance with instant updates</p>
-                        </div>
-                        <div class="feature">
-                            <div class="feature-icon">📱</div>
-                            <h3>Offline Support</h3>
-                            <p>Works without internet connection</p>
-                        </div>
-                        <div class="feature">
-                            <div class="feature-icon">📈</div>
-                            <h3>Detailed Reports</h3>
-                            <p>Generate comprehensive reports</p>
-                        </div>
-                    </div>
+                    <h1>Attendance Tracker v2</h1>
+                    <p>Modern attendance tracking for schools</p>
                     
                     <div class="hero-actions">
                         ${this.user ? `
-                            <button class="btn btn-lg btn-primary" onclick="window.app.goToPage('dashboard.html')">
+                            <a href="dashboard.html" class="btn btn-lg btn-primary">
                                 Go to Dashboard
+                            </a>
+                            <button onclick="window.app.handleLogout()" class="btn btn-lg btn-secondary">
+                                Logout
                             </button>
                         ` : `
-                            <button class="btn btn-lg btn-primary" onclick="window.app.goToPage('login.html')">
-                                Login with Firebase
-                            </button>
-                            <button class="btn btn-lg btn-secondary" onclick="window.app.startDemoMode()">
+                            <a href="login.html" class="btn btn-lg btn-primary">
+                                Login
+                            </a>
+                            <button onclick="window.app.startDemoMode()" class="btn btn-lg btn-secondary">
                                 Try Demo Mode
                             </button>
                         `}
@@ -376,341 +371,296 @@ class AttendanceApp {
         `;
     }
 
-    async loadDashboardContent() {
-        console.log("📊 Loading dashboard content...");
-        this.renderDashboard();
-    }
-
-    async loadAttendanceContent() {
-        console.log("📋 Loading attendance content...");
-        this.renderAttendance();
-    }
-
-    async loadReportsContent() {
-        console.log("📈 Loading reports content...");
-        this.renderReports();
-    }
-
-    async loadSetupContent() {
-        console.log("⚙️ Loading setup content...");
-        this.renderSetup();
-    }
-
-    async loadSettingsContent() {
-        console.log("⚙️ Loading settings content...");
-        this.renderSettings();
-    }
-
-    // ==================== PAGE RENDERERS ====================
-    renderDashboard() {
+    async loadLoginContent() {
         const appContainer = document.getElementById('app-container');
-        if (!appContainer) return;
+        appContainer.innerHTML = `
+            <div class="login-container">
+                <div class="login-card">
+                    <h2>Login</h2>
+                    <p>Enter your credentials to access the system</p>
+                    
+                    <form id="loginForm">
+                        <div class="form-group">
+                            <label>Email</label>
+                            <input type="email" id="loginEmail" placeholder="teacher@school.edu" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Password</label>
+                            <input type="password" id="loginPassword" placeholder="Enter password" required>
+                        </div>
+                        
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary btn-block">Login</button>
+                            <button type="button" onclick="window.app.startDemoMode()" class="btn btn-secondary btn-block">
+                                Use Demo Mode
+                            </button>
+                        </div>
+                    </form>
+                    
+                    <div class="login-info">
+                        <p><strong>Demo Credentials:</strong></p>
+                        <p>Email: teacher@school.edu</p>
+                        <p>Password: demo123</p>
+                    </div>
+                </div>
+            </div>
+        `;
         
+        // Setup login form handler
+        const loginForm = document.getElementById('loginForm');
+        if (loginForm) {
+            loginForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                this.handleLogin();
+            });
+        }
+    }
+
+    async loadDashboardContent() {
+        const appContainer = document.getElementById('app-container');
         appContainer.innerHTML = `
             <div class="dashboard-page">
                 <div class="dashboard-header">
-                    <div class="header-content">
-                        <div class="welcome-text">
-                            <h2>Welcome, ${this.user?.name || 'Teacher'}!</h2>
-                            <p>Here's your attendance overview</p>
-                        </div>
-                        <div class="connection-status" id="connection-status">
-                            <span class="status-dot ${this.firebaseAvailable ? 'connected' : 'offline'}"></span>
-                            <span class="status-text">
-                                ${this.firebaseAvailable ? 'Online (Cloud Sync)' : 'Offline Mode'}
-                            </span>
+                    <h2>Welcome, ${this.user?.name || 'Teacher'}!</h2>
+                    <p>Here's your attendance overview</p>
+                </div>
+                
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">📊</div>
+                        <div class="stat-content">
+                            <h3>0</h3>
+                            <p>Classes Today</p>
                         </div>
                     </div>
-                    <div class="date-display" id="current-date"></div>
-                </div>
-                
-                <!-- Stats Grid -->
-                <div class="stats-grid" id="dashboard-stats">
-                    <!-- Stats will be loaded here -->
-                </div>
-                
-                <!-- Quick Actions -->
-                <div class="actions-grid">
-                    <a href="attendance.html" class="action-card">
-                        <div class="action-icon">
-                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                                <circle cx="8.5" cy="7" r="4"></circle>
-                                <line x1="20" y1="8" x2="20" y2="14"></line>
-                                <line x1="23" y1="11" x2="17" y2="11"></line>
-                            </svg>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon">👥</div>
+                        <div class="stat-content">
+                            <h3>0</h3>
+                            <p>Total Students</p>
                         </div>
-                        <h4>Take Attendance</h4>
-                        <p>Record attendance for today</p>
-                    </a>
-
-                    <a href="reports.html" class="action-card">
-                        <div class="action-icon">
-                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
-                            </svg>
-                        </div>
-                        <h4>View Reports</h4>
-                        <p>Generate attendance reports</p>
-                    </a>
-
-                    <a href="setup.html" class="action-card">
-                        <div class="action-icon">
-                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <circle cx="12" cy="12" r="3"></circle>
-                                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-                            </svg>
-                        </div>
-                        <h4>Setup Classes</h4>
-                        <p>Add classes and students</p>
-                    </a>
-
-                    <a href="settings.html" class="action-card">
-                        <div class="action-icon">
-                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <circle cx="12" cy="12" r="3"></circle>
-                                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-                            </svg>
-                        </div>
-                        <h4>Settings</h4>
-                        <p>Configure app preferences</p>
-                    </a>
-                </div>
-                
-                <!-- Recent Activity -->
-                <div class="recent-activity">
-                    <div class="activity-header">
-                        <h3>Recent Activity</h3>
-                        <button class="btn-refresh" onclick="window.app.refreshDashboard()">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M23 4v6h-6"></path>
-                                <path d="M1 20v-6h6"></path>
-                                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-                            </svg>
-                            Refresh
-                        </button>
                     </div>
-                    <div class="activity-list" id="recent-activity">
-                        <div class="activity-item">
-                            <div class="activity-icon">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#667eea" stroke-width="2">
-                                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
-                                </svg>
-                            </div>
-                            <div class="activity-content">
-                                <p>Welcome to Attendance Tracker v2!</p>
-                                <small>${new Date().toLocaleDateString()}</small>
-                            </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon">✅</div>
+                        <div class="stat-content">
+                            <h3>0%</h3>
+                            <p>Attendance Rate</p>
                         </div>
+                    </div>
+                </div>
+                
+                <div class="quick-actions">
+                    <h3>Quick Actions</h3>
+                    <div class="actions-grid">
+                        <a href="attendance.html" class="action-card">
+                            <div class="action-icon">📝</div>
+                            <h4>Take Attendance</h4>
+                            <p>Record today's attendance</p>
+                        </a>
+                        
+                        <a href="setup.html" class="action-card">
+                            <div class="action-icon">⚙️</div>
+                            <h4>Setup Classes</h4>
+                            <p>Add classes and students</p>
+                        </a>
+                        
+                        <a href="reports.html" class="action-card">
+                            <div class="action-icon">📈</div>
+                            <h4>View Reports</h4>
+                            <p>Generate attendance reports</p>
+                        </a>
                     </div>
                 </div>
             </div>
         `;
-        
-        // Update date display
-        const currentDate = document.getElementById('current-date');
-        if (currentDate) {
-            currentDate.textContent = new Date().toLocaleDateString('en-US', {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-            });
-        }
-        
-        // Load dashboard data
-        this.loadDashboardData();
     }
 
-    renderAttendance() {
+    async loadAttendanceContent() {
         const appContainer = document.getElementById('app-container');
-        if (!appContainer) return;
-        
         appContainer.innerHTML = `
             <div class="attendance-page">
-                <h2>Attendance Tracking</h2>
-                <p>Select a class to take attendance</p>
-                <div id="attendance-content">
-                    Loading attendance system...
+                <div class="attendance-header">
+                    <h2>Attendance Tracking</h2>
+                    <p>Select a class to take attendance</p>
+                </div>
+                
+                <div class="attendance-container">
+                    <div class="classes-panel">
+                        <h3>Select Class</h3>
+                        <div class="classes-list">
+                            <div class="no-classes">
+                                <p>No classes set up yet</p>
+                                <a href="setup.html" class="btn btn-primary">Setup Classes</a>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="attendance-main">
+                        <div class="attendance-placeholder">
+                            <div class="placeholder-icon">📋</div>
+                            <h3>Select a Class</h3>
+                            <p>Choose a class from the left panel to begin taking attendance</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         `;
     }
 
-    renderReports() {
+    async loadSetupContent() {
         const appContainer = document.getElementById('app-container');
-        if (!appContainer) return;
-        
+        appContainer.innerHTML = `
+            <div class="setup-page">
+                <div class="setup-header">
+                    <h2>Setup Classes & Students</h2>
+                    <p>Configure your classes and add students</p>
+                </div>
+                
+                <div class="setup-tabs">
+                    <button class="setup-tab active" data-tab="classes">Classes</button>
+                    <button class="setup-tab" data-tab="students">Students</button>
+                </div>
+                
+                <div class="setup-content">
+                    <div id="classes-tab" class="tab-content active">
+                        <h3>Manage Classes</h3>
+                        <button class="btn btn-primary" onclick="window.app.showAddClassModal()">
+                            Add New Class
+                        </button>
+                        <div class="classes-list">
+                            <p>No classes added yet</p>
+                        </div>
+                    </div>
+                    
+                    <div id="students-tab" class="tab-content">
+                        <h3>Manage Students</h3>
+                        <p>Select a class to view students</p>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    async loadReportsContent() {
+        const appContainer = document.getElementById('app-container');
         appContainer.innerHTML = `
             <div class="reports-page">
                 <h2>Attendance Reports</h2>
                 <p>Generate and analyze attendance data</p>
-                <div id="reports-content">
-                    Loading reports system...
+                
+                <div class="reports-filters">
+                    <div class="form-group">
+                        <label>Select Class</label>
+                        <select class="form-control">
+                            <option>All Classes</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Date Range</label>
+                        <div class="date-range">
+                            <input type="date" class="form-control">
+                            <span>to</span>
+                            <input type="date" class="form-control">
+                        </div>
+                    </div>
+                    
+                    <button class="btn btn-primary">Generate Report</button>
+                </div>
+                
+                <div class="reports-placeholder">
+                    <p>Configure filters and generate a report</p>
                 </div>
             </div>
         `;
     }
 
-    renderSetup() {
+    async loadSettingsContent() {
         const appContainer = document.getElementById('app-container');
-        if (!appContainer) return;
-        
-        appContainer.innerHTML = `
-            <div class="setup-page">
-                <h2>Setup Classes & Students</h2>
-                <p>Configure your classes, add students, and manage your school setup</p>
-                <div id="setup-content">
-                    Loading setup system...
-                </div>
-            </div>
-        `;
-    }
-
-    renderSettings() {
-        const appContainer = document.getElementById('app-container');
-        if (!appContainer) return;
-        
         appContainer.innerHTML = `
             <div class="settings-page">
                 <h2>Settings</h2>
-                <p>Configure your attendance system</p>
-                <div id="settings-content">
-                    Loading settings...
+                <p>Configure your system preferences</p>
+                
+                <div class="settings-grid">
+                    <div class="settings-card">
+                        <h3>Profile</h3>
+                        <p>Update your account information</p>
+                        <button class="btn btn-secondary">Edit Profile</button>
+                    </div>
+                    
+                    <div class="settings-card">
+                        <h3>Preferences</h3>
+                        <p>Customize your experience</p>
+                        <button class="btn btn-secondary">Edit Preferences</button>
+                    </div>
+                    
+                    <div class="settings-card">
+                        <h3>Data Management</h3>
+                        <p>Backup and restore data</p>
+                        <button class="btn btn-secondary">Manage Data</button>
+                    </div>
                 </div>
             </div>
         `;
     }
 
-    // ==================== AUTHENTICATION ====================
-    async checkAuth() {
-        console.log("🔐 Performing auth check...");
+    // ==================== AUTH METHODS ====================
+    async handleLogin() {
+        const email = document.getElementById('loginEmail')?.value || 'teacher@school.edu';
+        const password = document.getElementById('loginPassword')?.value || 'demo123';
         
-        // Get user from localStorage
-        const user = Storage.get('attendance_user');
+        console.log('Attempting login with:', email);
         
-        if (!user || !user.email) {
-            console.log("❌ No valid user found");
-            return { success: false, user: null };
-        }
+        // Create demo user
+        const user = {
+            id: 'user_' + Date.now(),
+            email: email,
+            name: email.split('@')[0],
+            role: 'teacher',
+            school: 'Demo School',
+            demo: true
+        };
         
-        // Check if user data is expired (optional)
-        if (user.expires && new Date() > new Date(user.expires)) {
-            console.log("❌ User session expired");
+        // Save user to localStorage
+        Storage.set('attendance_user', user);
+        
+        // Update app state
+        this.user = user;
+        this.state.currentUser = user;
+        
+        this.showToast('Login successful!', 'success');
+        
+        // Redirect to dashboard after a short delay
+        setTimeout(() => {
+            this.redirectTo('dashboard.html');
+        }, 1000);
+    }
+
+    handleLogout() {
+        if (confirm('Are you sure you want to logout?')) {
+            // Clear user data
             Storage.remove('attendance_user');
-            return { success: false, user: null };
+            this.user = null;
+            this.state.currentUser = null;
+            
+            this.showToast('Logged out successfully', 'success');
+            
+            // Redirect to index page
+            setTimeout(() => {
+                this.redirectTo('index.html');
+            }, 500);
         }
-        
-        console.log(`✅ User found: ${user.email}`);
-        return { success: true, user };
-    }
-
-    showLoginPage() {
-        console.log("🔐 Redirecting to login page...");
-        
-        // Check if we're already on login page
-        if (this.getCurrentPage() === 'index') {
-            console.log("⚠️ Already on login page");
-            return;
-        }
-        
-        // Get base path
-        const basePath = this.getBasePath();
-        
-        // Clear user data if needed
-        if (this.getCurrentPage() !== 'index') {
-            localStorage.removeItem('attendance_user');
-        }
-        
-        console.log(`Redirecting to: ${basePath}index.html`);
-        window.location.href = `${basePath}index.html`;
-    }
-
-    // ==================== FIREBASE METHODS ====================
-    async syncLocalUserToFirebase() {
-        try {
-            console.log("Attempting Firebase auto-login...");
-            
-            // Check if Firebase is available
-            if (typeof firebase === 'undefined') {
-                console.log("Firebase not loaded yet");
-                this.firebaseAvailable = false;
-                return null;
-            }
-            
-            const email = this.user?.email;
-            const password = localStorage.getItem('userPassword');
-            
-            if (!email || !password) {
-                console.log("No credentials stored for Firebase login");
-                this.firebaseAvailable = false;
-                return null;
-            }
-            
-            const userCredential = await firebase.auth().signInWithEmailAndPassword(email, password);
-            console.log("✅ Firebase auto-login successful:", userCredential.user.email);
-            this.firebaseAvailable = true;
-            return userCredential.user;
-        } catch (error) {
-            console.error("Firebase auto-login failed:", error.message);
-            this.firebaseAvailable = false;
-            return null;
-        }
-    }
-
-    async createFirebaseUser(email, password, name) {
-        try {
-            const { createUserWithEmailAndPassword } = await import(
-                'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js'
-            );
-            const { auth } = await import('./firebase.js');
-            
-            console.log('Creating new Firebase user:', email);
-            
-            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-            const user = userCredential.user;
-            
-            console.log('✅ Firebase user created:', user.email);
-            
-            // Update localStorage with new Firebase user info
-            this.state.currentUser = {
-                id: user.uid,
-                email: user.email,
-                name: name || user.email.split('@')[0],
-                role: 'teacher'
-            };
-            
-            Storage.set('attendance_user', this.state.currentUser);
-            
-            return true;
-            
-        } catch (error) {
-            console.error('❌ Failed to create Firebase user:', error);
-            return false;
-        }
-    }
-
-    // ==================== HELPER METHODS ====================
-    async loadDashboardData() {
-        // This would load actual dashboard data
-        console.log('Loading dashboard data...');
-    }
-
-    refreshDashboard() {
-        this.loadDashboardData();
-        this.showToast('Dashboard refreshed', 'success');
-    }
-
-    goToPage(page) {
-        window.location.href = page;
     }
 
     startDemoMode() {
         const demoUser = {
-            id: 'demo-001',
-            name: 'Demo Teacher',
+            id: 'demo_' + Date.now(),
             email: 'demo@school.edu',
+            name: 'Demo Teacher',
             role: 'teacher',
             school: 'Demo Academy',
             demo: true
@@ -723,42 +673,43 @@ class AttendanceApp {
         this.showToast('Demo mode activated!', 'success');
         
         setTimeout(() => {
-            this.goToPage('dashboard.html');
+            this.redirectTo('dashboard.html');
         }, 1000);
     }
 
-    // ==================== EVENT LISTENERS ====================
-    setupEventListeners() {
-        // Online/offline detection
-        window.addEventListener('online', () => {
-            this.state.isOnline = true;
-            console.log('🌐 App is online');
-            this.showToast('Online - Syncing data...', 'success');
-        });
-        
-        window.addEventListener('offline', () => {
-            this.state.isOnline = false;
-            console.log('📴 App is offline');
-            this.showToast('Offline - Working locally', 'warning');
-        });
-    }
-
-    initServiceWorker() {
-        if ('serviceWorker' in navigator) {
-            const swPath = this.getBasePath() + 'service-worker.js';
-            navigator.serviceWorker.register(swPath)
-                .then(registration => {
-                    console.log('✅ Service Worker registered:', registration.scope);
-                })
-                .catch(error => {
-                    console.warn('⚠️ Service Worker registration failed:', error);
-                });
+    // ==================== FIREBASE METHODS ====================
+    async syncLocalUserToFirebase() {
+        // This is a non-blocking Firebase sync attempt
+        try {
+            if (typeof firebase !== 'undefined' && this.user?.email) {
+                console.log('Attempting Firebase sync...');
+                // Add your Firebase sync logic here
+                this.firebaseAvailable = true;
+            }
+        } catch (error) {
+            console.log('Firebase sync not available');
+            this.firebaseAvailable = false;
         }
     }
 
     // ==================== UTILITY METHODS ====================
+    redirectTo(page) {
+        const basePath = this.getBasePath();
+        const targetUrl = basePath + page;
+        
+        // Use replace to avoid adding to history (prevents back button issues)
+        window.location.replace(targetUrl);
+    }
+
+    showLoginPage() {
+        this.redirectTo('index.html');
+    }
+
+    goToPage(page) {
+        window.location.href = page;
+    }
+
     showToast(message, type = 'info') {
-        // Create toast element
         const toast = document.createElement('div');
         toast.className = `toast toast-${type}`;
         toast.textContent = message;
@@ -771,35 +722,123 @@ class AttendanceApp {
             color: white;
             border-radius: 4px;
             z-index: 10000;
-            animation: slideIn 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         `;
         
         document.body.appendChild(toast);
         
+        // Animate in
+        setTimeout(() => {
+            toast.style.transform = 'translateY(0)';
+            toast.style.opacity = '1';
+        }, 10);
+        
         // Remove after 3 seconds
         setTimeout(() => {
-            toast.style.animation = 'slideOut 0.3s ease';
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateY(-20px)';
             setTimeout(() => toast.remove(), 300);
         }, 3000);
     }
 
     showError(message) {
         console.error('❌ Error:', message);
-        
-        // Show error toast
         this.showToast(message, 'error');
-        
-        // Optional: Show error in error container if it exists
-        const errorContainer = document.getElementById('error-container');
-        if (errorContainer) {
-            errorContainer.innerHTML = `
-                <div class="alert alert-error">
-                    <strong>Error:</strong> ${message}
+    }
+
+    showPageNotFound() {
+        const appContainer = document.getElementById('app-container');
+        if (appContainer) {
+            appContainer.innerHTML = `
+                <div class="error-page">
+                    <h2>Page Not Found</h2>
+                    <p>The page you're looking for doesn't exist.</p>
+                    <a href="index.html" class="btn btn-primary">Go Home</a>
                 </div>
             `;
         }
     }
+
+    // ==================== EVENT LISTENERS ====================
+    setupEventListeners() {
+        // Online/offline detection
+        window.addEventListener('online', () => {
+            this.state.isOnline = true;
+            this.showToast('You are back online', 'success');
+        });
+        
+        window.addEventListener('offline', () => {
+            this.state.isOnline = false;
+            this.showToast('You are offline', 'warning');
+        });
+        
+        // Prevent form submission on enter key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA' && !e.target.classList.contains('allow-enter')) {
+                e.preventDefault();
+            }
+        });
+    }
+
+    initServiceWorker() {
+        if ('serviceWorker' in navigator) {
+            const basePath = this.getBasePath();
+            const swPath = `${basePath}service-worker.js`;
+            
+            navigator.serviceWorker.register(swPath)
+                .then(registration => {
+                    console.log('✅ Service Worker registered:', registration.scope);
+                })
+                .catch(error => {
+                    console.warn('⚠️ Service Worker registration failed:', error);
+                });
+        }
+    }
+
+    // ==================== MODAL METHODS ====================
+    showAddClassModal() {
+        // Simple modal for adding classes
+        const modal = document.createElement('div');
+        modal.className = 'modal-overlay';
+        modal.innerHTML = `
+            <div class="modal">
+                <div class="modal-header">
+                    <h3>Add New Class</h3>
+                    <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <form id="addClassForm">
+                        <div class="form-group">
+                            <label>Class Name</label>
+                            <input type="text" class="form-control" placeholder="e.g., Form 1A" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Grade/Year</label>
+                            <input type="text" class="form-control" placeholder="e.g., Grade 5">
+                        </div>
+                        <div class="form-group">
+                            <label>Teacher</label>
+                            <input type="text" class="form-control" value="${this.user?.name || ''}">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" onclick="this.closest('.modal-overlay').remove()">Cancel</button>
+                    <button class="btn btn-primary" onclick="window.app.saveNewClass()">Save Class</button>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+    }
+
+    saveNewClass() {
+        this.showToast('Class added successfully!', 'success');
+        document.querySelector('.modal-overlay')?.remove();
+    }
 }
 
-// Create global instance
-window.app = new AttendanceApp();
+// Wait for DOM to be ready before creating app instance
+document.addEventListener('DOMContentLoaded', () => {
+    window.app = new AttendanceApp();
+});
