@@ -39,31 +39,51 @@ class AttendanceApp {
 
 // ==================== INITIALIZATION ====================
 async init() {
-    console.log('🚀 Initializing AttendanceApp...');
+    console.log('=== 🐛 DEBUG START ===');
+    console.log('1. Full URL:', window.location.href);
+    console.log('2. Pathname:', window.location.pathname);
+    console.log('3. Current page from getCurrentPage():', this.getCurrentPage());
+    console.log('4. State currentPage:', this.state.currentPage);
+    
+    const storedUser = Storage.get('attendance_user');
+    console.log('5. Stored user:', storedUser);
+    console.log('6. User valid?:', storedUser && storedUser.email);
+    console.log('=== 🐛 DEBUG END ===');
     
     try {
         // 1. CHECK IF WE'RE ON A PUBLIC PAGE (no auth needed)
         const currentPage = this.state.currentPage;
         const publicPages = ['index', 'login', '']; // Pages that don't require login
         
+        console.log(`Current page: "${currentPage}"`);
+        console.log(`Is public page? ${publicPages.includes(currentPage)}`);
+        
         // If we're on a public page, skip auth check
         if (publicPages.includes(currentPage)) {
-            console.log(`📄 On public page: ${currentPage}, skipping auth check`);
+            console.log(`📄 On public page: "${currentPage}", skipping auth check`);
             
             // If user is already logged in and on login page, redirect to dashboard
             const user = Storage.get('attendance_user');
-            if (user && user.email && currentPage === 'index') {
-                console.log('👤 User already logged in, redirecting to dashboard');
-                this.redirectTo('dashboard.html');
-                return;
+            if (user && user.email) {
+                console.log('👤 User found in storage:', user.email);
+                if (currentPage === 'index' || currentPage === 'login' || currentPage === '') {
+                    console.log('User logged in but on login page, redirecting to dashboard');
+                    // Use REPLACE not href to prevent history loops
+                    window.location.replace('dashboard.html');
+                    return;
+                }
+            } else {
+                console.log('No user found, staying on login page');
             }
             
         } else {
+            console.log(`🔒 On protected page: "${currentPage}", checking auth`);
             // 2. FOR PROTECTED PAGES: Check auth
             const authResult = await this.checkAuth();
             if (!authResult.success) {
                 console.log('❌ Auth failed - redirecting to login');
-                this.showLoginPage();
+                // Use REPLACE not href
+                window.location.replace('index.html');
                 return; // Stop execution
             }
             
@@ -94,6 +114,44 @@ async init() {
         console.error('❌ Error initializing app:', error);
         this.showError(error.message);
     }
+}
+
+// ==================== FIXED CHECK AUTH ====================
+async checkAuth() {
+    console.log("🔐 Performing auth check...");
+    
+    // Get user from localStorage
+    const user = Storage.get('attendance_user');
+    console.log("User from storage:", user);
+    
+    // Check if user exists and has email
+    if (!user || !user.email) {
+        console.log("❌ No valid user found in checkAuth()");
+        return { success: false, user: null };
+    }
+    
+    console.log(`✅ User found: ${user.email}`);
+    return { success: true, user };
+}
+
+// ==================== FIXED GET CURRENT PAGE ====================
+getCurrentPage() {
+    const path = window.location.pathname;
+    console.log('Path for getCurrentPage:', path);
+    
+    let page = path.split('/').pop() || 'index.html';
+    console.log('Page after split:', page);
+    
+    // Remove .html and any query parameters
+    page = page.replace('.html', '').split('?')[0];
+    console.log('Final page name:', page);
+    
+    // Handle empty page (root)
+    if (page === '' || page === '/' || page === 'index') {
+        return 'index';
+    }
+    
+    return page;
 }
 
     // ==================== AUTHENTICATION & PAGE ACCESS ====================
