@@ -106,6 +106,156 @@ function toggleTheme() {
     localStorage.setItem('theme', newTheme);
 }
 
+// Auto-update Service Worker
+function registerServiceWorker() {
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./service-worker.js')
+            .then(registration => {
+                console.log('✅ Service Worker registered:', registration.scope);
+                
+                // Check for updates immediately
+                registration.update();
+                
+                // Listen for updates
+                registration.addEventListener('updatefound', () => {
+                    const newWorker = registration.installing;
+                    console.log('🔄 New Service Worker found!');
+                    
+                    newWorker.addEventListener('statechange', () => {
+                        console.log('📊 Service Worker state:', newWorker.state);
+                        
+                        if (newWorker.state === 'installed') {
+                            if (navigator.serviceWorker.controller) {
+                                // New update available
+                                console.log('🆕 New version available!');
+                                showUpdateNotification(registration);
+                            } else {
+                                // First install
+                                console.log('📦 App installed for first time');
+                            }
+                        }
+                    });
+                });
+                
+                // Periodically check for updates (every 30 minutes)
+                setInterval(() => {
+                    registration.update();
+                    console.log('⏰ Periodic update check');
+                }, 30 * 60 * 1000);
+                
+                return registration;
+            })
+            .catch(err => {
+                console.error('❌ Service Worker registration failed:', err);
+            });
+    }
+}
+
+// Show update notification
+function showUpdateNotification(registration) {
+    // Create a subtle notification
+    const notification = document.createElement('div');
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #4CAF50;
+        color: white;
+        padding: 12px 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        animation: slideIn 0.3s ease;
+    `;
+    
+    notification.innerHTML = `
+        <span>🔄 New version available!</span>
+        <button style="background: white; color: #4CAF50; border: none; padding: 4px 12px; border-radius: 4px; cursor: pointer;">
+            Update
+        </button>
+        <button style="background: transparent; color: white; border: 1px solid white; padding: 4px 8px; border-radius: 4px; cursor: pointer;">
+            Later
+        </button>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Update button
+    notification.querySelector('button:first-of-type').addEventListener('click', () => {
+        // Tell the waiting Service Worker to take over
+        if (registration.waiting) {
+            registration.waiting.postMessage('skipWaiting');
+        }
+        window.location.reload();
+    });
+    
+    // Later button
+    notification.querySelector('button:last-of-type').addEventListener('click', () => {
+        notification.remove();
+    });
+    
+    // Auto-hide after 30 seconds
+    setTimeout(() => {
+        if (document.body.contains(notification)) {
+            notification.remove();
+        }
+    }, 30000);
+}
+
+// Check for updates when page loads
+document.addEventListener('DOMContentLoaded', () => {
+    registerServiceWorker();
+    
+    // Check for updates when coming back online
+    window.addEventListener('online', () => {
+        console.log('🌐 Online - checking for updates');
+        if (navigator.serviceWorker.controller) {
+            navigator.serviceWorker.controller.postMessage('checkForUpdates');
+        }
+    });
+});
+
+// Manual update check function
+function checkForUpdates() {
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistration().then(registration => {
+            if (registration) {
+                registration.update().then(() => {
+                    console.log('🔍 Update check completed');
+                    alert('Update check completed!');
+                });
+            }
+        });
+    }
+}
+
+// Expose for dev tools
+window.checkForUpdates = checkForUpdates;
+window.forceUpdate = function() {
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(registrations => {
+            registrations.forEach(registration => {
+                registration.unregister();
+                console.log('🔄 Service Worker unregistered');
+            });
+            
+            // Clear all caches
+            caches.keys().then(cacheNames => {
+                cacheNames.forEach(cacheName => {
+                    caches.delete(cacheName);
+                    console.log(`🗑️ Deleted cache: ${cacheName}`);
+                });
+            }).then(() => {
+                alert('Cache cleared! Reloading...');
+                window.location.reload();
+            });
+        });
+    }
+};
+
 // Export functions for use in other scripts
 window.initCommon = initCommon;
 window.handleLogout = handleLogout;
