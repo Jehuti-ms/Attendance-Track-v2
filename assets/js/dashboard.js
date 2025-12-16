@@ -1,20 +1,20 @@
-// dashboard.js - Dashboard Module for Attendance Track
-// Proper ES6 Module Export
+// dashboard.js - Proper DashboardManager Implementation
+console.log("🚀 dashboard.js loading...");
 
 /**
- * DashboardManager - Main dashboard controller
+ * DashboardManager - Main dashboard controller class
  */
-export class DashboardManager {
+class DashboardManager {
     constructor() {
-        console.log("📊 DashboardManager: Constructor called");
+        console.log("📊 DashboardManager constructor called");
         this.initializeDashboard();
     }
 
     /**
-     * Initialize the dashboard
+     * Initialize dashboard components
      */
     initializeDashboard() {
-        console.log("🚀 DashboardManager: Initializing...");
+        console.log("🛠️ Initializing dashboard...");
         
         // Wait for DOM to be ready
         if (document.readyState === 'loading') {
@@ -25,55 +25,76 @@ export class DashboardManager {
     }
 
     /**
-     * Setup all dashboard components
+     * Setup all dashboard functionality
      */
     setupDashboard() {
-        console.log("🛠️ DashboardManager: Setting up components");
+        console.log("🔧 Setting up dashboard components...");
         
-        // Setup core dashboard features
-        this.setupDashboardCards();
-        this.setupCharts();
-        this.setupEventListeners();
+        // Update user info in header
         this.updateUserInfo();
         
-        // Load data
+        // Setup dashboard statistics
+        this.setupDashboardStats();
+        
+        // Setup event listeners
+        this.setupEventListeners();
+        
+        // Load dashboard data
         this.loadDashboardData();
         
-        console.log("✅ DashboardManager: Setup complete");
+        console.log("✅ Dashboard setup complete");
     }
 
     /**
-     * Setup dashboard statistics cards
+     * Update user information in header
      */
-    setupDashboardCards() {
-        console.log("🃏 Setting up dashboard cards...");
+    updateUserInfo() {
+        const userElement = document.getElementById('currentUser');
+        if (userElement) {
+            const userName = localStorage.getItem('user') || 
+                             localStorage.getItem('userName') || 
+                             localStorage.getItem('email') || 
+                             'User';
+            // Remove domain if it's an email
+            const displayName = userName.includes('@') ? 
+                               userName.split('@')[0] : 
+                               userName;
+            userElement.textContent = displayName;
+            console.log("👤 User updated:", displayName);
+        }
+    }
+
+    /**
+     * Setup dashboard statistics and cards
+     */
+    setupDashboardStats() {
+        console.log("📈 Setting up dashboard statistics...");
         
-        // Sample statistics data
-        const statsData = {
-            totalStudents: 425,
-            presentToday: 398,
-            absentToday: 27,
-            attendanceRate: 93.6,
-            totalClasses: 24,
-            totalTeachers: 38
+        // Sample data
+        const stats = {
+            'total-students': 425,
+            'present-today': 398,
+            'absent-today': 27,
+            'attendance-rate': 93.6,
+            'total-classes': 24,
+            'total-teachers': 38
         };
         
-        // Update each card with animated values
-        Object.keys(statsData).forEach(statKey => {
-            const element = document.getElementById(statKey);
+        // Update each statistic element
+        Object.keys(stats).forEach(statId => {
+            const element = document.getElementById(statId);
             if (element) {
-                this.animateValue(element, statsData[statKey], statKey.includes('Rate') ? '%' : '');
+                this.animateStatValue(element, stats[statId], statId.includes('rate'));
             }
         });
     }
 
     /**
-     * Animate a value from 0 to target
-     * @param {HTMLElement} element - Target element
-     * @param {number} targetValue - Target value
-     * @param {string} suffix - Optional suffix (%, $, etc.)
+     * Animate a statistic value
      */
-    animateValue(element, targetValue, suffix = '') {
+    animateStatValue(element, targetValue, isPercentage = false) {
+        if (!element) return;
+        
         const duration = 1500;
         const startTime = performance.now();
         const startValue = 0;
@@ -82,19 +103,16 @@ export class DashboardManager {
             const elapsed = currentTime - startTime;
             const progress = Math.min(elapsed / duration, 1);
             
-            // Ease out cubic for smooth animation
+            // Easing function
             const easeProgress = 1 - Math.pow(1 - progress, 3);
-            const currentValue = startValue + (targetValue - startValue) * easeProgress;
+            const current = startValue + (targetValue - startValue) * easeProgress;
             
-            // Format the display value
-            let displayValue;
-            if (suffix === '%') {
-                displayValue = `${currentValue.toFixed(1)}%`;
+            // Update display
+            if (isPercentage) {
+                element.textContent = `${current.toFixed(1)}%`;
             } else {
-                displayValue = Math.floor(currentValue).toLocaleString();
+                element.textContent = Math.floor(current).toLocaleString();
             }
-            
-            element.textContent = displayValue;
             
             if (progress < 1) {
                 requestAnimationFrame(animate);
@@ -105,96 +123,68 @@ export class DashboardManager {
     }
 
     /**
-     * Setup dashboard charts
+     * Setup all event listeners
      */
-    setupCharts() {
-        console.log("📈 Setting up charts...");
+    setupEventListeners() {
+        console.log("🎯 Setting up event listeners...");
         
-        // Setup attendance chart
-        this.createAttendanceChart();
+        // Logout button
+        const logoutBtn = document.getElementById('logoutBtn');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.handleLogout();
+            });
+        }
         
-        // Setup trend chart if element exists
-        if (document.getElementById('weekly-trend-chart')) {
-            this.createWeeklyTrendChart();
+        // Mobile menu toggle
+        const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
+        const navList = document.querySelector('.nav-list');
+        if (mobileMenuBtn && navList) {
+            mobileMenuBtn.addEventListener('click', () => {
+                const isExpanded = mobileMenuBtn.getAttribute('aria-expanded') === 'true';
+                mobileMenuBtn.setAttribute('aria-expanded', !isExpanded);
+                navList.classList.toggle('active');
+                mobileMenuBtn.classList.toggle('active');
+            });
+        }
+        
+        // Navigation highlighting
+        this.highlightCurrentPage();
+        
+        // Refresh button (if exists)
+        const refreshBtn = document.getElementById('refresh-dashboard');
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', () => this.refreshDashboard());
         }
     }
 
     /**
-     * Create attendance bar chart
+     * Highlight current page in navigation
      */
-    createAttendanceChart() {
-        const chartContainer = document.getElementById('attendance-chart');
-        if (!chartContainer) return;
+    highlightCurrentPage() {
+        const currentPage = window.location.pathname.split('/').pop() || 'dashboard.html';
+        const navLinks = document.querySelectorAll('.nav-link');
         
-        // Sample data
-        const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-        const attendance = [85, 92, 88, 95, 90, 93, 96];
-        const maxAttendance = Math.max(...attendance);
-        
-        // Create chart HTML
-        chartContainer.innerHTML = `
-            <div class="chart-header">
-                <h3>Weekly Attendance</h3>
-                <span class="chart-subtitle">Last 7 days</span>
-            </div>
-            <div class="chart-bars-container">
-                ${days.map((day, index) => {
-                    const height = (attendance[index] / maxAttendance) * 100;
-                    const color = attendance[index] >= 90 ? '#27ae60' : 
-                                 attendance[index] >= 80 ? '#f39c12' : '#e74c3c';
-                    
-                    return `
-                        <div class="chart-bar-wrapper">
-                            <div class="chart-bar" 
-                                 style="height: ${height}%; background-color: ${color};"
-                                 data-value="${attendance[index]}%">
-                            </div>
-                            <div class="chart-label">${day}</div>
-                            <div class="chart-value">${attendance[index]}%</div>
-                        </div>
-                    `;
-                }).join('')}
-            </div>
-        `;
+        navLinks.forEach(link => {
+            const href = link.getAttribute('href');
+            if (href === currentPage) {
+                link.classList.add('active');
+                link.setAttribute('aria-current', 'page');
+            } else {
+                link.classList.remove('active');
+                link.removeAttribute('aria-current');
+            }
+        });
     }
 
     /**
-     * Create weekly trend chart
-     */
-    createWeeklyTrendChart() {
-        const chartContainer = document.getElementById('weekly-trend-chart');
-        if (!chartContainer) return;
-        
-        chartContainer.innerHTML = `
-            <div class="trend-chart">
-                <div class="trend-header">
-                    <h3>Attendance Trend</h3>
-                    <span class="trend-change positive">+2.4%</span>
-                </div>
-                <div class="trend-description">
-                    <p>Weekly attendance shows a positive trend with overall improvement.</p>
-                </div>
-                <div class="trend-metrics">
-                    <div class="metric">
-                        <span class="metric-label">This Week</span>
-                        <span class="metric-value">93.6%</span>
-                    </div>
-                    <div class="metric">
-                        <span class="metric-label">Last Week</span>
-                        <span class="metric-value">91.2%</span>
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-
-    /**
-     * Load dashboard data from API/source
+     * Load dashboard data
      */
     loadDashboardData() {
         console.log("📥 Loading dashboard data...");
         
-        // Simulate API call delay
+        // Simulate API delay
         setTimeout(() => {
             this.updateRecentActivity();
             this.updateUpcomingEvents();
@@ -212,9 +202,7 @@ export class DashboardManager {
         const activities = [
             { time: '10:30 AM', action: 'Marked attendance for Grade 10-A', user: 'Ms. Johnson' },
             { time: '9:45 AM', action: 'Submitted absence report', user: 'Mr. Thompson' },
-            { time: 'Yesterday, 3:15 PM', action: 'Updated student records', user: 'Admin' },
-            { time: 'Yesterday, 11:20 AM', action: 'Generated monthly report', user: 'Principal' },
-            { time: 'Oct 12, 2:00 PM', action: 'System maintenance completed', user: 'IT Dept' }
+            { time: 'Yesterday, 3:15 PM', action: 'Updated student records', user: 'Admin' }
         ];
         
         activityList.innerHTML = activities.map(activity => `
@@ -237,9 +225,7 @@ export class DashboardManager {
         
         const events = [
             { date: 'Tomorrow', event: 'Parent-Teacher Conference', time: '3:00 PM' },
-            { date: 'Oct 20', event: 'Staff Development Day', time: 'All day' },
-            { date: 'Oct 25', event: 'Mid-term Exams Begin', time: '9:00 AM' },
-            { date: 'Nov 1', event: 'Report Cards Distribution', time: '2:00 PM' }
+            { date: 'Oct 20', event: 'Staff Development Day', time: 'All day' }
         ];
         
         eventsList.innerHTML = events.map(event => `
@@ -254,120 +240,46 @@ export class DashboardManager {
     }
 
     /**
-     * Setup all event listeners
-     */
-    setupEventListeners() {
-        console.log("🎯 Setting up event listeners...");
-        
-        // Dashboard refresh button
-        const refreshBtn = document.getElementById('refresh-dashboard');
-        if (refreshBtn) {
-            refreshBtn.addEventListener('click', () => this.refreshDashboard());
-        }
-        
-        // User logout button
-        const logoutBtn = document.getElementById('logoutBtn');
-        if (logoutBtn) {
-            logoutBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                this.handleLogout();
-            });
-        }
-        
-        // Mobile menu toggle
-        const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
-        const navList = document.querySelector('.nav-list');
-        
-        if (mobileMenuBtn && navList) {
-            mobileMenuBtn.addEventListener('click', () => {
-                const isExpanded = mobileMenuBtn.getAttribute('aria-expanded') === 'true';
-                mobileMenuBtn.setAttribute('aria-expanded', !isExpanded);
-                navList.classList.toggle('active');
-                
-                // Animate hamburger icon
-                mobileMenuBtn.classList.toggle('active');
-            });
-        }
-        
-        // Highlight current page in navigation
-        this.highlightCurrentPage();
-    }
-
-    /**
-     * Highlight the current page in navigation
-     */
-    highlightCurrentPage() {
-        const currentPage = window.location.pathname.split('/').pop() || 'dashboard.html';
-        const navLinks = document.querySelectorAll('.nav-link');
-        
-        navLinks.forEach(link => {
-            const href = link.getAttribute('href');
-            if (href === currentPage) {
-                link.classList.add('active');
-                link.setAttribute('aria-current', 'page');
-            } else {
-                link.classList.remove('active');
-                link.removeAttribute('aria-current');
-            }
-        });
-    }
-
-    /**
-     * Update user information in header
-     */
-    updateUserInfo() {
-        const userNameElement = document.getElementById('currentUser');
-        if (userNameElement) {
-            const userName = localStorage.getItem('user') || 
-                             localStorage.getItem('userName') || 
-                             localStorage.getItem('email') || 
-                             'User';
-            userNameElement.textContent = userName.split('@')[0]; // Remove domain if email
-        }
-    }
-
-    /**
      * Handle user logout
      */
     handleLogout() {
         if (confirm('Are you sure you want to logout?')) {
-            console.log("👋 Logging out user...");
+            console.log("👋 Logging out...");
             
             // Clear all user data
             localStorage.clear();
             sessionStorage.clear();
             
-            // Redirect to login page
+            // Redirect to login
             window.location.href = 'index.html';
         }
     }
 
     /**
-     * Refresh dashboard data
+     * Refresh dashboard
      */
     refreshDashboard() {
         console.log("🔄 Refreshing dashboard...");
         
         const refreshBtn = document.getElementById('refresh-dashboard');
         if (refreshBtn) {
-            // Show loading state
-            const originalText = refreshBtn.innerHTML;
+            // Show loading
+            const originalHTML = refreshBtn.innerHTML;
             refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing...';
             refreshBtn.disabled = true;
             
-            // Simulate refresh process
             setTimeout(() => {
-                // Reload dashboard data
-                this.setupDashboardCards();
+                // Reload data
+                this.setupDashboardStats();
                 this.loadDashboardData();
                 
-                // Restore button state
-                refreshBtn.innerHTML = originalText;
+                // Restore button
+                refreshBtn.innerHTML = originalHTML;
                 refreshBtn.disabled = false;
                 
-                // Show success notification
-                if (typeof window.showNotification === 'function') {
-                    window.showNotification('Dashboard refreshed successfully!', 'success');
+                // Show notification
+                if (typeof showNotification === 'function') {
+                    showNotification('Dashboard refreshed!', 'success');
                 }
                 
                 console.log("✅ Dashboard refreshed");
@@ -376,27 +288,27 @@ export class DashboardManager {
     }
 
     /**
-     * Public method to manually refresh dashboard
+     * Public refresh method
      */
     refresh() {
         this.refreshDashboard();
     }
 
     /**
-     * Cleanup method (for when dashboard is closed)
+     * Cleanup
      */
     destroy() {
         console.log("🧹 Cleaning up dashboard...");
-        // Remove event listeners, clear intervals, etc.
+        // Cleanup code if needed
     }
 }
 
-// Export as default as well for compatibility
-export default DashboardManager;
+// EXPORT the DashboardManager class
+export { DashboardManager };
 
-// Global fallback for non-module environments
+// Also make available globally for compatibility
 if (typeof window !== 'undefined') {
     window.DashboardManager = DashboardManager;
 }
 
-console.log("✅ dashboard.js module loaded and ready");
+console.log("✅ dashboard.js loaded - DashboardManager exported");
