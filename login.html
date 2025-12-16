@@ -150,165 +150,195 @@
     <script type="module" src="assets/js/attendance-app.js"></script>
     
     <script>
-        // Firebase connection check
-        async function checkFirebaseConnection() {
-            try {
-                const { auth } = await import('./assets/js/firebase.js');
-                const statusText = document.getElementById('status-text');
-                const statusDiv = document.getElementById('firebase-status');
-                
-                if (auth) {
-                    // Check if we can access auth
-                    console.log('Firebase auth loaded:', auth);
-                    statusText.textContent = 'Firebase connected ✅';
-                    statusText.className = 'status-connected';
-                    statusDiv.style.background = '#d4edda';
-                    statusDiv.style.border = '1px solid #c3e6cb';
-                    
-                    // Check if user is already logged in
-                    if (auth.currentUser) {
-                        console.log('Already logged in:', auth.currentUser.email);
-                        statusText.textContent += ` (Logged in as ${auth.currentUser.email})`;
-                        // Auto-redirect to dashboard
-                        setTimeout(() => window.app.goToDashboard(), 1000);
-                    }
-                } else {
-                    throw new Error('Auth not loaded');
-                }
-            } catch (error) {
-                console.error('Firebase connection error:', error);
-                const statusText = document.getElementById('status-text');
-                const statusDiv = document.getElementById('firebase-status');
-                
-                statusText.textContent = 'Firebase not connected - Using demo mode ❌';
-                statusText.className = 'status-disconnected';
-                statusDiv.style.background = '#f8d7da';
-                statusDiv.style.border = '1px solid #f5c6cb';
-            }
-        }
-
-        // Add this code INSIDE your existing <script> tags
-document.addEventListener('DOMContentLoaded', async () => {
-    console.log('Login page loaded, checking Firebase...');
-    
-    try {
-        const { auth } = await import('./assets/js/firebase.js');
-        const statusText = document.getElementById('status-text');
-        const statusDiv = document.getElementById('firebase-status');
+    // Single DOMContentLoaded listener
+    document.addEventListener('DOMContentLoaded', async () => {
+        console.log('Login page loaded, initializing...');
         
-        if (auth) {
+        await checkFirebaseConnection();
+        setupLoginForm();
+    });
+
+    // Firebase connection check
+    async function checkFirebaseConnection() {
+        try {
+            // Import Firebase once
+            const { auth } = await import('./assets/js/firebase.js');
+            const statusText = document.getElementById('status-text');
+            const statusDiv = document.getElementById('firebase-status');
+            
+            if (!auth) {
+                throw new Error('Auth service not available');
+            }
+            
             console.log('✅ Firebase auth loaded');
+            
+            // Update UI for connected state
             statusText.textContent = 'Firebase connected ✅';
+            statusText.className = 'status-connected';
             statusText.style.color = '#28a745';
             statusDiv.style.background = '#d4edda';
             statusDiv.style.border = '1px solid #c3e6cb';
             
             // Check if user is already logged in
-            if (auth.currentUser) {
-                console.log('Already logged in:', auth.currentUser.email);
-                statusText.textContent = `Already logged in as ${auth.currentUser.email} ✅`;
-                // Auto-redirect to dashboard after 2 seconds
-                setTimeout(() => {
-                    window.location.href = 'dashboard.html';
-                }, 2000);
-            }
-        } else {
-            throw new Error('Auth not loaded');
+            auth.onAuthStateChanged((user) => {
+                if (user) {
+                    console.log('User already logged in:', user.email);
+                    statusText.textContent = `Already logged in as ${user.email} ✅`;
+                    
+                    // Auto-redirect to dashboard
+                    setTimeout(() => {
+                        window.location.href = 'dashboard.html';
+                    }, 1500);
+                }
+            });
+            
+            return auth;
+            
+        } catch (error) {
+            console.error('Firebase connection error:', error);
+            showFirebaseError();
+            return null;
         }
-    } catch (error) {
-        console.error('Firebase connection error:', error);
+    }
+
+    function showFirebaseError() {
         const statusText = document.getElementById('status-text');
         const statusDiv = document.getElementById('firebase-status');
         
         statusText.textContent = 'Firebase not connected - Use Demo Mode ❌';
+        statusText.className = 'status-disconnected';
         statusText.style.color = '#dc3545';
         statusDiv.style.background = '#f8d7da';
         statusDiv.style.border = '1px solid #f5c6cb';
     }
-});
-        // Navigation functions (will be overridden by attendance-app.js)
-        function startDemoMode() {
-            if (window.app && window.app.startDemoMode) {
-                window.app.startDemoMode();
-            } else {
-                console.log('Starting demo mode...');
-                // Fallback demo mode
-                localStorage.setItem('attendance_user', JSON.stringify({
-                    id: 'demo-001',
-                    name: 'Demo Teacher',
-                    email: 'demo@school.edu',
-                    role: 'teacher',
-                    school: 'Demo Academy',
-                    demo: true
-                }));
-                window.location.href = 'dashboard.html';
-            }
-        }
+
+    function setupLoginForm() {
+        const loginForm = document.getElementById('login-form');
+        if (!loginForm) return;
         
-        function goToIndex() {
-            if (window.app && window.app.goToIndex) {
-                window.app.goToIndex();
-            } else {
-                window.location.href = 'index.html';
-            }
-        }
-        
-        // Initialize when DOM is loaded
-        document.addEventListener('DOMContentLoaded', () => {
-            console.log('Login page loaded');
-            checkFirebaseConnection();
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
             
-            // Setup form submission
-            const loginForm = document.getElementById('login-form');
-            if (loginForm) {
-                loginForm.addEventListener('submit', async (e) => {
-                    e.preventDefault();
-                    
-                    const email = document.getElementById('email').value;
-                    const password = document.getElementById('password').value;
-                    
-                    console.log('Attempting login with:', email);
-                    
-                    try {
-                        // Import Firebase auth functions
-                        const { signInWithEmailAndPassword } = await import(
-                            'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js'
-                        );
-                        const { auth } = await import('./assets/js/firebase.js');
-                        
-                        // Try Firebase login
-                        const userCredential = await signInWithEmailAndPassword(auth, email, password);
-                        const user = userCredential.user;
-                        
-                        console.log('Firebase login successful:', user.email);
-                        
-                        // Show success message
-                        const statusText = document.getElementById('status-text');
-                        statusText.textContent = 'Login successful! Redirecting... ✅';
-                        statusText.style.color = '#28a745';
-                        
-                        // Wait a moment then redirect
-                        setTimeout(() => {
-                            window.location.href = 'dashboard.html';
-                        }, 1000);
-                        
-                    } catch (error) {
-                        console.error('Firebase login error:', error);
-                        
-                        // Show error
-                        const statusText = document.getElementById('status-text');
-                        statusText.textContent = `Login failed: ${error.message}`;
-                        statusText.style.color = '#dc3545';
-                        
-                        // Fallback to demo mode after showing error
-                        setTimeout(() => {
-                            console.log('Falling back to demo mode...');
-                            startDemoMode();
-                        }, 2000);
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+            const statusText = document.getElementById('status-text');
+            const submitBtn = loginForm.querySelector('button[type="submit"]');
+            
+            // Basic validation
+            if (!email || !password) {
+                statusText.textContent = 'Please enter both email and password';
+                statusText.style.color = '#dc3545';
+                return;
+            }
+            
+            // Show loading state
+            const originalBtnText = submitBtn.textContent;
+            submitBtn.textContent = 'Logging in...';
+            submitBtn.disabled = true;
+            statusText.textContent = 'Attempting login...';
+            statusText.style.color = '#17a2b8';
+            
+            try {
+                // Import Firebase auth functions
+                const { auth } = await import('./assets/js/firebase.js');
+                const { signInWithEmailAndPassword } = await import(
+                    'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js'
+                );
+                
+                // Attempt Firebase login
+                const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                const user = userCredential.user;
+                
+                console.log('Firebase login successful:', user.email);
+                
+                // Show success message
+                statusText.textContent = 'Login successful! Redirecting... ✅';
+                statusText.style.color = '#28a745';
+                
+                // Store user info in localStorage for quick access
+                localStorage.setItem('firebase_user', JSON.stringify({
+                    uid: user.uid,
+                    email: user.email,
+                    lastLogin: new Date().toISOString()
+                }));
+                
+                // Redirect to dashboard
+                setTimeout(() => {
+                    window.location.href = 'dashboard.html';
+                }, 1000);
+                
+            } catch (error) {
+                console.error('Login error:', error);
+                
+                // Reset button state
+                submitBtn.textContent = originalBtnText;
+                submitBtn.disabled = false;
+                
+                // Show appropriate error message
+                let errorMessage = 'Login failed';
+                
+                switch (error.code) {
+                    case 'auth/invalid-email':
+                        errorMessage = 'Invalid email address';
+                        break;
+                    case 'auth/user-disabled':
+                        errorMessage = 'Account has been disabled';
+                        break;
+                    case 'auth/user-not-found':
+                        errorMessage = 'No account found with this email';
+                        break;
+                    case 'auth/wrong-password':
+                        errorMessage = 'Incorrect password';
+                        break;
+                    case 'auth/too-many-requests':
+                        errorMessage = 'Too many attempts. Try again later';
+                        break;
+                    default:
+                        errorMessage = `Login failed: ${error.message}`;
+                }
+                
+                statusText.textContent = errorMessage;
+                statusText.style.color = '#dc3545';
+                
+                // Offer demo mode as fallback
+                setTimeout(() => {
+                    if (confirm('Login failed. Would you like to try Demo Mode instead?')) {
+                        startDemoMode();
                     }
-                });
+                }, 1500);
             }
         });
-    </script>
+    }
+
+    // Demo mode functions
+    function startDemoMode() {
+        console.log('Starting demo mode...');
+        
+        localStorage.setItem('attendance_user', JSON.stringify({
+            id: 'demo-001',
+            name: 'Demo Teacher',
+            email: 'demo@school.edu',
+            role: 'teacher',
+            school: 'Demo Academy',
+            demo: true,
+            timestamp: new Date().toISOString()
+        }));
+        
+        // Clear any Firebase user data
+        localStorage.removeItem('firebase_user');
+        
+        const statusText = document.getElementById('status-text');
+        statusText.textContent = 'Starting demo mode...';
+        statusText.style.color = '#17a2b8';
+        
+        setTimeout(() => {
+            window.location.href = 'dashboard.html';
+        }, 1000);
+    }
+    
+    function goToIndex() {
+        window.location.href = 'index.html';
+    }
+</script>
 </body>
 </html>
