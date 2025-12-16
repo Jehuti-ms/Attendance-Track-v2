@@ -37,6 +37,142 @@ class AttendanceApp {
         return '/';
     }
 
+    // Add these methods to your AttendanceApp class:
+
+// ==================== LOGIN HANDLER ====================
+async handleLogin(email, password, rememberMe = false) {
+    console.log('🔐 Handling login:', email);
+    
+    try {
+        // Validate
+        if (!email || !password) {
+            this.showError('Please enter email and password');
+            return;
+        }
+        
+        // Check if user exists and redirect if already logged in
+        const existingUser = Storage.get('attendance_user');
+        if (existingUser && existingUser.email === email) {
+            console.log('User already logged in, redirecting...');
+            this.redirectTo('dashboard.html');
+            return;
+        }
+        
+        // Create user object
+        const user = {
+            id: 'user_' + Date.now(),
+            email: email,
+            name: email.split('@')[0],
+            role: 'teacher',
+            school: 'My School',
+            lastLogin: new Date().toISOString()
+        };
+        
+        // Save to storage
+        Storage.set('attendance_user', user);
+        
+        // Remember email if requested
+        if (rememberMe) {
+            localStorage.setItem('remember_email', email);
+        } else {
+            localStorage.removeItem('remember_email');
+        }
+        
+        // Update app state
+        this.user = user;
+        this.state.currentUser = user;
+        
+        this.showToast('Login successful!', 'success');
+        
+        // Redirect to dashboard
+        setTimeout(() => {
+            this.redirectTo('dashboard.html');
+        }, 1000);
+        
+    } catch (error) {
+        console.error('Login error:', error);
+        this.showError('Login failed: ' + error.message);
+    }
+}
+
+// ==================== SIGNUP HANDLER ====================
+async handleSignup(name, email, password, role, school, termsAccepted) {
+    console.log('📝 Handling signup:', email);
+    
+    try {
+        // Validate
+        if (!name || !email || !password) {
+            this.showError('Please fill all required fields');
+            return;
+        }
+        
+        if (!termsAccepted) {
+            this.showError('You must accept the terms');
+            return;
+        }
+        
+        // Create user object
+        const user = {
+            id: 'user_' + Date.now(),
+            name: name,
+            email: email,
+            role: role || 'teacher',
+            school: school || 'My School',
+            createdAt: new Date().toISOString(),
+            lastLogin: new Date().toISOString()
+        };
+        
+        // Save to storage
+        Storage.set('attendance_user', user);
+        
+        // Update app state
+        this.user = user;
+        this.state.currentUser = user;
+        
+        this.showToast('Account created successfully!', 'success');
+        
+        // Redirect to dashboard
+        setTimeout(() => {
+            this.redirectTo('dashboard.html');
+        }, 1500);
+        
+    } catch (error) {
+        console.error('Signup error:', error);
+        this.showError('Signup failed: ' + error.message);
+    }
+}
+
+// ==================== DEMO MODE ====================
+startDemoMode() {
+    console.log('🎮 Starting demo mode');
+    
+    const demoUser = {
+        id: 'demo_' + Date.now(),
+        email: 'demo@attendance-track.app',
+        name: 'Demo Teacher',
+        role: 'teacher',
+        school: 'Demo Academy',
+        demo: true,
+        lastLogin: new Date().toISOString()
+    };
+    
+    Storage.set('attendance_user', demoUser);
+    this.user = demoUser;
+    this.state.currentUser = demoUser;
+    
+    this.showToast('Demo mode activated!', 'success');
+    
+    setTimeout(() => {
+        this.redirectTo('dashboard.html');
+    }, 1000);
+}
+
+// ==================== REDIRECT HELPER ====================
+redirectTo(page) {
+    console.log('🔀 Redirecting to:', page);
+    window.location.href = page;
+}
+    
 // ==================== INITIALIZATION ====================
 async init() {
     console.log('🚀 Initializing AttendanceApp...');
