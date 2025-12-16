@@ -1504,9 +1504,8 @@ loadSetupContent(container) {
     this.loadSystemSettings();
 }
 
-    // ==================== SETUP PAGE METHODS =====================
-
-// Save class method
+// ==================== SETUP PAGE METHODS =====================
+// 1. CLASS MANAGEMENT METHODS
 saveClass() {
     const className = document.getElementById('className').value;
     const classCode = document.getElementById('classCode').value;
@@ -1542,9 +1541,9 @@ saveClass() {
     this.showToast('Class saved successfully!', 'success');
     this.clearClassForm();
     this.loadClassesList();
+    this.populateClassDropdown(); // Update dropdown in student form
 }
 
-// Clear class form
 clearClassForm() {
     const className = document.getElementById('className');
     const classCode = document.getElementById('classCode');
@@ -1557,7 +1556,6 @@ clearClassForm() {
     if (subject) subject.value = '';
 }
 
-// Load classes list
 loadClassesList() {
     const classesList = document.getElementById('classes-list');
     if (!classesList) return;
@@ -1618,7 +1616,114 @@ loadClassesList() {
     }).join('');
 }
 
-// Save student method
+editClass(classId) {
+    const classes = Storage.get('classes') || [];
+    const cls = classes.find(c => c.id === classId);
+    
+    if (!cls) {
+        this.showToast('Class not found', 'error');
+        return;
+    }
+    
+    // Fill form with class data
+    const className = document.getElementById('className');
+    const classCode = document.getElementById('classCode');
+    const yearGroup = document.getElementById('yearGroup');
+    const subject = document.getElementById('subject');
+    
+    if (className) className.value = cls.name;
+    if (classCode) classCode.value = cls.code;
+    if (yearGroup) yearGroup.value = cls.yearGroup || '';
+    if (subject) subject.value = cls.subject || '';
+    
+    // Update save button to edit mode
+    const saveBtn = document.getElementById('save-class');
+    if (saveBtn) {
+        saveBtn.innerHTML = '<i class="fas fa-save"></i> Update Class';
+        saveBtn.dataset.editId = classId;
+        saveBtn.onclick = () => this.updateClass(classId);
+    }
+}
+
+updateClass(classId) {
+    const className = document.getElementById('className').value;
+    const classCode = document.getElementById('classCode').value;
+    const yearGroup = document.getElementById('yearGroup').value;
+    const subject = document.getElementById('subject').value;
+    
+    if (!className || !classCode) {
+        this.showToast('Please fill in all required fields', 'error');
+        return;
+    }
+    
+    const classes = Storage.get('classes') || [];
+    const classIndex = classes.findIndex(c => c.id === classId);
+    
+    if (classIndex === -1) {
+        this.showToast('Class not found', 'error');
+        return;
+    }
+    
+    // Check for duplicate class code (excluding current class)
+    if (classes.some(c => c.code === classCode && c.id !== classId)) {
+        this.showToast('Class code already exists', 'error');
+        return;
+    }
+    
+    classes[classIndex] = {
+        ...classes[classIndex],
+        name: className,
+        code: classCode,
+        yearGroup: yearGroup || null,
+        subject: subject || null,
+        updatedAt: new Date().toISOString()
+    };
+    
+    Storage.set('classes', classes);
+    this.showToast('Class updated successfully!', 'success');
+    
+    // Reset form and button
+    this.clearClassForm();
+    const saveBtn = document.getElementById('save-class');
+    if (saveBtn) {
+        saveBtn.innerHTML = '<i class="fas fa-save"></i> Save Class';
+        saveBtn.dataset.editId = '';
+        saveBtn.onclick = () => this.saveClass();
+    }
+    
+    this.loadClassesList();
+    this.populateClassDropdown(); // Update dropdown in student form
+}
+
+deleteClass(classId) {
+    if (!confirm('Delete this class? This will also remove all students from this class.')) {
+        return;
+    }
+    
+    const classes = Storage.get('classes') || [];
+    const students = Storage.get('students') || [];
+    
+    // Remove class
+    const updatedClasses = classes.filter(c => c.id !== classId);
+    
+    // Unassign students from this class
+    const updatedStudents = students.map(student => {
+        if (student.classId === classId) {
+            return { ...student, classId: null };
+        }
+        return student;
+    });
+    
+    Storage.set('classes', updatedClasses);
+    Storage.set('students', updatedStudents);
+    
+    this.showToast('Class deleted successfully', 'info');
+    this.loadClassesList();
+    this.loadStudentsList();
+    this.populateClassDropdown();
+}
+
+// 2. STUDENT MANAGEMENT METHODS
 saveStudent() {
     const firstName = document.getElementById('firstName').value;
     const lastName = document.getElementById('lastName').value;
@@ -1659,7 +1764,6 @@ saveStudent() {
     this.loadStudentsList();
 }
 
-// Clear student form
 clearStudentForm() {
     const firstName = document.getElementById('firstName');
     const lastName = document.getElementById('lastName');
@@ -1674,7 +1778,6 @@ clearStudentForm() {
     if (studentClass) studentClass.value = '';
 }
 
-// Load students list
 loadStudentsList() {
     const studentsList = document.getElementById('students-list');
     if (!studentsList) return;
@@ -1736,7 +1839,6 @@ loadStudentsList() {
     }).join('');
 }
 
-// Populate class dropdown for student form
 populateClassDropdown() {
     const classDropdown = document.getElementById('studentClass');
     if (!classDropdown) return;
@@ -1754,393 +1856,6 @@ populateClassDropdown() {
     });
 }
 
-// Handle file import
-handleFileImport(file) {
-    const importZone = document.getElementById('import-zone');
-    const fileName = document.createElement('div');
-    fileName.className = 'import-filename';
-    fileName.textContent = `Selected: ${file.name}`;
-    
-    // Remove any existing filename display
-    const existing = importZone.querySelector('.import-filename');
-    if (existing) {
-        existing.remove();
-    }
-    
-    importZone.appendChild(fileName);
-    this.showToast(`File "${file.name}" ready for import`, 'info');
-}
-
-// Process import
-processImport() {
-    const importFile = document.getElementById('import-file');
-    const importType = document.getElementById('import-type').value;
-    
-    if (!importFile.files.length) {
-        this.showToast('Please select a file to import', 'error');
-        return;
-    }
-    
-    const file = importFile.files[0];
-    const reader = new FileReader();
-    
-    reader.onload = (e) => {
-        try {
-            const data = e.target.result;
-            this.showToast(`Importing ${importType} data...`, 'info');
-            
-            // Simulate import process
-            setTimeout(() => {
-                this.showToast(`${importType} data imported successfully!`, 'success');
-                
-                // Clear the file input
-                importFile.value = '';
-                const importZone = document.getElementById('import-zone');
-                const filename = importZone.querySelector('.import-filename');
-                if (filename) filename.remove();
-                
-                // Refresh the appropriate list
-                if (importType === 'classes') {
-                    this.loadClassesList();
-                } else if (importType === 'students') {
-                    this.loadStudentsList();
-                    this.populateClassDropdown();
-                }
-            }, 1500);
-            
-        } catch (error) {
-            this.showToast('Error processing file: ' + error.message, 'error');
-        }
-    };
-    
-    reader.onerror = () => {
-        this.showToast('Error reading file', 'error');
-    };
-    
-    reader.readAsText(file);
-}
-
-// Download template
-downloadTemplate() {
-    const importType = document.getElementById('import-type').value;
-    
-    // Create template content based on import type
-    let csvContent = '';
-    
-    switch(importType) {
-        case 'students':
-            csvContent = 'firstName,lastName,studentId,gender,classCode\nJohn,Doe,STU001,male,10MATHS\nJane,Smith,STU002,female,10MATHS';
-            break;
-        case 'classes':
-            csvContent = 'name,code,yearGroup,subject\nGrade 10 Mathematics,10MATHS,10,Mathematics\nGrade 10 English,10ENG,10,English';
-            break;
-        case 'attendance':
-            csvContent = 'date,studentId,classCode,status,session\n2023-10-01,STU001,10MATHS,present,AM\n2023-10-01,STU002,10MATHS,absent,AM';
-            break;
-    }
-    
-    // Create and download the file
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${importType}_template.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    window.URL.revokeObjectURL(url);
-    
-    this.showToast(`Template downloaded for ${importType}`, 'success');
-}
-
-// Save system settings
-saveSystemSettings() {
-    const schoolName = document.getElementById('schoolName').value;
-    const currentTerm = document.getElementById('currentTerm').value;
-    const academicYear = document.getElementById('academicYear').value;
-    const schoolType = document.getElementById('schoolType').value;
-    const amSession = document.getElementById('am-session').checked;
-    const pmSession = document.getElementById('pm-session').checked;
-    
-    const settings = {
-        schoolName: schoolName || 'My School',
-        currentTerm: currentTerm || '1',
-        academicYear: academicYear || new Date().getFullYear().toString(),
-        schoolType: schoolType || 'secondary',
-        attendanceSessions: {
-            am: amSession,
-            pm: pmSession
-        },
-        updatedAt: new Date().toISOString()
-    };
-    
-    Storage.set('systemSettings', settings);
-    this.showToast('System settings saved successfully!', 'success');
-}
-
-// Reset system settings
-resetSystemSettings() {
-    const defaultSettings = {
-        schoolName: 'My School',
-        currentTerm: '1',
-        academicYear: new Date().getFullYear().toString(),
-        schoolType: 'secondary',
-        attendanceSessions: {
-            am: true,
-            pm: true
-        },
-        updatedAt: new Date().toISOString()
-    };
-    
-    Storage.set('systemSettings', defaultSettings);
-    this.loadSystemSettings();
-    this.showToast('Settings reset to defaults', 'info');
-}
-
-// Load system settings
-loadSystemSettings() {
-    const settings = Storage.get('systemSettings') || {
-        schoolName: 'My School',
-        currentTerm: '1',
-        academicYear: new Date().getFullYear().toString(),
-        attendanceSessions: {
-            am: true,
-            pm: true
-        }
-    };
-    
-    const schoolNameInput = document.getElementById('schoolName');
-    const currentTermSelect = document.getElementById('currentTerm');
-    const academicYearInput = document.getElementById('academicYear');
-    const schoolTypeSelect = document.getElementById('schoolType');
-    const amSessionCheckbox = document.getElementById('am-session');
-    const pmSessionCheckbox = document.getElementById('pm-session');
-    
-    if (schoolNameInput) schoolNameInput.value = settings.schoolName;
-    if (currentTermSelect) currentTermSelect.value = settings.currentTerm;
-    if (academicYearInput) academicYearInput.value = settings.academicYear;
-    if (schoolTypeSelect) schoolTypeSelect.value = settings.schoolType || 'secondary';
-    if (amSessionCheckbox) amSessionCheckbox.checked = settings.attendanceSessions?.am !== false;
-    if (pmSessionCheckbox) pmSessionCheckbox.checked = settings.attendanceSessions?.pm !== false;
-}
-
-// Backup data
-backupData() {
-    try {
-        const backup = {
-            version: '1.0',
-            timestamp: new Date().toISOString(),
-            data: {
-                classes: Storage.get('classes') || [],
-                students: Storage.get('students') || [],
-                attendance: Storage.get('attendance') || [],
-                systemSettings: Storage.get('systemSettings') || {},
-                users: Storage.get('users') || []
-            }
-        };
-        
-        const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `attendance_backup_${new Date().toISOString().slice(0, 10)}.json`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
-        
-        this.showToast('Backup downloaded successfully!', 'success');
-    } catch (error) {
-        this.showToast('Error creating backup: ' + error.message, 'error');
-    }
-}
-
-// Restore data
-restoreData() {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.json';
-    
-    input.onchange = (e) => {
-        const file = e.target.files[0];
-        const reader = new FileReader();
-        
-        reader.onload = (e) => {
-            try {
-                const backup = JSON.parse(e.target.result);
-                
-                if (!backup.data) {
-                    throw new Error('Invalid backup file format');
-                }
-                
-                if (confirm('Restoring backup will overwrite all current data. Continue?')) {
-                    Storage.set('classes', backup.data.classes || []);
-                    Storage.set('students', backup.data.students || []);
-                    Storage.set('attendance', backup.data.attendance || []);
-                    Storage.set('systemSettings', backup.data.systemSettings || {});
-                    Storage.set('users', backup.data.users || []);
-                    
-                    this.showToast('Data restored successfully!', 'success');
-                    
-                    // Refresh all lists
-                    this.loadClassesList();
-                    this.loadStudentsList();
-                    this.populateClassDropdown();
-                    this.loadSystemSettings();
-                }
-            } catch (error) {
-                this.showToast('Error restoring backup: ' + error.message, 'error');
-            }
-        };
-        
-        reader.readAsText(file);
-    };
-    
-    input.click();
-}
-
-// Clear all data
-clearAllData() {
-    if (confirm('WARNING: This will delete ALL data including classes, students, and attendance records. This action cannot be undone. Continue?')) {
-        if (confirm('Are you absolutely sure? Type "DELETE" to confirm.')) {
-            const confirmation = prompt('Type DELETE to confirm:');
-            if (confirmation === 'DELETE') {
-                // Clear all data except current user
-                const currentUser = this.user;
-                Storage.clear();
-                
-                // Restore current user
-                if (currentUser) {
-                    Storage.set('users', [currentUser]);
-                    this.user = currentUser;
-                }
-                
-                this.showToast('All data has been cleared', 'info');
-                
-                // Refresh all lists
-                this.loadClassesList();
-                this.loadStudentsList();
-                this.populateClassDropdown();
-                this.loadSystemSettings();
-            }
-        }
-    }
-}
-
-// Edit class
-editClass(classId) {
-    const classes = Storage.get('classes') || [];
-    const cls = classes.find(c => c.id === classId);
-    
-    if (!cls) {
-        this.showToast('Class not found', 'error');
-        return;
-    }
-    
-    // Switch to classes tab
-    const classesTab = document.querySelector('[data-tab="classes"]');
-    if (classesTab) classesTab.click();
-    
-    // Fill form with class data
-    const classNameInput = document.getElementById('className');
-    const classCodeInput = document.getElementById('classCode');
-    const yearGroupSelect = document.getElementById('yearGroup');
-    const subjectInput = document.getElementById('subject');
-    
-    if (classNameInput) classNameInput.value = cls.name;
-    if (classCodeInput) classCodeInput.value = cls.code;
-    if (yearGroupSelect) yearGroupSelect.value = cls.yearGroup || '';
-    if (subjectInput) subjectInput.value = cls.subject || '';
-    
-    // Update save button to edit mode
-    const saveBtn = document.getElementById('save-class');
-    if (saveBtn) {
-        saveBtn.innerHTML = '<i class="fas fa-save"></i> Update Class';
-        saveBtn.dataset.editId = classId;
-        saveBtn.onclick = () => this.updateClass(classId);
-    }
-}
-
-// Update class
-updateClass(classId) {
-    const className = document.getElementById('className').value;
-    const classCode = document.getElementById('classCode').value;
-    const yearGroup = document.getElementById('yearGroup').value;
-    const subject = document.getElementById('subject').value;
-    
-    if (!className || !classCode) {
-        this.showToast('Please fill in all required fields', 'error');
-        return;
-    }
-    
-    const classes = Storage.get('classes') || [];
-    const classIndex = classes.findIndex(c => c.id === classId);
-    
-    if (classIndex === -1) {
-        this.showToast('Class not found', 'error');
-        return;
-    }
-    
-    // Check for duplicate class code (excluding current class)
-    if (classes.some(c => c.code === classCode && c.id !== classId)) {
-        this.showToast('Class code already exists', 'error');
-        return;
-    }
-    
-    classes[classIndex] = {
-        ...classes[classIndex],
-        name: className,
-        code: classCode,
-        yearGroup: yearGroup || null,
-        subject: subject || null,
-        updatedAt: new Date().toISOString()
-    };
-    
-    Storage.set('classes', classes);
-    this.showToast('Class updated successfully!', 'success');
-    
-    // Reset form and button
-    this.clearClassForm();
-    const saveBtn = document.getElementById('save-class');
-    if (saveBtn) {
-        saveBtn.innerHTML = '<i class="fas fa-save"></i> Save Class';
-        saveBtn.dataset.editId = '';
-        saveBtn.onclick = () => this.saveClass();
-    }
-    
-    this.loadClassesList();
-}
-
-// Delete class
-deleteClass(classId) {
-    if (!confirm('Delete this class? This will also remove all students from this class.')) {
-        return;
-    }
-    
-    const classes = Storage.get('classes') || [];
-    const students = Storage.get('students') || [];
-    
-    // Remove class
-    const updatedClasses = classes.filter(c => c.id !== classId);
-    
-    // Unassign students from this class
-    const updatedStudents = students.map(student => {
-        if (student.classId === classId) {
-            return { ...student, classId: null };
-        }
-        return student;
-    });
-    
-    Storage.set('classes', updatedClasses);
-    Storage.set('students', updatedStudents);
-    
-    this.showToast('Class deleted successfully', 'info');
-    this.loadClassesList();
-    this.loadStudentsList();
-    this.populateClassDropdown();
-}
-
-// Edit student
 editStudent(studentId) {
     const students = Storage.get('students') || [];
     const student = students.find(s => s.id === studentId);
@@ -2150,22 +1865,18 @@ editStudent(studentId) {
         return;
     }
     
-    // Switch to students tab
-    const studentsTab = document.querySelector('[data-tab="students"]');
-    if (studentsTab) studentsTab.click();
-    
     // Fill form with student data
-    const firstNameInput = document.getElementById('firstName');
-    const lastNameInput = document.getElementById('lastName');
+    const firstName = document.getElementById('firstName');
+    const lastName = document.getElementById('lastName');
     const studentIdInput = document.getElementById('studentId');
-    const genderSelect = document.getElementById('gender');
-    const studentClassSelect = document.getElementById('studentClass');
+    const gender = document.getElementById('gender');
+    const studentClass = document.getElementById('studentClass');
     
-    if (firstNameInput) firstNameInput.value = student.firstName;
-    if (lastNameInput) lastNameInput.value = student.lastName;
+    if (firstName) firstName.value = student.firstName;
+    if (lastName) lastName.value = student.lastName;
     if (studentIdInput) studentIdInput.value = student.studentId;
-    if (genderSelect) genderSelect.value = student.gender || '';
-    if (studentClassSelect) studentClassSelect.value = student.classId || '';
+    if (gender) gender.value = student.gender || '';
+    if (studentClass) studentClass.value = student.classId || '';
     
     // Update save button to edit mode
     const saveBtn = document.getElementById('save-student');
@@ -2176,7 +1887,6 @@ editStudent(studentId) {
     }
 }
 
-// Update student
 updateStudent(studentId) {
     const firstName = document.getElementById('firstName').value;
     const lastName = document.getElementById('lastName').value;
@@ -2229,7 +1939,6 @@ updateStudent(studentId) {
     this.loadStudentsList();
 }
 
-// Delete student
 deleteStudent(studentId) {
     if (!confirm('Delete this student? This will also remove all attendance records for this student.')) {
         return;
@@ -2251,7 +1960,360 @@ deleteStudent(studentId) {
     this.loadStudentsList();
 }
 
-// Show toast notification
+// 3. DATA IMPORT METHODS
+handleFileImport(file) {
+    const importZone = document.getElementById('import-zone');
+    const fileName = document.createElement('div');
+    fileName.className = 'import-filename';
+    fileName.textContent = `Selected: ${file.name}`;
+    
+    // Remove any existing filename display
+    const existing = importZone.querySelector('.import-filename');
+    if (existing) {
+        existing.remove();
+    }
+    
+    importZone.appendChild(fileName);
+    this.showToast(`File "${file.name}" ready for import`, 'info');
+}
+
+processImport() {
+    const importFile = document.getElementById('import-file');
+    const importType = document.getElementById('import-type').value;
+    const overwriteData = document.getElementById('overwrite-data').checked;
+    const createMissing = document.getElementById('create-missing').checked;
+    
+    if (!importFile.files.length) {
+        this.showToast('Please select a file to import', 'error');
+        return;
+    }
+    
+    const file = importFile.files[0];
+    const reader = new FileReader();
+    
+    reader.onload = (e) => {
+        try {
+            const data = e.target.result;
+            
+            // Parse CSV data
+            const rows = this.parseCSV(data);
+            
+            if (rows.length === 0) {
+                this.showToast('No data found in file', 'error');
+                return;
+            }
+            
+            this.showToast(`Importing ${importType} data...`, 'info');
+            
+            // Process based on import type
+            switch(importType) {
+                case 'students':
+                    this.importStudents(rows, overwriteData, createMissing);
+                    break;
+                case 'classes':
+                    this.importClasses(rows, overwriteData);
+                    break;
+                case 'attendance':
+                    this.importAttendance(rows, overwriteData);
+                    break;
+                default:
+                    this.showToast('Unknown import type', 'error');
+                    return;
+            }
+            
+        } catch (error) {
+            this.showToast('Error processing file: ' + error.message, 'error');
+        }
+    };
+    
+    reader.onerror = () => {
+        this.showToast('Error reading file', 'error');
+    };
+    
+    reader.readAsText(file);
+}
+
+parseCSV(csvText) {
+    const lines = csvText.split('\n');
+    const result = [];
+    
+    // Get headers
+    const headers = lines[0].split(',').map(h => h.trim());
+    
+    // Process each line
+    for (let i = 1; i < lines.length; i++) {
+        if (!lines[i].trim()) continue; // Skip empty lines
+        
+        const obj = {};
+        const currentLine = lines[i].split(',');
+        
+        for (let j = 0; j < headers.length; j++) {
+            obj[headers[j]] = currentLine[j] ? currentLine[j].trim() : '';
+        }
+        
+        result.push(obj);
+    }
+    
+    return result;
+}
+
+importStudents(rows, overwrite, createMissing) {
+    const existingStudents = Storage.get('students') || [];
+    const existingClasses = Storage.get('classes') || [];
+    let newStudents = [];
+    let updatedCount = 0;
+    let createdCount = 0;
+    
+    rows.forEach(row => {
+        // Find existing student by ID or name
+        let existingIndex = -1;
+        if (row.studentId) {
+            existingIndex = existingStudents.findIndex(s => s.studentId === row.studentId);
+        }
+        
+        if (existingIndex === -1 && row.firstName && row.lastName) {
+            existingIndex = existingStudents.findIndex(s => 
+                s.firstName === row.firstName && s.lastName === row.lastName
+            );
+        }
+        
+        // Check if student should be assigned to a class
+        let classId = null;
+        if (row.classCode && createMissing) {
+            const classObj = existingClasses.find(c => c.code === row.classCode);
+            if (classObj) {
+                classId = classObj.id;
+            }
+        }
+        
+        const studentData = {
+            firstName: row.firstName || '',
+            lastName: row.lastName || '',
+            fullName: `${row.firstName || ''} ${row.lastName || ''}`.trim(),
+            studentId: row.studentId || `STU${Date.now().toString().slice(-6)}`,
+            gender: row.gender || null,
+            classId: classId,
+            enrollmentDate: row.enrollmentDate || new Date().toISOString(),
+            createdAt: new Date().toISOString()
+        };
+        
+        if (existingIndex !== -1 && !overwrite) {
+            // Skip existing student if not overwriting
+            return;
+        }
+        
+        if (existingIndex !== -1) {
+            // Update existing student
+            existingStudents[existingIndex] = {
+                ...existingStudents[existingIndex],
+                ...studentData,
+                id: existingStudents[existingIndex].id, // Keep existing ID
+                updatedAt: new Date().toISOString()
+            };
+            updatedCount++;
+        } else {
+            // Add new student
+            existingStudents.push({
+                ...studentData,
+                id: `student_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+            });
+            createdCount++;
+        }
+    });
+    
+    Storage.set('students', existingStudents);
+    
+    // Clear file input
+    const importFile = document.getElementById('import-file');
+    importFile.value = '';
+    const importZone = document.getElementById('import-zone');
+    const filename = importZone.querySelector('.import-filename');
+    if (filename) filename.remove();
+    
+    this.showToast(
+        `Students imported: ${createdCount} created, ${updatedCount} updated`, 
+        'success'
+    );
+    
+    this.loadStudentsList();
+    this.populateClassDropdown();
+}
+
+importClasses(rows, overwrite) {
+    const existingClasses = Storage.get('classes') || [];
+    let updatedCount = 0;
+    let createdCount = 0;
+    
+    rows.forEach(row => {
+        // Find existing class by code
+        const existingIndex = existingClasses.findIndex(c => c.code === row.code);
+        
+        const classData = {
+            name: row.name || '',
+            code: row.code || '',
+            yearGroup: row.yearGroup || null,
+            subject: row.subject || null,
+            createdAt: new Date().toISOString(),
+            teacherId: this.user?.id
+        };
+        
+        if (existingIndex !== -1 && !overwrite) {
+            // Skip existing class if not overwriting
+            return;
+        }
+        
+        if (existingIndex !== -1) {
+            // Update existing class
+            existingClasses[existingIndex] = {
+                ...existingClasses[existingIndex],
+                ...classData,
+                id: existingClasses[existingIndex].id, // Keep existing ID
+                updatedAt: new Date().toISOString()
+            };
+            updatedCount++;
+        } else {
+            // Add new class
+            existingClasses.push({
+                ...classData,
+                id: `class_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+            });
+            createdCount++;
+        }
+    });
+    
+    Storage.set('classes', existingClasses);
+    
+    // Clear file input
+    const importFile = document.getElementById('import-file');
+    importFile.value = '';
+    const importZone = document.getElementById('import-zone');
+    const filename = importZone.querySelector('.import-filename');
+    if (filename) filename.remove();
+    
+    this.showToast(
+        `Classes imported: ${createdCount} created, ${updatedCount} updated`, 
+        'success'
+    );
+    
+    this.loadClassesList();
+    this.populateClassDropdown();
+}
+
+importAttendance(rows, overwrite) {
+    const existingAttendance = Storage.get('attendance') || [];
+    const existingStudents = Storage.get('students') || [];
+    const existingClasses = Storage.get('classes') || [];
+    let createdCount = 0;
+    let updatedCount = 0;
+    
+    rows.forEach(row => {
+        // Find student
+        const student = existingStudents.find(s => s.studentId === row.studentId);
+        if (!student) {
+            console.warn(`Student not found: ${row.studentId}`);
+            return;
+        }
+        
+        // Find class
+        const classObj = existingClasses.find(c => c.code === row.classCode);
+        if (!classObj) {
+            console.warn(`Class not found: ${row.classCode}`);
+            return;
+        }
+        
+        // Check if attendance already exists for this student/class/date/session
+        const existingIndex = existingAttendance.findIndex(a => 
+            a.studentId === student.id && 
+            a.classId === classObj.id && 
+            a.date === row.date && 
+            a.session === row.session
+        );
+        
+        const attendanceData = {
+            studentId: student.id,
+            classId: classObj.id,
+            className: classObj.name,
+            classCode: classObj.code,
+            date: row.date,
+            session: row.session || 'AM',
+            status: row.status || 'present',
+            remarks: row.remarks || '',
+            recordedBy: this.user.id,
+            recordedAt: new Date().toISOString()
+        };
+        
+        if (existingIndex !== -1 && !overwrite) {
+            // Skip existing attendance if not overwriting
+            return;
+        }
+        
+        if (existingIndex !== -1) {
+            // Update existing attendance
+            existingAttendance[existingIndex] = {
+                ...existingAttendance[existingIndex],
+                ...attendanceData,
+                id: existingAttendance[existingIndex].id, // Keep existing ID
+                updatedAt: new Date().toISOString()
+            };
+            updatedCount++;
+        } else {
+            // Add new attendance
+            existingAttendance.push({
+                ...attendanceData,
+                id: `attendance_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+            });
+            createdCount++;
+        }
+    });
+    
+    Storage.set('attendance', existingAttendance);
+    
+    // Clear file input
+    const importFile = document.getElementById('import-file');
+    importFile.value = '';
+    const importZone = document.getElementById('import-zone');
+    const filename = importZone.querySelector('.import-filename');
+    if (filename) filename.remove();
+    
+    this.showToast(
+        `Attendance records imported: ${createdCount} created, ${updatedCount} updated`, 
+        'success'
+    );
+}
+
+downloadTemplate() {
+    const importType = document.getElementById('import-type').value;
+    
+    // Create template content based on import type
+    let csvContent = '';
+    
+    switch(importType) {
+        case 'students':
+            csvContent = 'firstName,lastName,studentId,gender,classCode\nJohn,Doe,STU001,male,10MATHS\nJane,Smith,STU002,female,10MATHS';
+            break;
+        case 'classes':
+            csvContent = 'name,code,yearGroup,subject\nGrade 10 Mathematics,10MATHS,10,Mathematics\nGrade 10 English,10ENG,10,English';
+            break;
+        case 'attendance':
+            csvContent = 'date,studentId,classCode,status,session,remarks\n2023-10-01,STU001,10MATHS,present,AM,Present in class\n2023-10-01,STU002,10MATHS,absent,AM,Sick leave';
+            break;
+    }
+    
+    // Create and download the file
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${importType}_template.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+    
+    this.showToast(`Template downloaded for ${importType}`, 'success');
+}
+
+// 4. TOAST NOTIFICATION METHOD (if not already present)
 showToast(message, type = 'info') {
     // Remove existing toasts
     const existingToasts = document.querySelectorAll('.toast');
@@ -2284,8 +2346,10 @@ showToast(message, type = 'info') {
             }
         }, 300);
     }, 3000);
-}
-    
+    }
+
+
+
 // ================== LOAD ATTENDANCE CONTENT =================
    // In attendance-app.js
 loadAttendanceContent(container) {
