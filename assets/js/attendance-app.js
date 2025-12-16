@@ -1814,68 +1814,43 @@ async syncLocalUserToFirebase() {
         `;
     }
 
-// In attendance-app.js - Update the loadDashboardContent function
-// attendance-app.js - Update loadDashboardContent function
+// attendance-app.js - FIXED loadDashboardContent function
 async loadDashboardContent() {
     console.log("📊 Loading dashboard content...");
     
     try {
-        // Dynamically import the dashboard module
+        // CORRECT PATH: './dashboard.js' NOT './assets/js/dashboard.js'
+        // Because attendance-app.js is already in assets/js folder
         const module = await import('./dashboard.js');
         
-        console.log("Dashboard module loaded:", module);
+        console.log("📦 Module loaded successfully:", module);
         
-        // Check if DashboardManager exists in the module
         if (module && module.DashboardManager) {
+            console.log("✅ DashboardManager found in module");
             this.dashboardManager = new module.DashboardManager();
             console.log("✅ DashboardManager initialized successfully");
         } else if (module && module.default && module.default.DashboardManager) {
             // Try default export
+            console.log("🔄 Using default export");
             this.dashboardManager = new module.default.DashboardManager();
-            console.log("✅ DashboardManager initialized via default export");
         } else {
-            throw new Error("DashboardManager not found in module exports");
+            console.error("❌ DashboardManager not found in module exports");
+            console.log("Available exports:", Object.keys(module));
+            this.createBasicDashboard();
         }
+        
     } catch (error) {
         console.error("❌ Failed to load dashboard module:", error);
         
-        // Fallback: Check if DashboardManager is available globally
+        // Fallback options
         if (typeof DashboardManager !== 'undefined') {
-            console.log("🔄 Falling back to global DashboardManager");
+            console.log("🔄 Using global DashboardManager");
             this.dashboardManager = new DashboardManager();
         } else {
             console.log("⚠️ Creating basic dashboard fallback");
             this.createBasicDashboard();
         }
     }
-}
-
-// Add fallback function
-createBasicDashboard() {
-    console.log("🛠️ Creating basic dashboard...");
-    
-    // Update user info
-    const userNameElement = document.getElementById('currentUser');
-    if (userNameElement) {
-        const userName = localStorage.getItem('user') || 'User';
-        userNameElement.textContent = userName;
-    }
-    
-    // Simple card updates
-    const stats = {
-        'total-students': '425',
-        'present-today': '398',
-        'absent-today': '27',
-        'attendance-rate': '93.6%'
-    };
-    
-    Object.keys(stats).forEach(id => {
-        const element = document.getElementById(id);
-        if (element) {
-            const valueElement = element.querySelector('.card-value') || element;
-            valueElement.textContent = stats[id];
-        }
-    });
 }
 
     async loadAttendanceContent(container) {
