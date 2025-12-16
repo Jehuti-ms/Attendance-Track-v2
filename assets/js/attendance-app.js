@@ -1,4 +1,16 @@
 // attendance-app.js - COMPLETE FIXED VERSION with PROPER AUTH FLOW
+// Clear old caches
+if ('serviceWorker' in navigator && 'caches' in window) {
+    caches.keys().then(cacheNames => {
+        cacheNames.forEach(cacheName => {
+            if (cacheName.startsWith('attendance-cache-')) {
+                caches.delete(cacheName);
+                console.log('🗑️ Cleared cache:', cacheName);
+            }
+        });
+    });
+}
+
 import { Storage, Utils } from './utils.js';
 
 class AttendanceApp {
