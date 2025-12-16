@@ -124,14 +124,14 @@ class AttendanceApp {
                 window.location.href = 'index.html';
             }
         }
-        }
+        }),
     
 // ==================== INITIALIZATION ====================
 async init() {
     console.log('🚀 Initializing AttendanceApp...');
     
     try {
-        // Check localStorage user first
+        // 1. Check localStorage user first
         const user = Storage.get('attendance_user');
         
         if (user) {
@@ -142,28 +142,30 @@ async init() {
             await this.syncLocalUserToFirebase(user);
         }
 
-        // Load UI components FIRST
+        // 2. Load shared UI components
         await this.loadHeader();
         await this.loadFooter();
         
-        // Setup navigation AFTER components are loaded
-        this.setupNavigation();
+        // 3. Setup GLOBAL navigation features only (NOT page highlighting)
+        this.setupGlobalNavigation();
+        
+        // 4. Render components
         this.renderHeader();
         this.renderFooter();
         
-        // Setup event listeners
+        // 5. Setup app-wide event listeners
         this.setupEventListeners();
         
-        // Initialize service worker
+        // 6. Initialize service worker
         this.initServiceWorker();
         
-        // Setup page-specific handlers
+        // 7. Setup page-specific handlers
         this.setupPageHandlers();
         
-        // Load content based on current page
+        // 8. Load page content (page modules will handle their own navigation)
         await this.loadContent();
         
-        // Check auth and load page - this should come LAST
+        // 9. Check auth and load page
         this.checkAuthAndLoadPage();
         
         console.log('✅ AttendanceApp initialized successfully');
@@ -173,8 +175,73 @@ async init() {
         this.showError(error.message);
     }
 }
-    
 
+// ==================== GLOBAL NAVIGATION ====================
+setupGlobalNavigation() {
+    console.log('🔧 Setting up global navigation...');
+    
+    // Setup logout handler (app-wide)
+    this.setupLogoutHandler();
+    
+    // Setup mobile menu toggle (app-wide)
+    this.setupMobileMenuToggle();
+}
+
+setupLogoutHandler() {
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            this.handleLogout();
+        });
+    }
+}
+
+setupMobileMenuToggle() {
+    const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
+    const navList = document.querySelector('.nav-list');
+    
+    if (mobileMenuBtn && navList) {
+        mobileMenuBtn.addEventListener('click', () => {
+            const isExpanded = mobileMenuBtn.getAttribute('aria-expanded') === 'true';
+            mobileMenuBtn.setAttribute('aria-expanded', !isExpanded);
+            navList.classList.toggle('active');
+            mobileMenuBtn.classList.toggle('active');
+        });
+    }
+}
+
+handleLogout() {
+    if (confirm('Are you sure you want to logout?')) {
+        console.log('👋 Logging out user...');
+        
+        // Clear all user data
+        localStorage.clear();
+        sessionStorage.clear();
+        
+        // Redirect to login page
+        window.location.href = 'index.html';
+    }
+}
+
+// ==================== NAVIGATION HELPER ====================
+// This is a helper method that PAGE MODULES can call if they need it
+highlightCurrentPage() {
+    const currentPage = window.location.pathname.split('/').pop();
+    const navLinks = document.querySelectorAll('.nav-link');
+    
+    navLinks.forEach(link => {
+        const href = link.getAttribute('href');
+        if (href === currentPage) {
+            link.classList.add('active');
+            link.setAttribute('aria-current', 'page');
+        } else {
+            link.classList.remove('active');
+            link.removeAttribute('aria-current');
+        }
+    });
+}
+    
  // ==================== AUTH & PAGE LOADING ====================
 checkAuthAndLoadPage() {
     if (!this.user) {
