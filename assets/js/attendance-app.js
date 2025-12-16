@@ -666,68 +666,229 @@ getCurrentPage() {
             });
         }
     }
-
-    async loadDashboardContent() {
-        const appContainer = document.getElementById('app-container');
-        appContainer.innerHTML = `
-            <div class="dashboard-page">
-                <div class="dashboard-header">
-                    <h2>Welcome, ${this.user?.name || 'Teacher'}!</h2>
-                    <p>Here's your attendance overview</p>
-                </div>
-                
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-icon">📊</div>
-                        <div class="stat-content">
-                            <h3>0</h3>
-                            <p>Classes Today</p>
-                        </div>
+// ================== LOAD DASHBOARD CONTENT =====================
+    // In attendance-app.js - Update the loadDashboardContent method:
+loadDashboardContent(container) {
+    if (!this.user) {
+        container.innerHTML = `<div class="error">No user found. Please login again.</div>`;
+        return;
+    }
+    
+    container.innerHTML = `
+        <div class="dashboard-page">
+            <div class="dashboard-header">
+                <div class="header-content">
+                    <div class="welcome-text">
+                        <h2>Welcome, ${this.user.name || 'Teacher'}!</h2>
+                        <p>Here's your attendance overview</p>
                     </div>
-                    
-                    <div class="stat-card">
-                        <div class="stat-icon">👥</div>
-                        <div class="stat-content">
-                            <h3>0</h3>
-                            <p>Total Students</p>
-                        </div>
-                    </div>
-                    
-                    <div class="stat-card">
-                        <div class="stat-icon">✅</div>
-                        <div class="stat-content">
-                            <h3>0%</h3>
-                            <p>Attendance Rate</p>
-                        </div>
+                    <div class="connection-status" id="connection-status">
+                        <span class="status-dot ${this.state.isOnline ? 'connected' : 'offline'}"></span>
+                        <span class="status-text">
+                            ${this.state.isOnline ? 'Online' : 'Offline Mode'}
+                        </span>
                     </div>
                 </div>
-                
-                <div class="quick-actions">
-                    <h3>Quick Actions</h3>
-                    <div class="actions-grid">
-                        <a href="attendance.html" class="action-card">
-                            <div class="action-icon">📝</div>
-                            <h4>Take Attendance</h4>
-                            <p>Record today's attendance</p>
-                        </a>
-                        
-                        <a href="setup.html" class="action-card">
-                            <div class="action-icon">⚙️</div>
-                            <h4>Setup Classes</h4>
-                            <p>Add classes and students</p>
-                        </a>
-                        
-                        <a href="reports.html" class="action-card">
-                            <div class="action-icon">📈</div>
-                            <h4>View Reports</h4>
-                            <p>Generate attendance reports</p>
-                        </a>
+                <div class="date-display" id="current-date">
+                    ${new Date().toLocaleDateString('en-US', {
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                    })}
+                </div>
+            </div>
+            
+            <!-- Stats Grid -->
+            <div class="stats-grid" id="dashboard-stats">
+                <div class="stat-card">
+                    <div class="stat-icon">📊</div>
+                    <div class="stat-content">
+                        <h3 id="total-classes">0</h3>
+                        <p>Total Classes</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">👥</div>
+                    <div class="stat-content">
+                        <h3 id="total-students">0</h3>
+                        <p>Total Students</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">✅</div>
+                    <div class="stat-content">
+                        <h3 id="attendance-rate">0%</h3>
+                        <p>Today's Attendance</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">📈</div>
+                    <div class="stat-content">
+                        <h3 id="total-sessions">0</h3>
+                        <p>Sessions Tracked</p>
                     </div>
                 </div>
             </div>
-        `;
-    }
+            
+            <!-- Quick Actions -->
+            <div class="actions-grid">
+                <a href="attendance.html" class="action-card">
+                    <div class="action-icon">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="8.5" cy="7" r="4"></circle>
+                            <line x1="20" y1="8" x2="20" y2="14"></line>
+                            <line x1="23" y1="11" x2="17" y2="11"></line>
+                        </svg>
+                    </div>
+                    <h4>Take Attendance</h4>
+                    <p>Record attendance for today</p>
+                </a>
 
+                <a href="reports.html" class="action-card">
+                    <div class="action-icon">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                        </svg>
+                    </div>
+                    <h4>View Reports</h4>
+                    <p>Generate attendance reports</p>
+                </a>
+
+                <a href="setup.html" class="action-card">
+                    <div class="action-icon">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="3"></circle>
+                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                        </svg>
+                    </div>
+                    <h4>Setup Classes</h4>
+                    <p>Add classes and students</p>
+                </a>
+
+                <a href="settings.html" class="action-card">
+                    <div class="action-icon">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="3"></circle>
+                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                        </svg>
+                    </div>
+                    <h4>Settings</h4>
+                    <p>Configure app preferences</p>
+                </a>
+            </div>
+            
+            <!-- Recent Activity -->
+            <div class="recent-activity">
+                <div class="activity-header">
+                    <h3>Recent Activity</h3>
+                    <button class="btn-refresh" onclick="window.app.refreshDashboard()">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M23 4v6h-6"></path>
+                            <path d="M1 20v-6h6"></path>
+                            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                        </svg>
+                        Refresh
+                    </button>
+                </div>
+                <div class="activity-list" id="recent-activity">
+                    <div class="activity-item">
+                        <div class="activity-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#667eea" stroke-width="2">
+                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                            </svg>
+                        </div>
+                        <div class="activity-content">
+                            <p>Welcome to Attendance Tracker v2!</p>
+                            <small>${new Date().toLocaleDateString()}</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Load dashboard data
+    this.loadDashboardData();
+}
+
+// Add this method to load dashboard stats
+async loadDashboardData() {
+    console.log('📊 Loading dashboard data...');
+    
+    try {
+        // Load existing data
+        const classes = Storage.get('classes') || [];
+        const students = Storage.get('students') || [];
+        const attendance = Storage.get('attendance') || [];
+        
+        // Update stats
+        document.getElementById('total-classes').textContent = classes.length;
+        document.getElementById('total-students').textContent = students.length;
+        document.getElementById('total-sessions').textContent = attendance.length;
+        
+        // Calculate today's attendance rate
+        const today = new Date().toISOString().split('T')[0];
+        const todayAttendance = attendance.filter(a => a.date === today);
+        if (todayAttendance.length > 0) {
+            const totalPresent = todayAttendance.reduce((sum, a) => sum + (a.totalPresent || 0), 0);
+            const totalStudents = todayAttendance.reduce((sum, a) => sum + (a.totalStudents || 0), 0);
+            const rate = totalStudents > 0 ? Math.round((totalPresent / totalStudents) * 100) : 0;
+            document.getElementById('attendance-rate').textContent = `${rate}%`;
+        }
+        
+        // Load recent activity
+        this.loadRecentActivity(attendance);
+        
+    } catch (error) {
+        console.error('Error loading dashboard data:', error);
+    }
+}
+
+// Add this method for recent activity
+loadRecentActivity(attendance) {
+    const activityList = document.getElementById('recent-activity');
+    if (!activityList) return;
+    
+    // Get last 5 attendance records
+    const recent = attendance.slice(-5).reverse();
+    
+    if (recent.length === 0) {
+        activityList.innerHTML = `
+            <div class="activity-item">
+                <div class="activity-icon">📋</div>
+                <div class="activity-content">
+                    <p>No attendance recorded yet</p>
+                    <small>Take your first attendance to see activity here</small>
+                </div>
+            </div>
+        `;
+        return;
+    }
+    
+    activityList.innerHTML = recent.map(record => `
+        <div class="activity-item">
+            <div class="activity-icon">
+                ${record.totalPresent > 0 ? '✅' : '📋'}
+            </div>
+            <div class="activity-content">
+                <p>Attendance for ${record.className || 'Class'}</p>
+                <small>${record.date} • ${record.totalPresent || 0}/${record.totalStudents || 0} present</small>
+            </div>
+        </div>
+    `).join('');
+}
+
+// Add refresh method
+refreshDashboard() {
+    console.log('🔄 Refreshing dashboard...');
+    this.loadDashboardData();
+    this.showToast('Dashboard refreshed', 'success');
+}
+
+// ================== LOAD ATTENDANCE CONTENT =================
     async loadAttendanceContent() {
         const appContainer = document.getElementById('app-container');
         appContainer.innerHTML = `
