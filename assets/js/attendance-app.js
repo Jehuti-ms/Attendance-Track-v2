@@ -214,6 +214,15 @@ async init() {
     console.log('Stored user raw:', storedUser);
     console.log('Stored user parsed:', JSON.parse(storedUser || 'null'));
     console.log('=== END DEBUG ===');
+
+    // Force service worker update
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(registrations => {
+        for (let registration of registrations) {
+            registration.update();
+        }
+    });
+}
     
     try {
         // 1. Get current page and user
