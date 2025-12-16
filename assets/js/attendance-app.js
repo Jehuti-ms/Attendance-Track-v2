@@ -69,9 +69,14 @@ class AttendanceApp {
     }
 }
 
-     async checkFirebaseAuth() {
+    // In attendance-app.js, update checkFirebaseAuth method:
+async checkFirebaseAuth() {
     try {
+        // Import dynamically to avoid early loading errors
         const { auth } = await import('./firebase.js');
+        
+        console.log('Firebase auth object:', auth);
+        console.log('Current user:', auth.currentUser);
         
         if (auth.currentUser) {
             console.log('Firebase user already logged in:', auth.currentUser.email);
@@ -87,6 +92,7 @@ class AttendanceApp {
         return false;
     } catch (error) {
         console.error('Firebase auth check failed:', error);
+        console.log('Falling back to localStorage authentication');
         return false;
     }
 }
