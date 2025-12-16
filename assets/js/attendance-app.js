@@ -39,73 +39,62 @@ class AttendanceApp {
 
 // ==================== INITIALIZATION ====================
 async init() {
-    console.log('=== 🐛 DEBUG START ===');
-    console.log('1. Full URL:', window.location.href);
-    console.log('2. Pathname:', window.location.pathname);
-    console.log('3. Current page from getCurrentPage():', this.getCurrentPage());
-    console.log('4. State currentPage:', this.state.currentPage);
-    
-    const storedUser = Storage.get('attendance_user');
-    console.log('5. Stored user:', storedUser);
-    console.log('6. User valid?:', storedUser && storedUser.email);
-    console.log('=== 🐛 DEBUG END ===');
+    console.log('🚀 Initializing AttendanceApp...');
     
     try {
-        // 1. CHECK IF WE'RE ON A PUBLIC PAGE (no auth needed)
-        const currentPage = this.state.currentPage;
-        const publicPages = ['index', 'login', '']; // Pages that don't require login
+        // 1. Get current page and user
+        const currentPage = this.getCurrentPage();
+        const user = Storage.get('attendance_user');
         
-        console.log(`Current page: "${currentPage}"`);
-        console.log(`Is public page? ${publicPages.includes(currentPage)}`);
+        console.log(`📄 Current page: ${currentPage}`);
+        console.log(`👤 User exists: ${!!user}`);
+        console.log(`👤 User email: ${user?.email}`);
         
-        // If we're on a public page, skip auth check
-        if (publicPages.includes(currentPage)) {
-            console.log(`📄 On public page: "${currentPage}", skipping auth check`);
+        // 2. Define which pages are public (don't require login)
+        const publicPages = ['index', 'login', ''];
+        const isPublicPage = publicPages.includes(currentPage);
+        
+        // 3. Check if user is logged in
+        const isLoggedIn = user && user.email;
+        
+        // 4. LOGIC DECISION TREE:
+        if (isLoggedIn && isPublicPage) {
+            // User is logged in but on a public page (login/index)
+            // → Redirect to dashboard
+            console.log('⚠️ Logged-in user on public page, redirecting to dashboard');
+            window.location.replace('dashboard.html');
+            return;
             
-            // If user is already logged in and on login page, redirect to dashboard
-            const user = Storage.get('attendance_user');
-            if (user && user.email) {
-                console.log('👤 User found in storage:', user.email);
-                if (currentPage === 'index' || currentPage === 'login' || currentPage === '') {
-                    console.log('User logged in but on login page, redirecting to dashboard');
-                    // Use REPLACE not href to prevent history loops
-                    window.location.replace('dashboard.html');
-                    return;
-                }
-            } else {
-                console.log('No user found, staying on login page');
-            }
+        } else if (!isLoggedIn && !isPublicPage) {
+            // User NOT logged in and trying to access protected page
+            // → Redirect to login
+            console.log('🔒 No user on protected page, redirecting to login');
+            window.location.replace('index.html');
+            return;
             
-        } else {
-            console.log(`🔒 On protected page: "${currentPage}", checking auth`);
-            // 2. FOR PROTECTED PAGES: Check auth
-            const authResult = await this.checkAuth();
-            if (!authResult.success) {
-                console.log('❌ Auth failed - redirecting to login');
-                // Use REPLACE not href
-                window.location.replace('index.html');
-                return; // Stop execution
-            }
+        } else if (!isLoggedIn && isPublicPage) {
+            // User NOT logged in and on a public page
+            // → Stay on public page (show login form)
+            console.log('👋 No user, staying on public page');
+            // Continue with initialization
+            this.user = null;
+            this.state.currentUser = null;
             
-            // Auth passed - set user
-            this.user = authResult.user;
-            this.state.currentUser = authResult.user;
-            console.log('✅ User authenticated:', authResult.user.name);
+        } else if (isLoggedIn && !isPublicPage) {
+            // User IS logged in and on a protected page
+            // → Load user data and continue
+            console.log('✅ Authenticated user accessing protected page');
+            this.user = user;
+            this.state.currentUser = user;
             
             // Try to sync with Firebase if available
-            await this.syncLocalUserToFirebase(authResult.user);
+            await this.syncLocalUserToFirebase(user);
         }
-
-        // 3. Load UI components
+        
+        // 5. Continue with app initialization (only reaches here if no redirect)
         await this.loadUIComponents();
-        
-        // 4. Setup event listeners
         this.setupEventListeners();
-        
-        // 5. Load page-specific content
         await this.loadPageContent();
-        
-        // 6. Initialize service worker
         this.initServiceWorker();
         
         console.log('✅ AttendanceApp initialized successfully');
@@ -115,7 +104,7 @@ async init() {
         this.showError(error.message);
     }
 }
-
+    
 // ==================== FIXED CHECK AUTH ====================
 async checkAuth() {
     console.log("🔐 Performing auth check...");
