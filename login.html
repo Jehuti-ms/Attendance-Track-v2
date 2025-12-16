@@ -250,385 +250,69 @@
     </div>
 
     <script>
-    // ==================== CONFIGURATION ====================
-    const DEMO_EMAIL = "demo@attendance-track.app";
-    const DEMO_PASSWORD = "demo123";
-
-    // ==================== DOM READY ====================
+    // SIMPLIFIED LOGIN SCRIPT
     document.addEventListener('DOMContentLoaded', function() {
-        console.log('🚀 Login page UI ready');
+        console.log('🚀 Login page loaded');
         
-        setupTabSwitching();
-        setupForms();
-        setupDemoButton();
-        
-        // Auto-fill remembered email
-        const savedEmail = localStorage.getItem('remember_email');
-        if (savedEmail) {
-            const emailField = document.getElementById('login-email');
-            if (emailField) {
-                emailField.value = savedEmail;
-                const rememberCheckbox = document.getElementById('remember-me');
-                if (rememberCheckbox) {
-                    rememberCheckbox.checked = true;
-                }
-            }
-        }
-        
-        // Initialize PWA
-        initServiceWorker();
-    });
-
-    // ==================== TAB MANAGEMENT ====================
-    function setupTabSwitching() {
-        const tabs = document.querySelectorAll('.auth-tab');
-        const forms = document.querySelectorAll('.auth-form');
-        
-        if (tabs.length === 0 || forms.length === 0) {
-            console.log('No auth tabs or forms found');
-            return;
-        }
-        
-        tabs.forEach(tab => {
-            tab.addEventListener('click', (e) => {
-                e.preventDefault();
-                const targetTab = tab.dataset.tab;
-                
-                // Update active tab
-                tabs.forEach(t => t.classList.remove('active'));
-                tab.classList.add('active');
-                
-                // Show corresponding form
-                forms.forEach(form => {
-                    form.classList.remove('active');
-                    if (form.id === `${targetTab}-form`) {
-                        form.classList.add('active');
-                    }
-                });
-                
-                clearStatus();
-            });
-        });
-    }
-
-    // ==================== FORM SETUP ====================
-    function setupForms() {
-        // Login form
+        // Setup form
         const loginForm = document.getElementById('login-form');
         if (loginForm) {
-            loginForm.addEventListener('submit', handleLoginSubmit);
-        } else {
-            console.log('Login form not found');
-        }
-        
-        // Sign-up form
-        const signupForm = document.getElementById('signup-form');
-        if (signupForm) {
-            signupForm.addEventListener('submit', handleSignupSubmit);
-        }
-        
-        // Enter key support
-        document.querySelectorAll('.auth-form input').forEach(input => {
-            input.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    const form = input.closest('.auth-form');
-                    if (form && form.id === 'login-form') {
-                        handleLoginSubmit(e);
-                    } else if (form && form.id === 'signup-form') {
-                        handleSignupSubmit(e);
-                    }
-                }
+            loginForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const email = document.getElementById('login-email')?.value || 'demo@example.com';
+                const password = document.getElementById('login-password')?.value || 'demo123';
+                const rememberMe = document.getElementById('remember-me')?.checked || false;
+                
+                console.log('Login attempt:', email);
+                
+                // SIMPLE LOGIN - just save user and redirect
+                const user = {
+                    id: 'user_' + Date.now(),
+                    email: email,
+                    name: email.split('@')[0],
+                    role: 'teacher',
+                    lastLogin: new Date().toISOString()
+                };
+                
+                // SAVE TO localStorage
+                localStorage.setItem('attendance_user', JSON.stringify(user));
+                console.log('User saved:', user);
+                
+                // Verify save
+                const saved = localStorage.getItem('attendance_user');
+                console.log('Verification:', saved);
+                
+                // Show message
+                alert('Login successful! Redirecting...');
+                
+                // REDIRECT
+                setTimeout(() => {
+                    window.location.href = 'dashboard.html';
+                }, 500);
             });
-        });
-    }
-
-    // ==================== DEMO BUTTON SETUP ====================
-    function setupDemoButton() {
+        }
+        
+        // Demo button
         const demoBtn = document.getElementById('demo-btn');
         if (demoBtn) {
             demoBtn.addEventListener('click', function(e) {
                 e.preventDefault();
-                startDemoMode();
+                
+                // Auto-fill demo credentials
+                const emailField = document.getElementById('login-email');
+                const passwordField = document.getElementById('login-password');
+                
+                if (emailField) emailField.value = 'demo@example.com';
+                if (passwordField) passwordField.value = 'demo123';
+                
+                // Submit form
+                if (loginForm) {
+                    loginForm.dispatchEvent(new Event('submit'));
+                }
             });
         }
-    }
-
-    // ==================== FORM SUBMIT HANDLERS ====================
-    function handleLoginSubmit(e) {
-        e.preventDefault();
-        
-        const email = document.getElementById('login-email')?.value?.trim() || '';
-        const password = document.getElementById('login-password')?.value || '';
-        const rememberMe = document.getElementById('remember-me')?.checked || false;
-        
-        // Basic validation
-        if (!email || !password) {
-            showStatus('Please enter email and password', 'error');
-            return;
-        }
-        
-        // Show loading state
-        const submitBtn = document.getElementById('login-submit');
-        setButtonLoading(submitBtn, true);
-        
-        // Check if demo credentials
-        if (email === DEMO_EMAIL && password === DEMO_PASSWORD) {
-            // Use demo mode
-            handleDemoLogin();
-            return;
-        }
-        
-        // Try to use app if available
-        if (window.app && window.app.handleLogin) {
-            window.app.handleLogin(email, password, rememberMe);
-        } else {
-            // Fallback: Direct login without app
-            console.log('App not available, using direct login');
-            directLogin(email, password, rememberMe);
-        }
-    }
-
-    function handleSignupSubmit(e) {
-        e.preventDefault();
-        
-        const name = document.getElementById('signup-name')?.value?.trim() || '';
-        const email = document.getElementById('signup-email')?.value?.trim() || '';
-        const password = document.getElementById('signup-password')?.value || '';
-        const confirmPassword = document.getElementById('signup-confirm')?.value || '';
-        const role = document.getElementById('signup-role')?.value || 'teacher';
-        const school = document.getElementById('signup-school')?.value?.trim() || '';
-        const terms = document.getElementById('accept-terms')?.checked || false;
-        
-        // Validation
-        if (!name || !email || !password || !confirmPassword) {
-            showStatus('Please fill all required fields', 'error');
-            return;
-        }
-        
-        if (password.length < 6) {
-            showStatus('Password must be at least 6 characters', 'error');
-            return;
-        }
-        
-        if (password !== confirmPassword) {
-            showStatus('Passwords do not match', 'error');
-            return;
-        }
-        
-        if (!terms) {
-            showStatus('You must accept the terms and conditions', 'error');
-            return;
-        }
-        
-        // Show loading
-        const submitBtn = document.getElementById('signup-submit');
-        setButtonLoading(submitBtn, true);
-        
-        // Pass to attendance-app if available
-        if (window.app && window.app.handleSignup) {
-            window.app.handleSignup(name, email, password, role, school, terms);
-        } else {
-            showStatus('App not initialized. Please refresh.', 'error');
-            setButtonLoading(submitBtn, false);
-        }
-    }
-
-    // ==================== DIRECT LOGIN (FALLBACK) ====================
-    function directLogin(email, password, rememberMe) {
-    try {
-        console.log('🔐 Direct login attempt for:', email);
-        
-        // Create COMPLETE user object
-        const user = {
-            id: 'user_' + Date.now(),
-            email: email,
-            name: email.split('@')[0],
-            role: 'teacher',
-            school: 'My School',
-            lastLogin: new Date().toISOString(),
-            // Add expiration (24 hours from now)
-            expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
-        };
-        
-        console.log('Saving user:', user);
-        
-        // Save to storage
-        localStorage.setItem('attendance_user', JSON.stringify(user));
-        
-        // Verify it was saved
-        const saved = localStorage.getItem('attendance_user');
-        console.log('Verification - saved user:', saved);
-        
-        // Remember email if requested
-        if (rememberMe) {
-            localStorage.setItem('remember_email', email);
-        } else {
-            localStorage.removeItem('remember_email');
-        }
-        
-        showStatus('Login successful! Redirecting...', 'success');
-        
-        // Use replace() to prevent back button issues
-        setTimeout(() => {
-            console.log('Redirecting to dashboard...');
-            window.location.replace('dashboard.html');
-        }, 1000);
-        
-    } catch (error) {
-        console.error('Direct login error:', error);
-        showStatus('Login failed: ' + error.message, 'error');
-        setButtonLoading(document.getElementById('login-submit'), false);
-    }
-}
-        
-    function handleDemoLogin() {
-        const demoUser = {
-            id: 'demo_' + Date.now(),
-            email: DEMO_EMAIL,
-            name: 'Demo Teacher',
-            role: 'teacher',
-            school: 'Demo Academy',
-            demo: true,
-            lastLogin: new Date().toISOString()
-        };
-        
-        localStorage.setItem('attendance_user', JSON.stringify(demoUser));
-        
-        showStatus('Demo mode activated! Redirecting...', 'success');
-        
-        setTimeout(() => {
-            window.location.href = 'dashboard.html';
-        }, 1000);
-    }
-
-    // ==================== DEMO MODE ====================
-    function startDemoMode() {
-        const emailField = document.getElementById('login-email');
-        const passwordField = document.getElementById('login-password');
-        const rememberCheckbox = document.getElementById('remember-me');
-        
-        if (emailField) emailField.value = DEMO_EMAIL;
-        if (passwordField) passwordField.value = DEMO_PASSWORD;
-        if (rememberCheckbox) rememberCheckbox.checked = true;
-        
-        // Show feedback
-        showStatus('Demo credentials loaded. Click "Sign In" to continue.', 'info');
-        
-        // Focus password field for quick submission
-        setTimeout(() => {
-            if (passwordField) passwordField.focus();
-        }, 300);
-    }
-
-    // ==================== PASSWORD VISIBILITY TOGGLE ====================
-    function togglePassword(fieldId) {
-        const field = document.getElementById(fieldId);
-        if (field) {
-            const type = field.type === 'password' ? 'text' : 'password';
-            field.type = type;
-            
-            // Update button icon/text if needed
-            const toggleBtn = field.nextElementSibling;
-            if (toggleBtn && toggleBtn.classList.contains('password-toggle')) {
-                toggleBtn.textContent = type === 'password' ? '👁️' : '👁️‍🗨️';
-            }
-        }
-    }
-
-    // ==================== UTILITY FUNCTIONS ====================
-    function setButtonLoading(button, isLoading) {
-        if (!button) return;
-        
-        const textSpan = button.querySelector('.btn-text');
-        const loader = button.querySelector('.btn-loader');
-        
-        if (isLoading) {
-            button.disabled = true;
-            if (textSpan) textSpan.style.opacity = '0.5';
-            if (loader) loader.style.display = 'inline-block';
-        } else {
-            button.disabled = false;
-            if (textSpan) textSpan.style.opacity = '1';
-            if (loader) loader.style.display = 'none';
-        }
-    }
-
-    function showStatus(message, type = 'info') {
-        const statusDiv = document.getElementById('auth-status');
-        if (!statusDiv) {
-            console.log('Status div not found');
-            return;
-        }
-        
-        statusDiv.textContent = message;
-        statusDiv.className = 'status-message';
-        
-        switch(type) {
-            case 'success':
-                statusDiv.classList.add('success');
-                break;
-            case 'error':
-                statusDiv.classList.add('error');
-                break;
-            case 'warning':
-                statusDiv.classList.add('warning');
-                break;
-            default:
-                statusDiv.classList.add('info');
-        }
-        
-        // Auto-hide success/info messages after 5 seconds
-        if (type === 'success' || type === 'info') {
-            setTimeout(() => {
-                if (statusDiv.textContent === message) {
-                    clearStatus();
-                }
-            }, 5000);
-        }
-    }
-
-    function clearStatus() {
-        const statusDiv = document.getElementById('auth-status');
-        if (statusDiv) {
-            statusDiv.textContent = '';
-            statusDiv.className = 'status-message';
-        }
-    }
-
-    // ==================== HELPER LINKS ====================
-    function showForgotPassword() {
-        const email = document.getElementById('login-email')?.value?.trim() || '';
-        if (email) {
-            showStatus(`Password reset would be sent to ${email}`, 'info');
-        } else {
-            const input = prompt('Enter your email address:');
-            if (input) {
-                showStatus(`Password reset would be sent to ${input}`, 'info');
-            }
-        }
-    }
-
-    function showTerms() {
-        alert('Terms of Service:\n\nThis attendance tracking application is for educational use. Your data is stored locally on your device with optional cloud synchronization via Firebase. You retain ownership of all your data.');
-    }
-
-    function showPrivacy() {
-        alert('Privacy Policy:\n\n• Your data is stored locally on your device\n• Cloud sync is optional and uses Firebase\n• We do not share your data with third parties\n• You can export your data at any time\n• Demo mode uses local storage only');
-    }
-
-    // ==================== PWA SUPPORT ====================
-    function initServiceWorker() {
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('./service-worker.js')
-                .then(registration => {
-                    console.log('✅ Service Worker registered:', registration.scope);
-                })
-                .catch(error => {
-                    console.warn('⚠️ Service Worker registration failed:', error);
-                });
-        }
-    }
+    });
 </script>
 </body>
 </html>
