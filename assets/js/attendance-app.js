@@ -124,8 +124,7 @@ class AttendanceApp {
                 window.location.href = 'index.html';
             }
         }
-        },
-    
+            
 // ==================== INITIALIZATION ====================
 async init() {
     console.log('🚀 Initializing AttendanceApp...');
