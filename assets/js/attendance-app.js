@@ -912,712 +912,428 @@ refreshDashboard() {
     this.showToast('Dashboard refreshed', 'success');
 }
 
-// ================== LOAD SETUP CONTENT ======================
-    // In attendance-app.js - Add this method after loadDashboardContent
-loadSetupContent(container) {
+// ==================== LOAD SETUP CONTENT ======================
+ loadSetupContent(container) {
     if (!this.user) {
-        container.innerHTML = `<div class="error">Please login to access setup</div>`;
+        container.innerHTML = `<div class="error">No user found. Please login again.</div>`;
         return;
     }
     
     container.innerHTML = `
         <div class="setup-page">
-            <div class="setup-header">
-                <h2>Setup Classes & Students</h2>
-                <p>Configure your classes, add students, and manage your school setup</p>
-            </div>
-            
             <div class="setup-container">
-                <!-- Setup Tabs -->
-                <div class="setup-tabs">
-                    <button class="setup-tab active" data-tab="classes" onclick="window.app.switchSetupTab('classes')">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
-                            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
-                        </svg>
-                        Classes
-                    </button>
-                    <button class="setup-tab" data-tab="students" onclick="window.app.switchSetupTab('students')">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                            <circle cx="9" cy="7" r="4"></circle>
-                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                        </svg>
-                        Students
-                    </button>
-                    <button class="setup-tab" data-tab="import" onclick="window.app.switchSetupTab('import')">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                            <polyline points="7 10 12 15 17 10"></polyline>
-                            <line x1="12" y1="15" x2="12" y2="3"></line>
-                        </svg>
-                        Import/Export
-                    </button>
-                    <button class="setup-tab" data-tab="school" onclick="window.app.switchSetupTab('school')">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-                            <polyline points="9 22 9 12 15 12 15 22"></polyline>
-                        </svg>
-                        School Info
-                    </button>
+                <div class="setup-header">
+                    <h1>System Setup</h1>
+                    <p class="setup-subtitle">Configure classes, students, and system settings</p>
                 </div>
                 
-                <!-- Tab Content -->
-                <div class="setup-content">
+                <section class="setup-section">
+                    <div class="setup-tabs">
+                        <button class="tab-btn active" data-tab="classes">
+                            <i class="fas fa-chalkboard-teacher"></i> Classes
+                        </button>
+                        <button class="tab-btn" data-tab="students">
+                            <i class="fas fa-users"></i> Students
+                        </button>
+                        <button class="tab-btn" data-tab="import">
+                            <i class="fas fa-file-import"></i> Import Data
+                        </button>
+                        <button class="tab-btn" data-tab="settings">
+                            <i class="fas fa-cog"></i> System Settings
+                        </button>
+                    </div>
+                    
                     <!-- Classes Tab -->
                     <div class="tab-content active" id="classes-tab">
-                        ${this.renderClassesTab()}
+                        <div class="section-title">Class Management</div>
+                        
+                        <div class="setup-form">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label">Class Name *</label>
+                                    <input type="text" id="className" class="form-input" placeholder="e.g., Grade 10 Mathematics">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Class Code *</label>
+                                    <input type="text" id="classCode" class="form-input" placeholder="e.g., 10MATHS">
+                                </div>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label">Year Group</label>
+                                    <select id="yearGroup" class="form-input">
+                                        <option value="">Select Year Group</option>
+                                        <option value="1">Year 1</option>
+                                        <option value="2">Year 2</option>
+                                        <option value="3">Year 3</option>
+                                        <option value="4">Year 4</option>
+                                        <option value="5">Year 5</option>
+                                        <option value="6">Year 6</option>
+                                        <option value="7">Year 7</option>
+                                        <option value="8">Year 8</option>
+                                        <option value="9">Year 9</option>
+                                        <option value="10">Year 10</option>
+                                        <option value="11">Year 11</option>
+                                        <option value="12">Year 12</option>
+                                        <option value="13">Year 13</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Subject</label>
+                                    <input type="text" id="subject" class="form-input" placeholder="e.g., Mathematics">
+                                </div>
+                            </div>
+                            
+                            <div class="actions-container">
+                                <button class="action-btn save-btn" id="save-class">
+                                    <i class="fas fa-save"></i> Save Class
+                                </button>
+                                <button class="action-btn cancel-btn" id="clear-class">
+                                    <i class="fas fa-times"></i> Clear Form
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="section-title">Existing Classes</div>
+                        <div id="classes-list" class="classes-grid">
+                            <!-- Classes will be loaded here -->
+                        </div>
                     </div>
                     
                     <!-- Students Tab -->
                     <div class="tab-content" id="students-tab">
-                        ${this.renderStudentsTab()}
+                        <div class="section-title">Student Management</div>
+                        
+                        <div class="setup-form">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label">First Name *</label>
+                                    <input type="text" id="firstName" class="form-input" placeholder="e.g., John">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Last Name *</label>
+                                    <input type="text" id="lastName" class="form-input" placeholder="e.g., Smith">
+                                </div>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label">Student ID</label>
+                                    <input type="text" id="studentId" class="form-input" placeholder="e.g., STU001">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Gender</label>
+                                    <select id="gender" class="form-input">
+                                        <option value="">Select Gender</option>
+                                        <option value="male">Male</option>
+                                        <option value="female">Female</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Class Assignment</label>
+                                <select id="studentClass" class="form-input">
+                                    <option value="">Select Class</option>
+                                    <!-- Classes will be populated here -->
+                                </select>
+                            </div>
+                            
+                            <div class="actions-container">
+                                <button class="action-btn save-btn" id="save-student">
+                                    <i class="fas fa-save"></i> Save Student
+                                </button>
+                                <button class="action-btn cancel-btn" id="clear-student">
+                                    <i class="fas fa-times"></i> Clear Form
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="section-title">Existing Students</div>
+                        <div id="students-list" class="student-list">
+                            <!-- Students will be loaded here -->
+                        </div>
                     </div>
                     
-                    <!-- Import/Export Tab -->
+                    <!-- Import Tab -->
                     <div class="tab-content" id="import-tab">
-                        ${this.renderImportTab()}
+                        <div class="section-title">Data Import</div>
+                        
+                        <div class="import-zone" id="import-zone">
+                            <div class="import-icon">
+                                <i class="fas fa-file-upload"></i>
+                            </div>
+                            <div class="import-text">
+                                <h3>Drag & Drop Files Here</h3>
+                                <p>or click to browse</p>
+                            </div>
+                            <div class="import-hint">
+                                Supported formats: CSV, Excel (.xlsx, .xls)
+                            </div>
+                            <input type="file" id="import-file" accept=".csv,.xlsx,.xls" style="display: none;">
+                        </div>
+                        
+                        <div class="setup-form">
+                            <div class="form-group">
+                                <label class="form-label">Import Type</label>
+                                <select id="import-type" class="form-input">
+                                    <option value="students">Students</option>
+                                    <option value="classes">Classes</option>
+                                    <option value="attendance">Attendance Records</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Import Options</label>
+                                <div style="margin-top: 10px;">
+                                    <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                                        <input type="checkbox" id="overwrite-data" style="width: auto;">
+                                        Overwrite existing data
+                                    </label>
+                                    <label style="display: flex; align-items: center; gap: 8px;">
+                                        <input type="checkbox" id="create-missing" style="width: auto;" checked>
+                                        Create missing classes
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div class="actions-container">
+                                <button class="action-btn save-btn" id="process-import">
+                                    <i class="fas fa-play"></i> Process Import
+                                </button>
+                                <button class="action-btn cancel-btn" id="download-template">
+                                    <i class="fas fa-download"></i> Download Template
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="section-title">Import History</div>
+                        <div id="import-history" class="empty-state">
+                            <div class="empty-icon">
+                                <i class="fas fa-history"></i>
+                            </div>
+                            <div class="empty-text">No import history yet</div>
+                            <div class="empty-hint">Files you import will appear here</div>
+                        </div>
                     </div>
                     
-                    <!-- School Info Tab -->
-                    <div class="tab-content" id="school-tab">
-                        ${this.renderSchoolInfoTab()}
+                    <!-- System Settings Tab -->
+                    <div class="tab-content" id="settings-tab">
+                        <div class="section-title">System Configuration</div>
+                        
+                        <div class="setup-form">
+                            <div class="form-group">
+                                <label class="form-label">School Name</label>
+                                <input type="text" id="schoolName" class="form-input" placeholder="Enter school name">
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label">Current Term</label>
+                                    <select id="currentTerm" class="form-input">
+                                        <option value="1">Term 1</option>
+                                        <option value="2">Term 2</option>
+                                        <option value="3">Term 3</option>
+                                        <option value="4">Term 4</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Academic Year</label>
+                                    <input type="text" id="academicYear" class="form-input" placeholder="e.g., 2023-2024">
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Attendance Sessions</label>
+                                <div style="margin-top: 10px;">
+                                    <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                                        <input type="checkbox" id="am-session" style="width: auto;" checked>
+                                        Morning Session (AM)
+                                    </label>
+                                    <label style="display: flex; align-items: center; gap: 8px;">
+                                        <input type="checkbox" id="pm-session" style="width: auto;" checked>
+                                        Afternoon Session (PM)
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div class="actions-container">
+                                <button class="action-btn save-btn" id="save-settings">
+                                    <i class="fas fa-save"></i> Save Settings
+                                </button>
+                                <button class="action-btn cancel-btn" id="reset-settings">
+                                    <i class="fas fa-undo"></i> Reset to Defaults
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="section-title">Data Management</div>
+                        
+                        <div class="setup-form">
+                            <div class="form-group">
+                                <label class="form-label">Backup & Restore</label>
+                                <div style="margin-top: 10px; display: flex; gap: 10px;">
+                                    <button class="action-btn save-btn" id="backup-data">
+                                        <i class="fas fa-download"></i> Backup Data
+                                    </button>
+                                    <button class="action-btn cancel-btn" id="restore-data">
+                                        <i class="fas fa-upload"></i> Restore Data
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Clear Data</label>
+                                <div style="margin-top: 10px;">
+                                    <button class="action-btn delete-btn" id="clear-all-data">
+                                        <i class="fas fa-trash"></i> Clear All Data
+                                    </button>
+                                    <p style="font-size: 12px; color: #e74c3c; margin-top: 5px;">
+                                        Warning: This will delete all classes, students, and attendance records.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                </div>
+                </section>
             </div>
         </div>
     `;
+    
+    // Initialize the setup page
+    this.initializeSetupPage();
+}
+
+    initializeSetupPage() {
+    // Tab switching
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    const tabContents = document.querySelectorAll('.tab-content');
+    
+    tabBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const tabId = btn.getAttribute('data-tab');
+            
+            // Update active tab button
+            tabBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            
+            // Show active tab content
+            tabContents.forEach(content => {
+                content.classList.remove('active');
+                if (content.id === `${tabId}-tab`) {
+                    content.classList.add('active');
+                }
+            });
+            
+            // Load data for active tab
+            if (tabId === 'classes') {
+                this.loadClassesList();
+            } else if (tabId === 'students') {
+                this.loadStudentsList();
+                this.populateClassDropdown();
+            }
+        });
+    });
+    
+    // Class management
+    const saveClassBtn = document.getElementById('save-class');
+    const clearClassBtn = document.getElementById('clear-class');
+    
+    if (saveClassBtn) {
+        saveClassBtn.addEventListener('click', () => this.saveClass());
+    }
+    
+    if (clearClassBtn) {
+        clearClassBtn.addEventListener('click', () => this.clearClassForm());
+    }
+    
+    // Student management
+    const saveStudentBtn = document.getElementById('save-student');
+    const clearStudentBtn = document.getElementById('clear-student');
+    
+    if (saveStudentBtn) {
+        saveStudentBtn.addEventListener('click', () => this.saveStudent());
+    }
+    
+    if (clearStudentBtn) {
+        clearStudentBtn.addEventListener('click', () => this.clearStudentForm());
+    }
+    
+    // Import functionality
+    const importZone = document.getElementById('import-zone');
+    const importFile = document.getElementById('import-file');
+    const processImportBtn = document.getElementById('process-import');
+    const downloadTemplateBtn = document.getElementById('download-template');
+    
+    if (importZone && importFile) {
+        importZone.addEventListener('click', () => importFile.click());
+        importZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            importZone.style.borderColor = '#3498db';
+            importZone.style.background = '#f0f7ff';
+        });
+        importZone.addEventListener('dragleave', () => {
+            importZone.style.borderColor = '#ddd';
+            importZone.style.background = '#f8f9fa';
+        });
+        importZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            importZone.style.borderColor = '#ddd';
+            importZone.style.background = '#f8f9fa';
+            if (e.dataTransfer.files.length > 0) {
+                this.handleFileImport(e.dataTransfer.files[0]);
+            }
+        });
+        
+        importFile.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                this.handleFileImport(e.target.files[0]);
+            }
+        });
+    }
+    
+    if (processImportBtn) {
+        processImportBtn.addEventListener('click', () => this.processImport());
+    }
+    
+    if (downloadTemplateBtn) {
+        downloadTemplateBtn.addEventListener('click', () => this.downloadTemplate());
+    }
+    
+    // Settings
+    const saveSettingsBtn = document.getElementById('save-settings');
+    const resetSettingsBtn = document.getElementById('reset-settings');
+    const backupDataBtn = document.getElementById('backup-data');
+    const restoreDataBtn = document.getElementById('restore-data');
+    const clearAllDataBtn = document.getElementById('clear-all-data');
+    
+    if (saveSettingsBtn) {
+        saveSettingsBtn.addEventListener('click', () => this.saveSystemSettings());
+    }
+    
+    if (resetSettingsBtn) {
+        resetSettingsBtn.addEventListener('click', () => this.resetSystemSettings());
+    }
+    
+    if (backupDataBtn) {
+        backupDataBtn.addEventListener('click', () => this.backupData());
+    }
+    
+    if (restoreDataBtn) {
+        restoreDataBtn.addEventListener('click', () => this.restoreData());
+    }
+    
+    if (clearAllDataBtn) {
+        clearAllDataBtn.addEventListener('click', () => this.clearAllData());
+    }
     
     // Load initial data
-    this.loadClasses();
-    this.loadStudents();
-    this.loadSchoolInfo();
-}
-
-// Helper methods for each tab
-renderClassesTab() {
-    return `
-        <div class="tab-header">
-            <h3>Manage Classes</h3>
-            <button class="btn btn-primary" onclick="window.app.showAddClassModal()">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                </svg>
-                Add New Class
-            </button>
-        </div>
-        
-        <div class="classes-list-container">
-            <div id="classes-list-setup">
-                <div class="loading-state">
-                    <div class="loading-spinner"></div>
-                    <p>Loading classes...</p>
-                </div>
-            </div>
-        </div>
-    `;
-}
-
-renderStudentsTab() {
-    return `
-        <div class="tab-header">
-            <h3>Manage Students</h3>
-            <div class="tab-actions">
-                <select id="class-filter" class="form-control" onchange="window.app.filterStudentsByClass(this.value)">
-                    <option value="">All Classes</option>
-                </select>
-                <button class="btn btn-primary" onclick="window.app.showAddStudentModal()">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="12" y1="5" x2="12" y2="19"></line>
-                        <line x1="5" y1="12" x2="19" y2="12"></line>
-                    </svg>
-                    Add Student
-                </button>
-            </div>
-        </div>
-        
-        <div class="students-list-container">
-            <div id="students-list">
-                <div class="empty-state">
-                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1">
-                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                        <circle cx="9" cy="7" r="4"></circle>
-                    </svg>
-                    <h4>No Students Found</h4>
-                    <p>Add students or select a class to view students</p>
-                </div>
-            </div>
-        </div>
-    `;
-}
-
-renderImportTab() {
-    return `
-        <div class="import-section">
-            <h3>Import Data</h3>
-            <p>Import classes and students from Excel/CSV files</p>
-            <div class="import-zone" id="import-zone" onclick="document.getElementById('import-file').click()">
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#667eea" stroke-width="1">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                    <polyline points="17 8 12 3 7 8"></polyline>
-                    <line x1="12" y1="3" x2="12" y2="15"></line>
-                </svg>
-                <p>Drag & drop Excel or CSV files here</p>
-                <p class="small">or</p>
-                <input type="file" id="import-file" accept=".csv,.xlsx,.xls" hidden>
-                <button class="btn btn-secondary">
-                    Browse Files
-                </button>
-            </div>
-        </div>
-        
-        <div class="export-section">
-            <h3>Export Data</h3>
-            <p>Export your attendance data for backup or analysis</p>
-            <div class="export-options">
-                <button class="btn btn-secondary" onclick="window.app.exportToCSV()">
-                    Export to CSV
-                </button>
-                <button class="btn btn-secondary" onclick="window.app.exportToExcel()">
-                    Export to Excel
-                </button>
-                <button class="btn btn-secondary" onclick="window.app.backupData()">
-                    Backup All Data
-                </button>
-            </div>
-        </div>
-    `;
-}
-
-renderSchoolInfoTab() {
-    const schoolInfo = Storage.get('school_info') || {};
-    
-    return `
-        <div class="school-info-form">
-            <h3>School Information</h3>
-            <form id="school-form" onsubmit="event.preventDefault(); window.app.saveSchoolInfo();">
-                <div class="form-group">
-                    <label>School Name</label>
-                    <input type="text" id="school-name" class="form-control" 
-                           value="${this.user?.school || schoolInfo.name || ''}" 
-                           placeholder="Enter school name">
-                </div>
-                <div class="form-group">
-                    <label>School Address</label>
-                    <textarea id="school-address" class="form-control" rows="3" 
-                              placeholder="Enter school address">${schoolInfo.address || ''}</textarea>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Academic Year</label>
-                        <input type="text" id="academic-year" class="form-control" 
-                               value="${schoolInfo.academicYear || ''}"
-                               placeholder="e.g., 2024-2025">
-                    </div>
-                    <div class="form-group">
-                        <label>Current Term</label>
-                        <select id="current-term" class="form-control">
-                            <option value="1" ${schoolInfo.currentTerm === '1' ? 'selected' : ''}>Term 1</option>
-                            <option value="2" ${schoolInfo.currentTerm === '2' ? 'selected' : ''}>Term 2</option>
-                            <option value="3" ${schoolInfo.currentTerm === '3' ? 'selected' : ''}>Term 3</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="form-actions">
-                    <button type="button" class="btn btn-secondary" onclick="window.app.resetSchoolForm()">
-                        Reset
-                    </button>
-                    <button type="submit" class="btn btn-primary">
-                        Save School Info
-                    </button>
-                </div>
-            </form>
-        </div>
-    `;
-}
-
-// ==================== SETUP PAGE METHODS ====================
-switchSetupTab(tabName) {
-    // Update active tab
-    document.querySelectorAll('.setup-tab').forEach(tab => {
-        tab.classList.remove('active');
-        if (tab.dataset.tab === tabName) {
-            tab.classList.add('active');
-        }
-    });
-    
-    // Update active content
-    document.querySelectorAll('.tab-content').forEach(content => {
-        content.classList.remove('active');
-        if (content.id === `${tabName}-tab`) {
-            content.classList.add('active');
-        }
-    });
-}
-
-async loadClasses() {
-    const classes = Storage.get('classes') || [];
-    const container = document.getElementById('classes-list-setup');
-    
-    if (!container) return;
-    
-    if (classes.length === 0) {
-        container.innerHTML = `
-            <div class="empty-state">
-                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1">
-                    <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
-                    <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
-                </svg>
-                <h4>No Classes Yet</h4>
-                <p>Click "Add New Class" to create your first class</p>
-            </div>
-        `;
-        return;
-    }
-    
-    // Count students per class
-    const students = Storage.get('students') || [];
-    const classesWithCounts = classes.map(cls => {
-        const studentCount = students.filter(s => s.classId === cls.id).length;
-        return { ...cls, studentCount };
-    });
-    
-    container.innerHTML = classesWithCounts.map(cls => `
-        <div class="setup-class-item">
-            <div class="class-header">
-                <h4>${cls.name}</h4>
-                <div class="class-actions">
-                    <button class="btn-icon" onclick="window.app.editClass('${cls.id}')">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                        </svg>
-                        Edit
-                    </button>
-                    <button class="btn-icon btn-danger" onclick="window.app.deleteClass('${cls.id}')">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="3 6 5 6 21 6"></polyline>
-                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                        </svg>
-                        Delete
-                    </button>
-                </div>
-            </div>
-            <div class="class-details">
-                <span>Grade: ${cls.grade || 'Not set'}</span>
-                <span>Students: ${cls.studentCount || 0}</span>
-                <span>Teacher: ${cls.teacher || 'Not assigned'}</span>
-            </div>
-            <div class="class-description">
-                ${cls.description || 'No description'}
-            </div>
-        </div>
-    `).join('');
-    
-    // Update class filter for students tab
-    this.updateClassFilter();
-}
-
-async loadStudents() {
-    const students = Storage.get('students') || [];
-    const container = document.getElementById('students-list');
-    
-    if (!container) return;
-    
-    if (students.length === 0) {
-        container.innerHTML = `
-            <div class="empty-state">
-                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1">
-                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                    <circle cx="9" cy="7" r="4"></circle>
-                </svg>
-                <h4>No Students Found</h4>
-                <p>Add students or select a class to view students</p>
-            </div>
-        `;
-        return;
-    }
-    
-    // Get classes for display
-    const classes = Storage.get('classes') || [];
-    const classMap = {};
-    classes.forEach(cls => {
-        classMap[cls.id] = cls.name;
-    });
-    
-    container.innerHTML = students.map(student => `
-        <div class="student-item">
-            <div class="student-avatar">
-                ${student.name.charAt(0).toUpperCase()}
-            </div>
-            <div class="student-info">
-                <h4>${student.name}</h4>
-                <p>Class: ${classMap[student.classId] || 'Unknown'}</p>
-                <div class="student-details">
-                    <span>ID: ${student.studentId || 'N/A'}</span>
-                    <span>Gender: ${student.gender || 'Not specified'}</span>
-                    <span>Year: ${student.yearGroup || 'N/A'}</span>
-                </div>
-            </div>
-            <div class="student-actions">
-                <button class="btn-icon" onclick="window.app.editStudent('${student.id}')">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                    </svg>
-                    Edit
-                </button>
-                <button class="btn-icon btn-danger" onclick="window.app.deleteStudent('${student.id}')">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polyline points="3 6 5 6 21 6"></polyline>
-                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                    </svg>
-                    Delete
-                </button>
-            </div>
-        </div>
-    `).join('');
-}
-
-updateClassFilter() {
-    const classFilter = document.getElementById('class-filter');
-    if (!classFilter) return;
-    
-    const classes = Storage.get('classes') || [];
-    
-    classFilter.innerHTML = `
-        <option value="">All Classes</option>
-        ${classes.map(cls => `
-            <option value="${cls.id}">${cls.name}</option>
-        `).join('')}
-    `;
-}
-
-filterStudentsByClass(classId) {
-    const students = Storage.get('students') || [];
-    const container = document.getElementById('students-list');
-    
-    if (!container) return;
-    
-    let filteredStudents = students;
-    if (classId) {
-        filteredStudents = students.filter(s => s.classId === classId);
-    }
-    
-    if (filteredStudents.length === 0) {
-        container.innerHTML = `
-            <div class="empty-state">
-                <h4>No Students Found</h4>
-                <p>No students in this class</p>
-            </div>
-        `;
-        return;
-    }
-    
-    // Get classes for display
-    const classes = Storage.get('classes') || [];
-    const classMap = {};
-    classes.forEach(cls => {
-        classMap[cls.id] = cls.name;
-    });
-    
-    container.innerHTML = filteredStudents.map(student => `
-        <div class="student-item">
-            <div class="student-avatar">
-                ${student.name.charAt(0).toUpperCase()}
-            </div>
-            <div class="student-info">
-                <h4>${student.name}</h4>
-                <p>Class: ${classMap[student.classId] || 'Unknown'}</p>
-            </div>
-        </div>
-    `).join('');
-}
-
-showAddClassModal() {
-    const modalHtml = `
-        <div class="modal-overlay" id="add-class-modal">
-            <div class="modal">
-                <div class="modal-header">
-                    <h3>Add New Class</h3>
-                    <button class="modal-close" onclick="window.app.closeModal()">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <form id="add-class-form">
-                        <div class="form-group">
-                            <label>Class Name *</label>
-                            <input type="text" id="new-class-name" class="form-control" 
-                                   placeholder="e.g., Form 1A, Grade 5B" required>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Grade/Year</label>
-                                <input type="text" id="new-class-grade" class="form-control" 
-                                       placeholder="e.g., Grade 5, Year 7">
-                            </div>
-                            <div class="form-group">
-                                <label>Subject</label>
-                                <input type="text" id="new-class-subject" class="form-control" 
-                                       placeholder="e.g., Mathematics, English">
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label>Teacher Name</label>
-                            <input type="text" id="new-class-teacher" class="form-control" 
-                                   value="${this.user?.name || ''}" placeholder="Teacher's name">
-                        </div>
-                        <div class="form-group">
-                            <label>Class Description</label>
-                            <textarea id="new-class-description" class="form-control" rows="3" 
-                                      placeholder="Optional description"></textarea>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" onclick="window.app.closeModal()">Cancel</button>
-                    <button class="btn btn-primary" onclick="window.app.saveNewClass()">Save Class</button>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    document.body.insertAdjacentHTML('beforeend', modalHtml);
-}
-
-closeModal() {
-    const modal = document.getElementById('add-class-modal');
-    if (modal) modal.remove();
-}
-
-saveNewClass() {
-    const name = document.getElementById('new-class-name')?.value;
-    const grade = document.getElementById('new-class-grade')?.value;
-    const subject = document.getElementById('new-class-subject')?.value;
-    const teacher = document.getElementById('new-class-teacher')?.value;
-    const description = document.getElementById('new-class-description')?.value;
-    
-    if (!name) {
-        this.showToast('Please enter a class name', 'error');
-        return;
-    }
-    
-    const newClass = {
-        id: 'class_' + Date.now(),
-        name: name,
-        grade: grade,
-        subject: subject,
-        teacher: teacher,
-        description: description,
-        createdAt: new Date().toISOString()
-    };
-    
-    // Save to localStorage
-    const classes = Storage.get('classes') || [];
-    classes.push(newClass);
-    Storage.set('classes', classes);
-    
-    // Close modal and refresh
-    this.closeModal();
-    this.loadClasses();
-    
-    this.showToast('Class added successfully!', 'success');
-}
-
-deleteClass(classId) {
-    if (!confirm('Are you sure you want to delete this class? This will also delete all students in this class.')) {
-        return;
-    }
-    
-    // Delete class
-    let classes = Storage.get('classes') || [];
-    classes = classes.filter(c => c.id !== classId);
-    Storage.set('classes', classes);
-    
-    // Delete students in this class
-    let students = Storage.get('students') || [];
-    students = students.filter(s => s.classId !== classId);
-    Storage.set('students', students);
-    
-    // Refresh display
-    this.loadClasses();
-    this.loadStudents();
-    
-    this.showToast('Class deleted successfully', 'success');
-}
-
-showAddStudentModal() {
-    const classes = Storage.get('classes') || [];
-    
-    if (classes.length === 0) {
-        this.showToast('Please create a class first', 'error');
-        return;
-    }
-    
-    const modalHtml = `
-        <div class="modal-overlay" id="add-student-modal">
-            <div class="modal">
-                <div class="modal-header">
-                    <h3>Add New Student</h3>
-                    <button class="modal-close" onclick="window.app.closeStudentModal()">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <form id="add-student-form">
-                        <div class="form-group">
-                            <label>Full Name *</label>
-                            <input type="text" id="new-student-name" class="form-control" required>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Student ID</label>
-                                <input type="text" id="new-student-id" class="form-control">
-                            </div>
-                            <div class="form-group">
-                                <label>Gender</label>
-                                <select id="new-student-gender" class="form-control">
-                                    <option value="">Select</option>
-                                    <option value="male">Male</option>
-                                    <option value="female">Female</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Class *</label>
-                                <select id="new-student-class" class="form-control" required>
-                                    <option value="">Select Class</option>
-                                    ${classes.map(cls => `
-                                        <option value="${cls.id}">${cls.name}</option>
-                                    `).join('')}
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>Year Group</label>
-                                <input type="text" id="new-student-year" class="form-control">
-                            </div>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" onclick="window.app.closeStudentModal()">Cancel</button>
-                    <button class="btn btn-primary" onclick="window.app.saveNewStudent()">Save Student</button>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    document.body.insertAdjacentHTML('beforeend', modalHtml);
-}
-
-closeStudentModal() {
-    const modal = document.getElementById('add-student-modal');
-    if (modal) modal.remove();
-}
-
-saveNewStudent() {
-    const name = document.getElementById('new-student-name')?.value;
-    const studentId = document.getElementById('new-student-id')?.value;
-    const gender = document.getElementById('new-student-gender')?.value;
-    const classId = document.getElementById('new-student-class')?.value;
-    const yearGroup = document.getElementById('new-student-year')?.value;
-    
-    if (!name || !classId) {
-        this.showToast('Please fill required fields', 'error');
-        return;
-    }
-    
-    const newStudent = {
-        id: 'student_' + Date.now(),
-        name: name,
-        studentId: studentId,
-        gender: gender,
-        classId: classId,
-        yearGroup: yearGroup,
-        createdAt: new Date().toISOString()
-    };
-    
-    // Save to localStorage
-    const students = Storage.get('students') || [];
-    students.push(newStudent);
-    Storage.set('students', students);
-    
-    // Close modal and refresh
-    this.closeStudentModal();
-    this.loadStudents();
-    this.loadClasses(); // To update student counts
-    
-    this.showToast('Student added successfully!', 'success');
-}
-
-loadSchoolInfo() {
-    // Already loaded in renderSchoolInfoTab
-}
-
-saveSchoolInfo() {
-    const schoolName = document.getElementById('school-name')?.value;
-    const schoolAddress = document.getElementById('school-address')?.value;
-    const academicYear = document.getElementById('academic-year')?.value;
-    const currentTerm = document.getElementById('current-term')?.value;
-    
-    const schoolInfo = {
-        name: schoolName,
-        address: schoolAddress,
-        academicYear: academicYear,
-        currentTerm: currentTerm,
-        updatedAt: new Date().toISOString()
-    };
-    
-    // Update user's school info
-    if (this.user) {
-        this.user.school = schoolName;
-        Storage.set('attendance_user', this.user);
-    }
-    
-    // Save school info
-    Storage.set('school_info', schoolInfo);
-    
-    this.showToast('School information saved!', 'success');
-}
-
-resetSchoolForm() {
-    document.getElementById('school-name').value = '';
-    document.getElementById('school-address').value = '';
-    document.getElementById('academic-year').value = '';
-    document.getElementById('current-term').value = '1';
-}
-
-exportToCSV() {
-    this.showToast('CSV export would be implemented here', 'info');
-}
-
-exportToExcel() {
-    this.showToast('Excel export would be implemented here', 'info');
-}
-
-backupData() {
-    const backup = {
-        version: '1.0',
-        timestamp: new Date().toISOString(),
-        user: this.user,
-        classes: Storage.get('classes') || [],
-        students: Storage.get('students') || [],
-        attendance: Storage.get('attendance') || [],
-        settings: Storage.get('settings') || {},
-        schoolInfo: Storage.get('school_info') || {}
-    };
-    
-    const dataStr = JSON.stringify(backup, null, 2);
-    const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
-    
-    const exportFileDefaultName = `attendance-backup-${new Date().toISOString().split('T')[0]}.json`;
-    
-    const linkElement = document.createElement('a');
-    linkElement.setAttribute('href', dataUri);
-    linkElement.setAttribute('download', exportFileDefaultName);
-    linkElement.click();
-    
-    this.showToast('Backup created successfully!', 'success');
+    this.loadClassesList();
+    this.loadStudentsList();
+    this.populateClassDropdown();
+    this.loadSystemSettings();
 }
     
 // ================== LOAD ATTENDANCE CONTENT =================
@@ -1864,7 +1580,7 @@ printAttendance() {
     window.print();
 }
 
-// =================== REPORTS CONTENT ======================
+// =================== LOAD REPORTS CONTENT ======================
    // In attendance-app.js - REPLACE the loadReportsContent method with this:
 loadReportsContent(container) {
     if (!this.user) {
