@@ -2348,7 +2348,183 @@ showToast(message, type = 'info') {
     }, 3000);
     }
 
+// ==================== SYSTEM SETTINGS METHODS =====================
 
+loadSystemSettings() {
+    const settings = Storage.get('systemSettings') || {
+        schoolName: 'My School',
+        currentTerm: '1',
+        academicYear: new Date().getFullYear().toString(),
+        schoolType: 'secondary',
+        attendanceSessions: {
+            am: true,
+            pm: true
+        }
+    };
+    
+    const schoolNameInput = document.getElementById('schoolName');
+    const currentTermSelect = document.getElementById('currentTerm');
+    const academicYearInput = document.getElementById('academicYear');
+    const schoolTypeSelect = document.getElementById('schoolType');
+    const amSessionCheckbox = document.getElementById('am-session');
+    const pmSessionCheckbox = document.getElementById('pm-session');
+    const eveningSessionCheckbox = document.getElementById('evening-session');
+    
+    if (schoolNameInput) schoolNameInput.value = settings.schoolName;
+    if (currentTermSelect) currentTermSelect.value = settings.currentTerm;
+    if (academicYearInput) academicYearInput.value = settings.academicYear;
+    if (schoolTypeSelect) schoolTypeSelect.value = settings.schoolType || 'secondary';
+    if (amSessionCheckbox) amSessionCheckbox.checked = settings.attendanceSessions?.am !== false;
+    if (pmSessionCheckbox) pmSessionCheckbox.checked = settings.attendanceSessions?.pm !== false;
+    if (eveningSessionCheckbox) eveningSessionCheckbox.checked = settings.attendanceSessions?.evening === true;
+}
+
+saveSystemSettings() {
+    const schoolName = document.getElementById('schoolName').value;
+    const currentTerm = document.getElementById('currentTerm').value;
+    const academicYear = document.getElementById('academicYear').value;
+    const schoolType = document.getElementById('schoolType').value;
+    const amSession = document.getElementById('am-session').checked;
+    const pmSession = document.getElementById('pm-session').checked;
+    const eveningSession = document.getElementById('evening-session')?.checked || false;
+    
+    const settings = {
+        schoolName: schoolName || 'My School',
+        currentTerm: currentTerm || '1',
+        academicYear: academicYear || new Date().getFullYear().toString(),
+        schoolType: schoolType || 'secondary',
+        attendanceSessions: {
+            am: amSession,
+            pm: pmSession,
+            evening: eveningSession
+        },
+        updatedAt: new Date().toISOString()
+    };
+    
+    Storage.set('systemSettings', settings);
+    this.showToast('System settings saved successfully!', 'success');
+}
+
+resetSystemSettings() {
+    const defaultSettings = {
+        schoolName: 'My School',
+        currentTerm: '1',
+        academicYear: new Date().getFullYear().toString(),
+        schoolType: 'secondary',
+        attendanceSessions: {
+            am: true,
+            pm: true,
+            evening: false
+        },
+        updatedAt: new Date().toISOString()
+    };
+    
+    Storage.set('systemSettings', defaultSettings);
+    this.loadSystemSettings();
+    this.showToast('Settings reset to defaults', 'info');
+}
+
+// ==================== DATA MANAGEMENT METHODS =====================
+
+backupData() {
+    try {
+        const backup = {
+            version: '1.0',
+            timestamp: new Date().toISOString(),
+            data: {
+                classes: Storage.get('classes') || [],
+                students: Storage.get('students') || [],
+                attendance: Storage.get('attendance') || [],
+                systemSettings: Storage.get('systemSettings') || {},
+                users: Storage.get('users') || []
+            }
+        };
+        
+        const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `attendance_backup_${new Date().toISOString().slice(0, 10)}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+        
+        this.showToast('Backup downloaded successfully!', 'success');
+    } catch (error) {
+        this.showToast('Error creating backup: ' + error.message, 'error');
+    }
+}
+
+restoreData() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    
+    input.onchange = (e) => {
+        const file = e.target.files[0];
+        const reader = new FileReader();
+        
+        reader.onload = (e) => {
+            try {
+                const backup = JSON.parse(e.target.result);
+                
+                if (!backup.data) {
+                    throw new Error('Invalid backup file format');
+                }
+                
+                if (confirm('Restoring backup will overwrite all current data. Continue?')) {
+                    Storage.set('classes', backup.data.classes || []);
+                    Storage.set('students', backup.data.students || []);
+                    Storage.set('attendance', backup.data.attendance || []);
+                    Storage.set('systemSettings', backup.data.systemSettings || {});
+                    Storage.set('users', backup.data.users || []);
+                    
+                    this.showToast('Data restored successfully!', 'success');
+                    
+                    // Refresh all lists
+                    this.loadClassesList();
+                    this.loadStudentsList();
+                    this.populateClassDropdown();
+                    this.loadSystemSettings();
+                }
+            } catch (error) {
+                this.showToast('Error restoring backup: ' + error.message, 'error');
+            }
+        };
+        
+        reader.readAsText(file);
+    };
+    
+    input.click();
+}
+
+clearAllData() {
+    if (confirm('WARNING: This will delete ALL data including classes, students, and attendance records. This action cannot be undone. Continue?')) {
+        if (confirm('Are you absolutely sure? Type "DELETE" to confirm.')) {
+            const confirmation = prompt('Type DELETE to confirm:');
+            if (confirmation === 'DELETE') {
+                // Clear all data except current user
+                const currentUser = this.user;
+                Storage.clear();
+                
+                // Restore current user
+                if (currentUser) {
+                    Storage.set('users', [currentUser]);
+                    this.user = currentUser;
+                }
+                
+                this.showToast('All data has been cleared', 'info');
+                
+                // Refresh all lists
+                this.loadClassesList();
+                this.loadStudentsList();
+                this.populateClassDropdown();
+                this.loadSystemSettings();
+            }
+        }
+    }
+}
 
 // ================== LOAD ATTENDANCE CONTENT =================
    // In attendance-app.js
