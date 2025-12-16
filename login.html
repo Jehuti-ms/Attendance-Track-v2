@@ -781,9 +781,26 @@
         
         // ==================== UTILITY FUNCTIONS ====================
         async function saveUserToLocalStorage(userData) {
-            localStorage.setItem('attendance_user', JSON.stringify(userData));
-            console.log('User saved to localStorage:', userData.email);
-        }
+    console.log('💾 Saving user to localStorage:', userData);
+    
+    // Ensure all required fields
+    const completeUserData = {
+        ...userData,
+        id: userData.id || 'user-' + Date.now(),
+        email: userData.email || '',
+        lastLogin: new Date().toISOString(),
+        savedAt: Date.now()
+    };
+    
+    // Save with verification
+    localStorage.setItem('attendance_user', JSON.stringify(completeUserData));
+    
+    // Verify it was saved
+    const saved = JSON.parse(localStorage.getItem('attendance_user'));
+    console.log('💾 Verification - saved user:', saved);
+    
+    return saved;
+}
 
         function checkExistingSession() {
             const savedEmail = localStorage.getItem('remember_email');
