@@ -124,7 +124,48 @@ class AttendanceApp {
                 window.location.href = 'index.html';
             }
         }
-            
+
+        // ==================== COMPONENT LOADING ====================
+async loadHeader() {
+    try {
+        const headerContainer = document.getElementById('header-container');
+        if (headerContainer) {
+            const response = await fetch('./components/header.html');
+            const html = await response.text();
+            headerContainer.innerHTML = html;
+            console.log('✅ Header loaded');
+        }
+    } catch (error) {
+        console.error('❌ Failed to load header:', error);
+    }
+}
+
+async loadFooter() {
+    try {
+        const footerContainer = document.getElementById('footer-container');
+        if (footerContainer) {
+            const response = await fetch('./components/footer.html');
+            const html = await response.text();
+            footerContainer.innerHTML = html;
+            console.log('✅ Footer loaded');
+        }
+    } catch (error) {
+        console.error('❌ Failed to load footer:', error);
+    }
+}
+
+renderHeader() {
+    // Header is already rendered by loadHeader()
+    // Add any additional header rendering logic here
+    console.log('📋 Header rendered');
+}
+
+renderFooter() {
+    // Footer is already rendered by loadFooter()
+    // Add any additional footer rendering logic here
+    console.log('📋 Footer rendered');
+}
+    
 // ==================== INITIALIZATION ====================
 async init() {
     console.log('🚀 Initializing AttendanceApp...');
