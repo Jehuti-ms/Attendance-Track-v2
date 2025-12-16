@@ -9,19 +9,15 @@
     <link rel="stylesheet" href="./assets/css/main.css">
     <link rel="stylesheet" href="./assets/css/components.css">
     <link rel="stylesheet" href="./assets/css/theme.css">
-    <link rel="stylesheet" href="./assets/css/reports.css">
     
-    <!-- Chart.js for graphs -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <!-- PWA -->
     <link rel="manifest" href="./manifest.json">
     <link rel="icon" type="image/png" href="./assets/icons/icon-192.png">
 </head>
 <body>
-    <!-- Header container -->
-    <div id="header-container"></div>
-    
     <!-- Main app container -->
     <div id="app-container">
         <div class="loading-state">
@@ -30,13 +26,10 @@
         </div>
     </div>
     
-    <!-- Footer container -->
-    <div id="footer-container"></div>
-    
     <!-- Load your main app -->
     <script type="module" src="./assets/js/attendance-app.js"></script>
     
-    <!-- Reports-specific initialization -->
+    <!-- Reports initialization -->
     <script>
         document.addEventListener('DOMContentLoaded', async function() {
             try {
@@ -51,10 +44,6 @@
                     window.location.href = 'login.html';
                     return;
                 }
-                
-                // Load header and footer
-                window.app.loadHeader(document.getElementById('header-container'));
-                window.app.loadFooter(document.getElementById('footer-container'));
                 
                 // Load reports content
                 window.app.loadReportsContent(document.getElementById('app-container'));
