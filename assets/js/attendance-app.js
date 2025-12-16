@@ -1865,7 +1865,7 @@ printAttendance() {
 }
 
 // =================== REPORTS CONTENT ======================
-    // In attendance-app.js
+   // In attendance-app.js - REPLACE the loadReportsContent method with this:
 loadReportsContent(container) {
     if (!this.user) {
         container.innerHTML = `<div class="error">No user found. Please login again.</div>`;
@@ -1873,136 +1873,135 @@ loadReportsContent(container) {
     }
     
     container.innerHTML = `
-        <div class="container">
-            <header>
-                <h1>Attendance Track</h1>
-                <p class="subtitle">Comprehensive Attendance Reports</p>
-                <p class="subtitle">Generate detailed attendance reports with various filters and timeframes</p>
-            </header>
-            
-            <section class="reports-section">
-                <div class="section-title">Report Configuration</div>
-                
-                <div class="filter-section">
-                    <div class="filter-group">
-                        <label class="filter-label">Report Type:</label>
-                        <select id="report-type">
-                            <option value="term-report">Term Report</option>
-                            <option value="daily-report">Daily Report</option>
-                            <option value="weekly-report">Weekly Report</option>
-                            <option value="monthly-report">Monthly Report</option>
-                            <option value="custom-report">Custom Report</option>
-                        </select>
-                    </div>
-                    
-                    <div class="filter-group">
-                        <label class="filter-label">Session:</label>
-                        <select id="session">
-                            <option value="both-sessions">Both Sessions</option>
-                            <option value="morning-session">Morning Session</option>
-                            <option value="afternoon-session">Afternoon Session</option>
-                            <option value="evening-session">Evening Session</option>
-                        </select>
-                    </div>
-                    
-                    <div class="filter-group">
-                        <label class="filter-label">Primary Metric:</label>
-                        <select id="primary-metric">
-                            <option value="attendance-rate">Attendance Rate</option>
-                            <option value="absenteeism">Absenteeism Rate</option>
-                            <option value="tardiness">Tardiness Rate</option>
-                            <option value="participation">Participation Score</option>
-                        </select>
-                    </div>
-                    
-                    <div class="filter-group">
-                        <label class="filter-label">Report Level:</label>
-                        <select id="report-level">
-                            <option value="comparative-analysis">Comparative Analysis</option>
-                            <option value="individual-analysis">Individual Analysis</option>
-                            <option value="department-analysis">Department Analysis</option>
-                            <option value="grade-level-analysis">Grade Level Analysis</option>
-                        </select>
-                    </div>
+        <div class="reports-page">
+            <div class="reports-container">
+                <div class="reports-header">
+                    <h1>Attendance Track</h1>
+                    <p class="reports-subtitle">Comprehensive Attendance Reports</p>
+                    <p class="reports-subtitle">Generate detailed attendance reports with various filters and timeframes</p>
                 </div>
                 
-                <div class="section-title">Report Actions</div>
-                
-                <div class="controls-section">
-                    <button class="control-btn primary-btn" id="generate-report">
-                        <i class="fas fa-chart-bar"></i> Generals Report
-                    </button>
-                    <button class="control-btn secondary-btn" id="refresh-data">
-                        <i class="fas fa-sync-alt"></i> Refresh Data
-                    </button>
-                    <button class="control-btn secondary-btn" id="email-report">
-                        <i class="fas fa-envelope"></i> Email Report
-                    </button>
-                    <button class="control-btn secondary-btn" id="export-pdf">
-                        <i class="fas fa-file-pdf"></i> Export PDF
-                    </button>
-                    <button class="control-btn secondary-btn" id="export-excel">
-                        <i class="fas fa-file-excel"></i> Export Excel
-                    </button>
-                    <button class="control-btn secondary-btn" id="print-report">
-                        <i class="fas fa-print"></i> Print
-                    </button>
-                </div>
-                
-                <div class="section-title">Report Output</div>
-                
-                <div class="report-output">
-                    <div class="output-header">
-                        <span>Attendance Report - Term 1 2023</span>
-                        <span id="report-time">Generated just now</span>
-                    </div>
+                <section class="reports-section">
+                    <div class="section-title">Report Configuration</div>
                     
-                    <div class="output-content" id="loading-section">
-                        <div class="loading">
-                            <div class="spinner"></div>
-                            <div>Loading data...</div>
-                        </div>
-                    </div>
-                    
-                    <div id="report-content" class="hidden">
-                        <div class="table-container">
-                            <table id="attendance-table">
-                                <thead>
-                                    <tr>
-                                        <th>Class/Group</th>
-                                        <th>Total Students</th>
-                                        <th>Present</th>
-                                        <th>Absent</th>
-                                        <th>Tardy</th>
-                                        <th>Attendance Rate</th>
-                                        <th>Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="table-body">
-                                    <!-- Data will be populated by JavaScript -->
-                                </tbody>
-                            </table>
+                    <div class="filter-section">
+                        <div class="filter-group">
+                            <label class="filter-label">Report Type:</label>
+                            <select id="report-type" class="reports-select">
+                                <option value="term-report">Term Report</option>
+                                <option value="daily-report">Daily Report</option>
+                                <option value="weekly-report">Weekly Report</option>
+                                <option value="monthly-report">Monthly Report</option>
+                                <option value="custom-report">Custom Report</option>
+                            </select>
                         </div>
                         
-                        <div style="padding: 20px; text-align: left; color: #7f8c8d; font-size: 14px;">
-                            <p><strong>Report Summary:</strong> This report shows attendance data for Term 1, 2023 across all sessions. 
-                            The overall attendance rate is 92.4%, with 7.6% absenteeism rate. Comparative analysis indicates 
-                            a 3.2% improvement from the previous term.</p>
+                        <div class="filter-group">
+                            <label class="filter-label">Session:</label>
+                            <select id="session" class="reports-select">
+                                <option value="both-sessions">Both Sessions</option>
+                                <option value="morning-session">Morning Session</option>
+                                <option value="afternoon-session">Afternoon Session</option>
+                                <option value="evening-session">Evening Session</option>
+                            </select>
+                        </div>
+                        
+                        <div class="filter-group">
+                            <label class="filter-label">Primary Metric:</label>
+                            <select id="primary-metric" class="reports-select">
+                                <option value="attendance-rate">Attendance Rate</option>
+                                <option value="absenteeism">Absenteeism Rate</option>
+                                <option value="tardiness">Tardiness Rate</option>
+                                <option value="participation">Participation Score</option>
+                            </select>
+                        </div>
+                        
+                        <div class="filter-group">
+                            <label class="filter-label">Report Level:</label>
+                            <select id="report-level" class="reports-select">
+                                <option value="comparative-analysis">Comparative Analysis</option>
+                                <option value="individual-analysis">Individual Analysis</option>
+                                <option value="department-analysis">Department Analysis</option>
+                                <option value="grade-level-analysis">Grade Level Analysis</option>
+                            </select>
                         </div>
                     </div>
-                </div>
-            </section>
+                    
+                    <div class="section-title">Report Actions</div>
+                    
+                    <div class="controls-section">
+                        <button class="control-btn primary-btn" id="generate-report">
+                            <i class="fas fa-chart-bar"></i> Generals Report
+                        </button>
+                        <button class="control-btn secondary-btn" id="refresh-data">
+                            <i class="fas fa-sync-alt"></i> Refresh Data
+                        </button>
+                        <button class="control-btn secondary-btn" id="email-report">
+                            <i class="fas fa-envelope"></i> Email Report
+                        </button>
+                        <button class="control-btn secondary-btn" id="export-pdf">
+                            <i class="fas fa-file-pdf"></i> Export PDF
+                        </button>
+                        <button class="control-btn secondary-btn" id="export-excel">
+                            <i class="fas fa-file-excel"></i> Export Excel
+                        </button>
+                        <button class="control-btn secondary-btn" id="print-report">
+                            <i class="fas fa-print"></i> Print
+                        </button>
+                    </div>
+                    
+                    <div class="section-title">Report Output</div>
+                    
+                    <div class="report-output">
+                        <div class="output-header">
+                            <span>Attendance Report - Term 1 2023</span>
+                            <span id="report-time">Generated just now</span>
+                        </div>
+                        
+                        <div class="output-content" id="loading-section">
+                            <div class="loading">
+                                <div class="spinner"></div>
+                                <div>Loading data...</div>
+                            </div>
+                        </div>
+                        
+                        <div id="report-content" class="hidden">
+                            <div class="table-container">
+                                <table class="reports-table" id="attendance-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Class/Group</th>
+                                            <th>Total Students</th>
+                                            <th>Present</th>
+                                            <th>Absent</th>
+                                            <th>Tardy</th>
+                                            <th>Attendance Rate</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="table-body">
+                                        <!-- Data will be populated by JavaScript -->
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <div style="padding: 20px; text-align: left; color: #7f8c8d; font-size: 14px;">
+                                <p><strong>Report Summary:</strong> This report shows attendance data for Term 1, 2023 across all sessions. 
+                                The overall attendance rate is 92.4%, with 7.6% absenteeism rate. Comparative analysis indicates 
+                                a 3.2% improvement from the previous term.</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
         </div>
     `;
     
-    // Add the CSS styles inline (or you can put them in a separate CSS file)
-    this.addReportsStyles();
-    
-    // Initialize the page
+    // Initialize the page (BUT NOT addReportsStyles)
     this.initializeReportsPage();
 }
 
-// Initialize the reports page
+// ADD this method to initializeReportsPage if it doesn't exist:
 initializeReportsPage() {
     // Get DOM elements
     const generateReportBtn = document.getElementById('generate-report');
@@ -2014,34 +2013,79 @@ initializeReportsPage() {
     
     // Add event listeners
     if (generateReportBtn) {
-        generateReportBtn.addEventListener('click', () => this.generateReport());
+        generateReportBtn.addEventListener('click', () => {
+            this.generateReport();
+        });
     }
     
     if (refreshDataBtn) {
-        refreshDataBtn.addEventListener('click', () => this.refreshReportData());
+        refreshDataBtn.addEventListener('click', () => {
+            this.refreshReportData();
+        });
     }
     
     if (emailReportBtn) {
-        emailReportBtn.addEventListener('click', () => this.emailReport());
+        emailReportBtn.addEventListener('click', () => {
+            this.emailReport();
+        });
     }
     
     if (exportPdfBtn) {
-        exportPdfBtn.addEventListener('click', () => this.exportPDF());
+        exportPdfBtn.addEventListener('click', () => {
+            this.exportPDF();
+        });
     }
     
     if (exportExcelBtn) {
-        exportExcelBtn.addEventListener('click', () => this.exportExcel());
+        exportExcelBtn.addEventListener('click', () => {
+            this.exportExcel();
+        });
     }
     
     if (printReportBtn) {
-        printReportBtn.addEventListener('click', () => this.printReport());
+        printReportBtn.addEventListener('click', () => {
+            this.printReport();
+        });
     }
     
     // Load initial data
     this.loadReportData();
 }
 
-// Load report data from storage
+// ADD these methods if they don't exist:
+generateReport() {
+    console.log('📊 Generating report...');
+    this.showToast('Report generated successfully!', 'success');
+    this.loadReportData();
+}
+
+refreshReportData() {
+    console.log('🔄 Refreshing report data...');
+    this.showToast('Data refreshed successfully!', 'success');
+    this.loadReportData();
+}
+
+emailReport() {
+    console.log('📧 Emailing report...');
+    this.showToast('Report email sent successfully!', 'success');
+}
+
+exportPDF() {
+    console.log('📄 Exporting PDF...');
+    this.showToast('PDF export initiated. Download will start shortly.', 'info');
+}
+
+exportExcel() {
+    console.log('📊 Exporting Excel...');
+    this.showToast('Excel export initiated. Download will start shortly.', 'info');
+}
+
+printReport() {
+    console.log('🖨️ Printing report...');
+    window.print();
+}
+
+// ADD the loadReportData method:
 async loadReportData() {
     const loadingSection = document.getElementById('loading-section');
     const reportContent = document.getElementById('report-content');
@@ -2077,7 +2121,7 @@ async loadReportData() {
     }
 }
 
-// Process real attendance data
+// ADD the processRealData method:
 processRealData(classes, attendance) {
     const tableBody = document.getElementById('table-body');
     const loadingSection = document.getElementById('loading-section');
@@ -2154,7 +2198,7 @@ processRealData(classes, attendance) {
     reportContent.classList.remove('hidden');
 }
 
-// Show sample data (for when no real data exists)
+// ADD the showSampleData method:
 showSampleData() {
     const sampleData = [
         { className: "Grade 10-A", total: 32, present: 30, absent: 2, tardy: 1, rate: 93.8, status: "high" },
@@ -2194,29 +2238,7 @@ showSampleData() {
     loadingSection.classList.add('hidden');
     reportContent.classList.remove('hidden');
 }
-
-// Action methods
-refreshReportData() {
-    this.showToast('Data refreshed successfully!', 'success');
-    this.loadReportData();
-}
-
-emailReport() {
-    this.showToast('Report email sent successfully!', 'success');
-}
-
-exportPDF() {
-    this.showToast('PDF export initiated. Download will start shortly.', 'info');
-}
-
-exportExcel() {
-    this.showToast('Excel export initiated. Download will start shortly.', 'info');
-}
-
-printReport() {
-    window.print();
-}
-
+    
 // ================ SETTINGS CONTENT ====================
     async loadSettingsContent() {
         const appContainer = document.getElementById('app-container');
