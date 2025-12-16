@@ -215,22 +215,96 @@ renderFooter() {
         `;
     }
 }
+
+    // Add this method to your class
+async checkAuth() {
+    console.log("🔐 Performing auth check...");
     
-// ==================== INITIALIZATION ====================
+    // Get user from localStorage
+    const user = Storage.get('attendance_user');
+    
+    if (!user || !user.email) {
+        console.log("❌ No valid user found");
+        return { success: false, user: null };
+    }
+    
+    console.log(`✅ User found: ${user.email}`);
+    return { success: true, user };
+}
+
+// Update your init method to use it
 async init() {
     console.log('🚀 Initializing AttendanceApp...');
     
     try {
-        // 1. Check localStorage user first
+        // 🎯 STEP 1: CHECK AUTH FIRST
+        const authResult = await this.checkAuth();
+        
+        if (!authResult.success) {
+            console.log('❌ Auth failed - redirecting to login');
+            this.showLoginPage();
+            return; // Stop execution
+        }
+        
+        // Auth passed - set user
+        this.user = authResult.user;
+        this.state.currentUser = authResult.user;
+        
+        // 2. Try to sync with Firebase if available
+        await this.syncLocalUserToFirebase(authResult.user);
+
+        // 3. Load shared UI components
+        await this.loadHeader();
+        await this.loadFooter();
+        
+        // 4. Setup GLOBAL navigation features
+        this.setupGlobalNavigation();
+        
+        // 5. Render components
+        this.renderHeader();
+        this.renderFooter();
+        
+        // 6. Setup app-wide event listeners
+        this.setupEventListeners();
+        
+        // 7. Initialize service worker
+        this.initServiceWorker();
+        
+        // 8. Setup page-specific handlers
+        this.setupPageHandlers();
+        
+        // 9. Load page content (ONLY if auth passed)
+        await this.loadContent();
+        
+        console.log('✅ AttendanceApp initialized successfully');
+        
+    } catch (error) {
+        console.error('❌ Error initializing app:', error);
+        this.showError(error.message);
+    }
+}
+    
+  // ==================== INITIALIZATION ====================
+async init() {
+    console.log('🚀 Initializing AttendanceApp...');
+    
+    try {
+        // 🎯 STEP 1: CHECK AUTH FIRST (SIMPLE VERSION)
         const user = Storage.get('attendance_user');
         
-        if (user) {
-            this.state.currentUser = user;
-            console.log('LocalStorage user found:', user.name);
-            
-            // Try to sync with Firebase if available
-            await this.syncLocalUserToFirebase(user);
+        if (!user || !user.email) {
+            console.log("❌ No user found, redirecting to login");
+            this.showLoginPage();
+            return; // Stop ALL execution immediately
         }
+        
+        // Auth passed - set user
+        this.state.currentUser = user;
+        this.user = user;
+        console.log('✅ User authenticated:', user.name);
+        
+        // Try to sync with Firebase if available
+        await this.syncLocalUserToFirebase(user);
 
         // 2. Load shared UI components
         await this.loadHeader();
@@ -254,9 +328,6 @@ async init() {
         
         // 8. Load page content (page modules will handle their own navigation)
         await this.loadContent();
-        
-        // 9. Check auth and load page
-        this.checkAuthAndLoadPage();
         
         console.log('✅ AttendanceApp initialized successfully');
         
@@ -334,30 +405,28 @@ highlightCurrentPage() {
     
  // ==================== AUTH & PAGE LOADING ====================
 // In attendance-app.js - FIX checkAuthAndLoadPage method:
-checkAuthAndLoadPage() {
-    console.log("🔐 DEBUG: Checking authentication...");
+/*checkAuthAndLoadPage() {
+    console.log("🔐 Checking authentication...");
     
-    // Get user from localStorage (not this.user)
+    // Get user from localStorage
     const user = Storage.get('attendance_user');
-    console.log("🔐 DEBUG: User from Storage:", user);
     
     if (!user || !user.email) {
-        console.log("❌ DEBUG: No valid user found, showing login page");
+        console.log("❌ No user found, showing login page");
         this.showLoginPage();
-        return false;
+        return false; // ⬅️ Return false on failure
     }
     
-    // Set this.user for later use
+    // User is authenticated, load the page content
+    console.log(`✅ User authenticated: ${user.email}`);
+    
+    // Set the user for the instance
     this.user = user;
     this.state.currentUser = user;
     
-    console.log(`✅ DEBUG: User authenticated: ${user.email}`);
-    
-    // Load page content
-    this.renderPage();
-    return true;
+    return true; // ⬅️ Return true on success
 }
-
+*/
  // ==================== PAGE RENDERERS ====================
 // Also add this renderPage method to your class
 renderPage() {
