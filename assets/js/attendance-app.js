@@ -37,39 +37,64 @@ class AttendanceApp {
         return '/';
     }
 
-    // ==================== MAIN INITIALIZATION ====================
-    async init() {
-        console.log('🚀 Initializing AttendanceApp for page:', this.state.currentPage);
+// ==================== INITIALIZATION ====================
+async init() {
+    console.log('🚀 Initializing AttendanceApp...');
+    
+    try {
+        // 1. CHECK IF WE'RE ON A PUBLIC PAGE (no auth needed)
+        const currentPage = this.state.currentPage;
+        const publicPages = ['index', 'login', '']; // Pages that don't require login
         
-        try {
-            // 1. Check if user should be redirected
-            const shouldRedirect = this.checkPageAccess();
-            if (shouldRedirect) {
-                return; // Redirect will happen in checkPageAccess
+        // If we're on a public page, skip auth check
+        if (publicPages.includes(currentPage)) {
+            console.log(`📄 On public page: ${currentPage}, skipping auth check`);
+            
+            // If user is already logged in and on login page, redirect to dashboard
+            const user = Storage.get('attendance_user');
+            if (user && user.email && currentPage === 'index') {
+                console.log('👤 User already logged in, redirecting to dashboard');
+                this.redirectTo('dashboard.html');
+                return;
             }
             
-            // 2. Get current user (if any)
-            await this.loadCurrentUser();
+        } else {
+            // 2. FOR PROTECTED PAGES: Check auth
+            const authResult = await this.checkAuth();
+            if (!authResult.success) {
+                console.log('❌ Auth failed - redirecting to login');
+                this.showLoginPage();
+                return; // Stop execution
+            }
             
-            // 3. Load UI components
-            await this.loadUIComponents();
+            // Auth passed - set user
+            this.user = authResult.user;
+            this.state.currentUser = authResult.user;
+            console.log('✅ User authenticated:', authResult.user.name);
             
-            // 4. Setup event listeners
-            this.setupEventListeners();
-            
-            // 5. Load page-specific content
-            await this.loadPageContent();
-            
-            // 6. Initialize service worker
-            this.initServiceWorker();
-            
-            console.log('✅ AttendanceApp initialized successfully');
-            
-        } catch (error) {
-            console.error('❌ Error initializing app:', error);
-            this.showError(error.message);
+            // Try to sync with Firebase if available
+            await this.syncLocalUserToFirebase(authResult.user);
         }
+
+        // 3. Load UI components
+        await this.loadUIComponents();
+        
+        // 4. Setup event listeners
+        this.setupEventListeners();
+        
+        // 5. Load page-specific content
+        await this.loadPageContent();
+        
+        // 6. Initialize service worker
+        this.initServiceWorker();
+        
+        console.log('✅ AttendanceApp initialized successfully');
+        
+    } catch (error) {
+        console.error('❌ Error initializing app:', error);
+        this.showError(error.message);
     }
+}
 
     // ==================== AUTHENTICATION & PAGE ACCESS ====================
     checkPageAccess() {
@@ -702,8 +727,31 @@ class AttendanceApp {
     }
 
     showLoginPage() {
-        this.redirectTo('index.html');
+    console.log("🔐 Redirecting to login page...");
+    
+    const currentPage = this.getCurrentPage();
+    const publicPages = ['index', 'login', ''];
+    
+    // Don't redirect if already on a public page
+    if (publicPages.includes(currentPage)) {
+        console.log("✅ Already on public page, no redirect needed");
+        return;
     }
+    
+    // Redirect to index.html
+    const basePath = this.getBasePath();
+    window.location.href = `${basePath}index.html`;
+}
+
+// Helper method to get current page without .html
+getCurrentPage() {
+    const path = window.location.pathname;
+    const page = path.split('/').pop() || 'index.html';
+    // Remove .html and query parameters
+    const pageName = page.replace('.html', '').split('?')[0];
+    console.log('📄 Current page detected:', pageName);
+    return pageName;
+}
 
     goToPage(page) {
         window.location.href = page;
