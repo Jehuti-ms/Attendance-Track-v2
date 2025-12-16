@@ -232,7 +232,7 @@ async checkAuth() {
     return { success: true, user };
 }
 
-// Update your init method to use it
+// ==================== INITIALIZATION ====================
 async init() {
     console.log('🚀 Initializing AttendanceApp...');
     
@@ -249,68 +249,16 @@ async init() {
         // Auth passed - set user
         this.user = authResult.user;
         this.state.currentUser = authResult.user;
-        
-        // 2. Try to sync with Firebase if available
-        await this.syncLocalUserToFirebase(authResult.user);
-
-        // 3. Load shared UI components
-        await this.loadHeader();
-        await this.loadFooter();
-        
-        // 4. Setup GLOBAL navigation features
-        this.setupGlobalNavigation();
-        
-        // 5. Render components
-        this.renderHeader();
-        this.renderFooter();
-        
-        // 6. Setup app-wide event listeners
-        this.setupEventListeners();
-        
-        // 7. Initialize service worker
-        this.initServiceWorker();
-        
-        // 8. Setup page-specific handlers
-        this.setupPageHandlers();
-        
-        // 9. Load page content (ONLY if auth passed)
-        await this.loadContent();
-        
-        console.log('✅ AttendanceApp initialized successfully');
-        
-    } catch (error) {
-        console.error('❌ Error initializing app:', error);
-        this.showError(error.message);
-    }
-}
-    
-  // ==================== INITIALIZATION ====================
-async init() {
-    console.log('🚀 Initializing AttendanceApp...');
-    
-    try {
-        // 🎯 STEP 1: CHECK AUTH FIRST (SIMPLE VERSION)
-        const user = Storage.get('attendance_user');
-        
-        if (!user || !user.email) {
-            console.log("❌ No user found, redirecting to login");
-            this.showLoginPage();
-            return; // Stop ALL execution immediately
-        }
-        
-        // Auth passed - set user
-        this.state.currentUser = user;
-        this.user = user;
-        console.log('✅ User authenticated:', user.name);
+        console.log('✅ User authenticated:', authResult.user.name);
         
         // Try to sync with Firebase if available
-        await this.syncLocalUserToFirebase(user);
+        await this.syncLocalUserToFirebase(authResult.user);
 
         // 2. Load shared UI components
         await this.loadHeader();
         await this.loadFooter();
         
-        // 3. Setup GLOBAL navigation features only (NOT page highlighting)
+        // 3. Setup GLOBAL navigation features
         this.setupGlobalNavigation();
         
         // 4. Render components
@@ -326,7 +274,7 @@ async init() {
         // 7. Setup page-specific handlers
         this.setupPageHandlers();
         
-        // 8. Load page content (page modules will handle their own navigation)
+        // 8. Load page content
         await this.loadContent();
         
         console.log('✅ AttendanceApp initialized successfully');
