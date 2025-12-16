@@ -186,7 +186,46 @@
                 statusDiv.style.border = '1px solid #f5c6cb';
             }
         }
+
+        // Add this code INSIDE your existing <script> tags
+document.addEventListener('DOMContentLoaded', async () => {
+    console.log('Login page loaded, checking Firebase...');
+    
+    try {
+        const { auth } = await import('./assets/js/firebase.js');
+        const statusText = document.getElementById('status-text');
+        const statusDiv = document.getElementById('firebase-status');
         
+        if (auth) {
+            console.log('✅ Firebase auth loaded');
+            statusText.textContent = 'Firebase connected ✅';
+            statusText.style.color = '#28a745';
+            statusDiv.style.background = '#d4edda';
+            statusDiv.style.border = '1px solid #c3e6cb';
+            
+            // Check if user is already logged in
+            if (auth.currentUser) {
+                console.log('Already logged in:', auth.currentUser.email);
+                statusText.textContent = `Already logged in as ${auth.currentUser.email} ✅`;
+                // Auto-redirect to dashboard after 2 seconds
+                setTimeout(() => {
+                    window.location.href = 'dashboard.html';
+                }, 2000);
+            }
+        } else {
+            throw new Error('Auth not loaded');
+        }
+    } catch (error) {
+        console.error('Firebase connection error:', error);
+        const statusText = document.getElementById('status-text');
+        const statusDiv = document.getElementById('firebase-status');
+        
+        statusText.textContent = 'Firebase not connected - Use Demo Mode ❌';
+        statusText.style.color = '#dc3545';
+        statusDiv.style.background = '#f8d7da';
+        statusDiv.style.border = '1px solid #f5c6cb';
+    }
+});
         // Navigation functions (will be overridden by attendance-app.js)
         function startDemoMode() {
             if (window.app && window.app.startDemoMode) {
