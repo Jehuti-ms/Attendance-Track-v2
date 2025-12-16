@@ -333,12 +333,29 @@ highlightCurrentPage() {
 }
     
  // ==================== AUTH & PAGE LOADING ====================
+// In attendance-app.js - FIX checkAuthAndLoadPage method:
 checkAuthAndLoadPage() {
-    if (!this.user) {
+    console.log("🔐 DEBUG: Checking authentication...");
+    
+    // Get user from localStorage (not this.user)
+    const user = Storage.get('attendance_user');
+    console.log("🔐 DEBUG: User from Storage:", user);
+    
+    if (!user || !user.email) {
+        console.log("❌ DEBUG: No valid user found, showing login page");
         this.showLoginPage();
-    } else {
-        this.renderPage(); // ← This should call your new renderPage method
+        return false;
     }
+    
+    // Set this.user for later use
+    this.user = user;
+    this.state.currentUser = user;
+    
+    console.log(`✅ DEBUG: User authenticated: ${user.email}`);
+    
+    // Load page content
+    this.renderPage();
+    return true;
 }
 
  // ==================== PAGE RENDERERS ====================
