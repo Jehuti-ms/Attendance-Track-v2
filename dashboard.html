@@ -4,11 +4,72 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - Attendance Track v2</title>
+    
+    <!-- 🚨 IMMEDIATE AUTH CHECK - Add this FIRST -->
+    <script>
+    (function() {
+        console.log('🛡️ DASHBOARD IMMEDIATE AUTH CHECK');
+        
+        // Check if user exists in localStorage
+        const userStr = localStorage.getItem('attendance_user');
+        console.log('User string length:', userStr?.length || 0);
+        
+        if (!userStr) {
+            console.log('❌ CRITICAL: No user found on dashboard load');
+            console.log('Redirecting to login...');
+            
+            // Clear any corrupted data
+            localStorage.removeItem('attendance_user');
+            
+            // Redirect immediately
+            setTimeout(() => {
+                window.location.replace('./login.html?from=dashboard_immediate');
+            }, 100);
+            
+            // Show message and stop rendering
+            document.body.innerHTML = `
+                <div style="padding: 50px; text-align: center; font-family: Arial;">
+                    <h2>Authentication Required</h2>
+                    <p>Redirecting to login page...</p>
+                    <p><small>If not redirected, <a href="./login.html">click here</a></small></p>
+                </div>
+            `;
+            
+            throw new Error('Authentication failed');
+        }
+        
+        // Try to parse the user
+        try {
+            const user = JSON.parse(userStr);
+            console.log('✅ User authenticated:', user.email);
+            
+            // Store for debugging
+            window._dashboardUser = user;
+            
+        } catch (error) {
+            console.error('❌ Failed to parse user:', error);
+            console.log('Problematic user string:', userStr);
+            
+            // Clear bad data
+            localStorage.removeItem('attendance_user');
+            
+            setTimeout(() => {
+                window.location.replace('./login.html?from=parse_error');
+            }, 100);
+            
+            throw new Error('Invalid user data');
+        }
+        
+        console.log('✅ Dashboard auth check passed');
+    })();
+    </script>
+    
     <link rel="stylesheet" href="assets/css/main.css">
     <link rel="stylesheet" href="assets/css/components.css">
     <link rel="stylesheet" href="assets/css/theme.css">
     <link rel="manifest" href="manifest.json">
     <link rel="icon" href="assets/icons/favicon.ico">
+    
     <style>
         /* Dashboard Page Specific Styles */
         .dashboard-page {
@@ -244,6 +305,7 @@
             background: #f44336;
         }
     </style>
+    
 </head>
 <body>
     <div id="app">
