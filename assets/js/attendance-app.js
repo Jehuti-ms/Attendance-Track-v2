@@ -542,52 +542,49 @@ getCurrentPage() {
     }
 
     // ==================== PAGE CONTENT LOADING ====================
-    async loadPageContent() {
-        const appContainer = document.getElementById('app-container');
-        if (!appContainer) return;
-        
-        // Show loading state
-        appContainer.innerHTML = `
-            <div class="loading-state">
-                <div class="loading-spinner"></div>
-                <p>Loading...</p>
-            </div>
-        `;
-        
-        const currentPage = this.state.currentPage;
-        console.log(`📄 Loading content for: ${currentPage}`);
-        
-        try {
-            switch(currentPage) {
-                case 'index':
-                    await this.loadIndexContent();
-                    break;
-                case 'login':
-                    await this.loadLoginContent();
-                    break;
-                case 'dashboard':
-                    await this.loadDashboardContent();
-                    break;
-                case 'attendance':
-                    await this.loadAttendanceContent();
-                    break;
-                case 'reports':
-                    await this.loadReportsContent();
-                    break;
-                case 'setup':
-                    await this.loadSetupContent();
-                    break;
-                case 'settings':
-                    await this.loadSettingsContent();
-                    break;
-                default:
-                    this.showPageNotFound();
-            }
-        } catch (error) {
-            console.error(`❌ Error loading ${currentPage} content:`, error);
-            this.showError(`Failed to load ${currentPage} page`);
-        }
+async loadPageContent() {
+    const appContainer = document.getElementById('app-container');
+    if (!appContainer) {
+        console.error('❌ app-container not found in DOM');
+        this.showError('App container not found');
+        return;
     }
+    
+    const currentPage = this.state.currentPage;
+    console.log(`📄 Loading content for: ${currentPage}`);
+    
+    try {
+        // Clear loading state
+        appContainer.innerHTML = '';
+        
+        switch(currentPage) {
+            case 'index':
+            case 'login':
+                // Login page handles its own content
+                break;
+            case 'dashboard':
+                await this.loadDashboardContent(appContainer);
+                break;
+            case 'attendance':
+                await this.loadAttendanceContent(appContainer);
+                break;
+            case 'reports':
+                await this.loadReportsContent(appContainer);
+                break;
+            case 'setup':
+                await this.loadSetupContent(appContainer);
+                break;
+            case 'settings':
+                await this.loadSettingsContent(appContainer);
+                break;
+            default:
+                this.showPageNotFound(appContainer);
+        }
+    } catch (error) {
+        console.error(`❌ Error loading ${currentPage} content:`, error);
+        this.showError(`Failed to load ${currentPage} page`);
+    }
+}
 
     // ==================== PAGE CONTENT RENDERERS ====================
     async loadIndexContent() {
