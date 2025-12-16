@@ -279,14 +279,11 @@
         
         // Monitor auth state - WITHOUT auto-redirect
         onAuthStateChanged(auth, (user) => {
-    if (user) {
-        console.log('👤 User session active:', user.email);
-        // User stays on login page - they must submit the form
-    }
-});
+            if (user) {
+                console.log('👤 User session active:', user.email);
                 
-                // 🚨 REMOVED: Auto-redirect from login page
-                // Instead, just provide helpful UI feedback
+                // User stays on login page - they must submit the form
+                // Provide helpful UI feedback
                 if (window.location.pathname.includes('login.html')) {
                     console.log('ℹ️ User already signed in via Firebase');
                     
