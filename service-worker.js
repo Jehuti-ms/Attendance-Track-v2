@@ -1,5 +1,5 @@
 // service-worker.js - VERSION-AWARE CACHING
-const APP_VERSION = '4.1.2'; // MUST MATCH version-manager.js
+const APP_VERSION = '4.1.3'; // MUST MATCH version-manager.js
 const CACHE_NAME = `attendance-cache-v${APP_VERSION.replace(/\./g, '-')}`;
 const MAX_CACHE_AGE = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
 
