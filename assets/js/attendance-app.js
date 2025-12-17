@@ -77,10 +77,10 @@ updateNavStatus() {
     }
     
     try {
-        // Get username - SIMPLIFIED VERSION
+        // Get username
         let username = 'User';
         
-        // Check currentUser in state first
+        // Check currentUser in state
         if (this.state && this.state.currentUser) {
             const user = this.state.currentUser;
             username = user.name || user.email || 'User';
@@ -88,7 +88,8 @@ updateNavStatus() {
         // Check localStorage
         else {
             const storedUser = localStorage.getItem('attendance_user') || 
-                              localStorage.getItem('currentUser');
+                              localStorage.getItem('currentUser') ||
+                              localStorage.getItem('attendanceUser');
             if (storedUser) {
                 try {
                     const user = JSON.parse(storedUser);
@@ -104,7 +105,7 @@ updateNavStatus() {
         const connectionStatus = isOnline ? 'online' : 'offline';
         const statusText = isOnline ? 'Online' : 'Offline';
         
-        // KEEP THE EXISTING STRUCTURE - just update the text
+        // Update the HTML - KEEPING EXISTING STRUCTURE
         statusElement.innerHTML = `
             <span class="user-info-group">
                 <i class="fas fa-user user-icon"></i>
@@ -116,20 +117,9 @@ updateNavStatus() {
             </span>
         `;
         
-        // Apply pulsing animation to the dot
-        setTimeout(() => {
-            const dot = statusElement.querySelector('.status-dot');
-            if (dot) {
-                // Keep existing styles, just ensure animation works
-                dot.style.backgroundColor = isOnline ? '#27ae60' : '#e74c3c';
-                
-                if (isOnline) {
-                    dot.style.animation = 'pulse 2s infinite';
-                } else {
-                    dot.style.animation = 'none';
-                }
-            }
-        }, 10);
+        // CSS will handle the animation automatically!
+        // No need for inline styles since your CSS has:
+        // .status-dot.online { animation: pulse 2s infinite; }
         
         // Setup connection monitoring
         this.setupConnectionMonitoring(statusElement);
@@ -138,7 +128,7 @@ updateNavStatus() {
         
     } catch (error) {
         console.error('❌ Error in updateNavStatus:', error);
-        // Show simple error state
+        // Show error state using your existing CSS class
         if (statusElement) {
             statusElement.innerHTML = `
                 <span class="status-indicator">
@@ -156,25 +146,24 @@ setupConnectionMonitoring(statusElement) {
     const updateStatus = (isOnline) => {
         console.log(isOnline ? '✅ Online' : '⚠️ Offline');
         
-        // Find the dot and text elements
+        // Find elements
         const dot = statusElement.querySelector('.status-dot');
         const text = statusElement.querySelector('.status-text');
         
         if (dot && text) {
-            // Update classes
+            // Update classes - your CSS will handle the rest!
             dot.className = `status-dot ${isOnline ? 'online' : 'offline'}`;
             text.textContent = isOnline ? 'Online' : 'Offline';
-            
-            // Update dot color
-            dot.style.backgroundColor = isOnline ? '#27ae60' : '#e74c3c';
-            
-            // Add/remove pulse animation
-            if (isOnline) {
-                dot.style.animation = 'pulse 2s infinite';
-            } else {
-                dot.style.animation = 'none';
-            }
         }
+        
+        // Optional: Show notification for connection changes
+        const previousOnline = statusElement.getAttribute('data-previous-online');
+        if (previousOnline !== null && previousOnline !== String(isOnline)) {
+            const notification = isOnline ? 'Connection restored' : 'Connection lost';
+            console.log(`📢 ${notification}`);
+        }
+        
+        statusElement.setAttribute('data-previous-online', isOnline);
     };
     
     // Set initial status
