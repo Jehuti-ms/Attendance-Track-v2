@@ -45,10 +45,15 @@
                     </a>
                 </li>
             </ul>
-            
-           
+                       
                 <div class="user-info">
-                    <span class="user-name" id="currentUser">Loading...</span>
+                    <span class="user-status" id="navUserStatus">
+                        <!-- Start with just loading status -->
+                        <span class="status-indicator">
+                            <span class="status-dot loading"></span>
+                            <span class="status-text">Loading...</span>
+                        </span>
+                    </span>
                 </div>
        
                 <button id="logoutBtn" class="btn-logout" title="Logout">
