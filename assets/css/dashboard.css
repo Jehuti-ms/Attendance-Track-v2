@@ -286,3 +286,96 @@
         grid-template-columns: 1fr;
     }
 }
+
+/* ===== FIX STRETCHED ONLINE INDICATOR ===== */
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.user-name {
+    font-weight: 500;
+    color: #333;
+    font-size: 15px;
+    flex-shrink: 0;
+}
+
+.user-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    background: #f8f9fa;
+    border-radius: 12px;
+    font-size: 12px;
+    color: #666;
+    transition: all 0.3s ease;
+    width: auto !important;
+    flex-shrink: 0;
+    max-width: 120px;
+}
+
+/* Status states */
+.user-status.online {
+    background: #e8f6ef;
+    color: #27ae60;
+}
+
+.user-status.online .status-dot {
+    background-color: #27ae60;
+    animation: pulse 2s infinite;
+}
+
+.user-status.offline {
+    background: #f5f5f5;
+    color: #95a5a6;
+}
+
+.user-status.offline .status-dot {
+    background-color: #95a5a6;
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: #95a5a6;
+    transition: background-color 0.3s ease;
+    flex-shrink: 0;
+}
+
+.status-text {
+    font-weight: 500;
+    flex-shrink: 0;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.2);
+        opacity: 0.7;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* Mobile: hide text, show only dot */
+@media (max-width: 768px) {
+    .status-text {
+        display: none;
+    }
+    
+    .user-status {
+        padding: 4px;
+        background: transparent;
+    }
+}
