@@ -78,5 +78,24 @@
             }
         });
     </script>
+    <!-- Add to any page where icons don't show -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const navLinks = document.querySelectorAll('.nav-link');
+        console.log('Nav links found:', navLinks.length);
+        
+        navLinks.forEach(link => {
+            const icon = link.querySelector('i');
+            console.log('Link:', link.textContent, 'Icon exists:', !!icon);
+            if (icon) {
+                console.log('Icon classes:', icon.className);
+                // Force show
+                icon.style.display = 'inline-block';
+                icon.style.color = 'red';
+                icon.style.backgroundColor = 'yellow';
+            }
+        });
+    });
+</script>
 </body>
 </html>
