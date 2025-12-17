@@ -15,6 +15,18 @@
     <!-- PWA -->
     <link rel="manifest" href="./manifest.json">
     <link rel="icon" type="image/png" href="./assets/icons/icon-192.png">
+
+    <style>
+    /* FORCE ICONS VISIBLE ON SETUP PAGE */
+    .nav-link i {
+        display: inline-block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        font-size: 1.1rem !important;
+        width: 20px !important;
+        margin-right: 8px !important;
+    }
+</style>
 </head>
 <body>
     <!-- Header container -->
@@ -78,32 +90,6 @@
             }
         });
     </script>
-    <!-- Add to any page where icons don't show -->
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        console.log('🔍 Checking nav icons...');
-        
-        // Wait for header to load
-        setTimeout(() => {
-            const icons = document.querySelectorAll('.nav-link i');
-            console.log('Found icons in DOM:', icons.length);
-            
-            icons.forEach((icon, i) => {
-                console.log(`Icon ${i}:`, {
-                    visible: icon.offsetParent !== null,
-                    display: window.getComputedStyle(icon).display,
-                    visibility: window.getComputedStyle(icon).visibility,
-                    opacity: window.getComputedStyle(icon).opacity,
-                    fontSize: window.getComputedStyle(icon).fontSize,
-                    parentHTML: icon.parentElement.outerHTML
-                });
-                
-                // Force show for debugging
-                icon.style.outline = '2px solid red';
-                icon.style.backgroundColor = 'yellow';
-            });
-        }, 1500); // Wait for header to load
-    });
-</script>
+
 </body>
 </html>
