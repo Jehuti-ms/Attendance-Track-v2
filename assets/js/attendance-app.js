@@ -162,7 +162,7 @@ setupConnectionMonitoring(statusElement) {
     window.addEventListener('online', () => updateStatus(true));
     window.addEventListener('offline', () => updateStatus(false));
 }
-
+    
     // ==================== INITIALIZATION ====================
     async init() {
         console.log('🚀 Initializing AttendanceApp...');
