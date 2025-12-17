@@ -78,89 +78,68 @@ updateNavStatus() {
     
     try {
         // Get username
-        let username = 'User';
-        
-        // Check currentUser in state
-        if (this.state && this.state.currentUser) {
-            const user = this.state.currentUser;
-            username = user.name || user.email || 'User';
-        } 
-        // Check localStorage
-        else {
-            const storedUser = localStorage.getItem('attendance_user') || 
-                              localStorage.getItem('currentUser') ||
-                              localStorage.getItem('attendanceUser');
-            if (storedUser) {
-                try {
-                    const user = JSON.parse(storedUser);
-                    username = user.name || user.email || 'User';
-                } catch(e) {
-                    console.log('Could not parse user:', e);
-                }
-            }
-        }
+        let username = 'Test User'; // Hardcode for testing
         
         // Get connection status
         const isOnline = navigator.onLine;
         const connectionStatus = isOnline ? 'online' : 'offline';
         const statusText = isOnline ? 'Online' : 'Offline';
         
-        // Create clean HTML structure
+        // TEST: Create HTML with VERY obvious styling
         statusElement.innerHTML = `
-            <div class="status-content">
-                <div class="user-display">
-                    <i class="fas fa-user user-icon"></i>
-                    <span class="user-name">${username}</span>
+            <div class="status-content" style="display: flex; align-items: center; gap: 15px; padding: 10px; background: #2c3e50; border: 2px solid red;">
+                <div class="user-display" style="display: flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-user user-icon" style="font-size: 16px; color: #3498db;"></i>
+                    <span class="user-name" style="color: #00ff00 !important; font-size: 16px; font-weight: bold; background: black; padding: 2px 5px;">${username}</span>
                 </div>
-                <div class="connection-status">
-                    <span class="status-dot ${connectionStatus}"></span>
-                    <span class="status-text">${statusText}</span>
+                <div class="connection-status" style="display: flex; align-items: center; gap: 8px; padding-left: 15px; border-left: 2px solid yellow;">
+                    <span class="status-dot ${connectionStatus}" style="width: 12px; height: 12px; border-radius: 50%; display: block; background: ${isOnline ? '#00ff00' : '#ff0000'};"></span>
+                    <span class="status-text" style="color: #ffff00 !important; font-size: 14px; font-weight: bold; background: black; padding: 2px 5px;">${statusText}</span>
                 </div>
             </div>
         `;
         
+        // Debug: Check if elements exist
+        setTimeout(() => {
+            const userNameEl = statusElement.querySelector('.user-name');
+            const statusTextEl = statusElement.querySelector('.status-text');
+            
+            console.log('🔍 DEBUG - Checking elements:');
+            console.log('1. statusElement:', statusElement);
+            console.log('2. userNameEl exists:', !!userNameEl);
+            console.log('3. statusTextEl exists:', !!statusTextEl);
+            console.log('4. userNameEl text:', userNameEl?.textContent);
+            console.log('5. statusTextEl text:', statusTextEl?.textContent);
+            
+            // Force check computed styles
+            if (userNameEl) {
+                const styles = window.getComputedStyle(userNameEl);
+                console.log('6. userNameEl styles:', {
+                    display: styles.display,
+                    visibility: styles.visibility,
+                    opacity: styles.opacity,
+                    color: styles.color,
+                    fontSize: styles.fontSize
+                });
+            }
+        }, 100);
+        
         // Setup connection monitoring
         this.setupConnectionMonitoring(statusElement);
         
-        console.log(`✅ Nav status updated: ${username} - ${statusText}`);
+        console.log(`✅ Nav status updated with TEST styling`);
         
     } catch (error) {
         console.error('❌ Error in updateNavStatus:', error);
-        // Simple error display
+        // Ultra obvious error display
         if (statusElement) {
             statusElement.innerHTML = `
-                <div class="status-content">
-                    <div class="connection-status">
-                        <span class="status-dot error"></span>
-                        <span class="status-text">Error</span>
-                    </div>
+                <div style="color: red; background: yellow; padding: 10px; border: 3px solid red;">
+                    ERROR: ${error.message}
                 </div>
             `;
         }
     }
-}
-
-setupConnectionMonitoring(statusElement) {
-    if (!statusElement) return;
-    
-    const updateStatus = (isOnline) => {
-        console.log(isOnline ? '✅ Online' : '⚠️ Offline');
-        
-        const dot = statusElement.querySelector('.status-dot');
-        const text = statusElement.querySelector('.status-text');
-        
-        if (dot && text) {
-            dot.className = `status-dot ${isOnline ? 'online' : 'offline'}`;
-            text.textContent = isOnline ? 'Online' : 'Offline';
-        }
-    };
-    
-    // Set initial status
-    updateStatus(navigator.onLine);
-    
-    // Add event listeners
-    window.addEventListener('online', () => updateStatus(true));
-    window.addEventListener('offline', () => updateStatus(false));
 }
     
     // ==================== INITIALIZATION ====================
