@@ -81,20 +81,28 @@
     <!-- Add to any page where icons don't show -->
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        const navLinks = document.querySelectorAll('.nav-link');
-        console.log('Nav links found:', navLinks.length);
+        console.log('🔍 Checking nav icons...');
         
-        navLinks.forEach(link => {
-            const icon = link.querySelector('i');
-            console.log('Link:', link.textContent, 'Icon exists:', !!icon);
-            if (icon) {
-                console.log('Icon classes:', icon.className);
-                // Force show
-                icon.style.display = 'inline-block';
-                icon.style.color = 'red';
+        // Wait for header to load
+        setTimeout(() => {
+            const icons = document.querySelectorAll('.nav-link i');
+            console.log('Found icons in DOM:', icons.length);
+            
+            icons.forEach((icon, i) => {
+                console.log(`Icon ${i}:`, {
+                    visible: icon.offsetParent !== null,
+                    display: window.getComputedStyle(icon).display,
+                    visibility: window.getComputedStyle(icon).visibility,
+                    opacity: window.getComputedStyle(icon).opacity,
+                    fontSize: window.getComputedStyle(icon).fontSize,
+                    parentHTML: icon.parentElement.outerHTML
+                });
+                
+                // Force show for debugging
+                icon.style.outline = '2px solid red';
                 icon.style.backgroundColor = 'yellow';
-            }
-        });
+            });
+        }, 1500); // Wait for header to load
     });
 </script>
 </body>
