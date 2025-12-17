@@ -71,90 +71,157 @@ class AttendanceApp {
 updateNavStatus() {
     const statusElement = document.getElementById('navUserStatus');
     if (!statusElement) {
-        setTimeout(() => this.updateNavStatus(), 300);
+        console.log('⚠️ navUserStatus element not found, trying again...');
+        setTimeout(() => this.updateNavStatus(), 500);
         return;
     }
     
     try {
-        // Get username
+        // Get username from multiple possible sources
         let username = 'User';
         let userRole = 'user';
         
+        // 1. Check state.currentUser
         if (this.state && this.state.currentUser) {
-            username = this.state.currentUser.name || this.state.currentUser.email || 'User';
-            userRole = this.state.currentUser.role || 'user';
-        } else {
-            const storedUser = localStorage.getItem('attendance_user') || localStorage.getItem('currentUser');
-            if (storedUser) {
-                const user = JSON.parse(storedUser);
-                username = user.name || user.email || 'User';
-                userRole = user.role || 'user';
+            const user = this.state.currentUser;
+            username = user.name || user.displayName || user.email || 'User';
+            userRole = user.role || user.userType || 'user';
+        } 
+        // 2. Check localStorage (multiple possible keys)
+        else {
+            const userKeys = ['attendance_user', 'currentUser', 'attendanceUser', 'user'];
+            for (const key of userKeys) {
+                const storedUser = localStorage.getItem(key);
+                if (storedUser) {
+                    try {
+                        const user = JSON.parse(storedUser);
+                        username = user.name || user.displayName || user.email || user.username || 'User';
+                        userRole = user.role || user.userType || 'user';
+                        break; // Found a user, stop searching
+                    } catch(e) {
+                        console.log(`Could not parse ${key}:`, e);
+                    }
+                }
             }
         }
         
         // Get connection status
         const isOnline = navigator.onLine;
-        const connectionStatus = isOnline ? 'online' : 'offline'; // Changed variable name to avoid conflicts
-        const statusText = isOnline ? 'Online' : 'Offline';
+        const connectionStatus = isOnline ? 'online' : 'offline';
+        const statusText = isOnline ? '🟢 Online' : '🔴 Offline';
         
         // Choose icon based on role
-        const iconClass = userRole === 'admin' ? 'fas fa-user-shield' : 
-                         userRole === 'teacher' ? 'fas fa-chalkboard-teacher' : 
-                         'fas fa-user';
+        let iconClass = 'fas fa-user';
+        if (userRole.includes('admin') || userRole === 'administrator') {
+            iconClass = 'fas fa-user-shield';
+        } else if (userRole.includes('teacher') || userRole === 'instructor') {
+            iconClass = 'fas fa-chalkboard-teacher';
+        }
         
-        // Update HTML with user icon
+        // COMPLETELY REPLACE the content of navUserStatus with new structure
         statusElement.innerHTML = `
-            <span class="user-info-group">
+            <div class="user-details">
                 <i class="${iconClass} user-icon"></i>
                 <span class="user-name">${username}</span>
-            </span>
-            <span class="status-indicator">
+                <span class="user-role">(${userRole})</span>
+            </div>
+            <div class="status-indicator">
                 <span class="status-dot ${connectionStatus}"></span>
                 <span class="status-text">${statusText}</span>
-            </span>
+            </div>
         `;
         
-        // Force styling
+        // Apply styling to the status dot
         setTimeout(() => {
             const dot = statusElement.querySelector('.status-dot');
             if (dot) {
-                dot.style.cssText += `
-                    border-radius: 50% !important;
+                // Remove any existing inline styles first
+                dot.removeAttribute('style');
+                
+                // Apply new styles
+                dot.style.cssText = `
                     width: 8px !important;
                     height: 8px !important;
+                    border-radius: 50% !important;
                     display: inline-block !important;
                     background-color: ${isOnline ? '#27ae60' : '#e74c3c'} !important;
+                    margin-right: 6px !important;
+                    vertical-align: middle !important;
                     ${isOnline ? 'animation: pulse 2s infinite !important;' : ''}
                 `;
             }
         }, 10);
         
+        // Setup connection monitoring
         this.setupConnectionMonitoring(statusElement);
         
+        console.log(`✅ Nav status updated: ${username} (${userRole}) - ${statusText}`);
+        
     } catch (error) {
-        console.error('Error in updateNavStatus:', error);
+        console.error('❌ Error in updateNavStatus:', error);
+        // Show error state
+        const statusElement = document.getElementById('navUserStatus');
+        if (statusElement) {
+            statusElement.innerHTML = `
+                <div class="status-indicator error">
+                    <span class="status-dot error"></span>
+                    <span class="status-text">Error loading status</span>
+                </div>
+            `;
+        }
         // Try again after delay
-        setTimeout(() => this.updateNavStatus(), 1000);
+        setTimeout(() => this.updateNavStatus(), 2000);
     }
-} 
-/** * Monitor connection changes  */
+}
+
 setupConnectionMonitoring(statusElement) {
     if (!statusElement) return;
     
     const updateStatus = (isOnline) => {
+        console.log(isOnline ? '✅ Online' : '⚠️ Offline');
+        
+        // Update the status dot and text
         const dot = statusElement.querySelector('.status-dot');
         const text = statusElement.querySelector('.status-text');
+        
         if (dot && text) {
+            // Update classes
             dot.className = `status-dot ${isOnline ? 'online' : 'offline'}`;
-            text.textContent = isOnline ? 'Online' : 'Offline';
-            console.log(isOnline ? '✅ Online' : '⚠️ Offline');
+            text.textContent = isOnline ? '🟢 Online' : '🔴 Offline';
+            
+            // Update styles
+            dot.style.backgroundColor = isOnline ? '#27ae60' : '#e74c3c';
+            
+            // Add/remove animation
+            if (isOnline) {
+                dot.style.animation = 'pulse 2s infinite';
+            } else {
+                dot.style.animation = 'none';
+            }
         }
+        
+        // Show notification for state changes
+        const wasOnline = statusElement.getAttribute('data-was-online');
+        if (wasOnline !== null && wasOnline !== String(isOnline)) {
+            this.showNotification(
+                isOnline ? 'Connection Restored' : 'Connection Lost',
+                isOnline ? 'You are back online' : 'Working offline. Changes will sync when online.',
+                isOnline ? 'success' : 'warning'
+            );
+        }
+        
+        // Store current state
+        statusElement.setAttribute('data-was-online', isOnline);
     };
     
+    // Set initial status
+    updateStatus(navigator.onLine);
+    
+    // Add event listeners
     window.addEventListener('online', () => updateStatus(true));
     window.addEventListener('offline', () => updateStatus(false));
 }
-    
+
     // ==================== INITIALIZATION ====================
     async init() {
         console.log('🚀 Initializing AttendanceApp...');
