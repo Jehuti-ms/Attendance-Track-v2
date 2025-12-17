@@ -63,66 +63,67 @@ class AttendanceApp {
         return '/';
     }
 
-    /**
- * Update navigation status indicator
- * Shows: "Loading..." → "Username ● Online/Offline"
- */
+    /** * Update navigation status indicator  * Shows: "Loading..." → "Username ● Online/Offline" */
 updateNavStatus() {
-    console.log('🔄 Starting navigation status update...');
+    console.log('🔄 Updating nav status...');
     
     const statusElement = document.getElementById('navUserStatus');
     if (!statusElement) {
-        console.log('⏳ navUserStatus not found yet, retrying in 500ms...');
         setTimeout(() => this.updateNavStatus(), 500);
         return;
     }
     
-    // Start with loading state
+    // Get username
+    let username = 'User';
+    if (this.state && this.state.currentUser) {
+        username = this.state.currentUser.name || 
+                  this.state.currentUser.email || 
+                  'User';
+    } else {
+        try {
+            const storedUser = localStorage.getItem('attendance_user') || 
+                               localStorage.getItem('currentUser');
+            if (storedUser) {
+                const user = JSON.parse(storedUser);
+                username = user.name || user.email || 'User';
+            }
+        } catch(e) {}
+    }
+    
+    // Get connection status
+    const isOnline = navigator.onLine;
+    const status = isOnline ? 'online' : 'offline';
+    const statusText = isOnline ? 'Online' : 'Offline';
+    const dotColor = isOnline ? '#27ae60' : '#e74c3c';
+    
+    // Update with CORRECT ORDER: Username first, then dot
     statusElement.innerHTML = `
+        <span class="user-name">${username}</span>
         <span class="status-indicator">
-            <span class="status-dot loading"></span>
-            <span class="status-text">Loading...</span>
+            <span class="status-dot ${status}" style="background-color: ${dotColor} !important;"></span>
+            <span class="status-text">${statusText}</span>
         </span>
     `;
-    // ================ SHOW LOGGED IN USER ====================
-    // Simulate loading for 1.5 seconds, then show user + status
+    
+    // Force CSS
     setTimeout(() => {
-        // Get username
-        let username = 'User';
-        if (this.state.currentUser) {
-            username = this.state.currentUser.name || 
-                      this.state.currentUser.email || 
-                      'User';
-            console.log('👤 User loaded:', username);
-        } else {
-            console.log('👤 No user found, using default');
+        const dot = statusElement.querySelector('.status-dot');
+        if (dot) {
+            // Make it circular
+            dot.style.cssText += `
+                border-radius: 50% !important;
+                width: 8px !important;
+                height: 8px !important;
+                display: inline-block !important;
+                animation: pulse 2s infinite !important;
+            `;
         }
-        
-        // Get connection status
-        const isOnline = navigator.onLine;
-        const status = isOnline ? 'online' : 'offline';
-        const statusText = isOnline ? 'Online' : 'Offline';
-        
-        console.log(`📶 Connection status: ${statusText}`);
-        
-        // Update with username and status
-        statusElement.innerHTML = `
-            <span class="user-name">${username}</span>
-            <span class="status-indicator">
-                <span class="status-dot ${status}"></span>
-                <span class="status-text">${statusText}</span>
-            </span>
-        `;
-        
-        // Setup real-time connection monitoring
-        this.setupConnectionMonitoring(statusElement);
-        
-    }, 1500);
+    }, 10);
+    
+    this.setupConnectionMonitoring(statusElement);
 }
 
-/**
- * Monitor connection changes
- */
+/** * Monitor connection changes  */
 setupConnectionMonitoring(statusElement) {
     if (!statusElement) return;
     
