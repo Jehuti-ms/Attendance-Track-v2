@@ -88,29 +88,6 @@ updateNavStatus() {
             }
         } catch(e) {}
     }
-
-    // Get initials for avatar
-    function getInitials(name) {
-        return name.split(' ')
-            .map(word => word[0])
-            .join('')
-            .toUpperCase()
-            .substring(0, 2);
-    }
-    
-    const initials = getInitials(username);
-    
-    // Update HTML with avatar
-    statusElement.innerHTML = `
-        <span class="user-info-group">
-            <span class="user-avatar">${initials}</span>
-            <span class="user-name">${username}</span>
-        </span>
-        <span class="status-indicator">
-            <span class="status-dot ${status}"></span>
-            <span class="status-text">${statusText}</span>
-        </span>
-    `;
     
     // Get connection status
     const isOnline = navigator.onLine;
