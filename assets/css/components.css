@@ -935,3 +935,128 @@
     }
 }
 
+/* Fix for header actions layout */
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-left: auto;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+}
+
+/* User status container */
+#navUserStatus {
+    display: flex !important;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 16px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    min-width: 200px;
+    height: 40px;
+}
+
+/* Status content inside */
+#navUserStatus .status-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+}
+
+/* User info section */
+.user-display {
+    display: flex !important;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+}
+
+.user-icon {
+    font-size: 14px;
+    color: #3498db;
+}
+
+.user-name {
+    color: white !important;
+    font-weight: 500;
+    font-size: 14px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Connection status section */
+.connection-status {
+    display: flex !important;
+    align-items: center;
+    gap: 6px;
+    padding-left: 10px;
+    border-left: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block !important;
+}
+
+.status-dot.online {
+    background-color: #27ae60;
+    animation: pulse 2s infinite;
+}
+
+.status-dot.offline {
+    background-color: #e74c3c;
+}
+
+.status-text {
+    color: rgba(255, 255, 255, 0.8) !important;
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+/* Logout button */
+.btn-logout {
+    background: rgba(231, 76, 60, 0.15);
+    color: #e74c3c;
+    border: 1px solid rgba(231, 76, 60, 0.25);
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-logout:hover {
+    background: rgba(231, 76, 60, 0.25);
+    border-color: rgba(231, 76, 60, 0.4);
+    transform: scale(1.05);
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+    #navUserStatus {
+        min-width: auto;
+        padding: 6px 12px;
+    }
+    
+    .user-name {
+        max-width: 80px;
+    }
+    
+    .status-text {
+        font-size: 11px;
+    }
+}
+
