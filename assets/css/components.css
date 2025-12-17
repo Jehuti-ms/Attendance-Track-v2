@@ -949,6 +949,7 @@
 }
 
 /* User status container */
+/* User status container - FIXED VERSION */
 #navUserStatus {
     display: flex !important;
     align-items: center;
@@ -957,8 +958,17 @@
     background: rgba(255, 255, 255, 0.08);
     border-radius: 24px;
     border: 1px solid rgba(255, 255, 255, 0.12);
-    min-width: 200px;
+    min-width: 200px !important;
+    max-width: none !important; /* ADD THIS TO OVERRIDE ANY MAX-WIDTH */
+    width: auto !important; /* ADD THIS TO PREVENT WIDTH CONSTRAINTS */
     height: 40px;
+}
+
+/* Also add this to ensure child elements don't get display: none */
+#navUserStatus .status-text {
+    display: inline-block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
 }
 
 /* Status content inside */
