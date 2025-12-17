@@ -84,38 +84,55 @@ updateNavStatus() {
                 const user = JSON.parse(storedUser);
                 username = user.name || user.email || 'User';
             }
-        } catch(e) {}
+        } catch(e) {
+            console.error('Error parsing user:', e);
+        }
     }
     
     // Get connection status
     const isOnline = navigator.onLine;
-    const status = isOnline ? 'online' : 'offline';
+    const connectionStatus = isOnline ? 'online' : 'offline';
     const statusText = isOnline ? 'Online' : 'Offline';
     
-    // Update HTML with user icon
+    // Update HTML with DARK TEXT or proper contrast
     statusElement.innerHTML = `
-        <span class="user-info-group">
-            <i class="fas fa-user user-icon"></i>
-            <span class="user-name">${username}</span>
-        </span>
-        <span class="status-indicator">
-            <span class="status-dot ${status}"></span>
-            <span class="status-text">${statusText}</span>
-        </span>
+        <div class="status-content" style="
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 16px;
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        ">
+            <div class="user-display" style="display: flex; align-items: center; gap: 8px;">
+                <i class="fas fa-user" style="color: #3498db; font-size: 14px;"></i>
+                <span class="user-name" style="color: white; font-weight: 500; font-size: 14px;">${username}</span>
+            </div>
+            <div class="connection-status" style="
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                padding-left: 12px;
+                border-left: 1px solid rgba(255, 255, 255, 0.2);
+            ">
+                <span class="status-dot ${connectionStatus}" style="
+                    width: 8px;
+                    height: 8px;
+                    border-radius: 50%;
+                    display: inline-block;
+                    background-color: ${isOnline ? '#27ae60' : '#e74c3c'};
+                "></span>
+                <span class="status-text" style="color: rgba(255, 255, 255, 0.9); font-size: 12px; font-weight: 500;">${statusText}</span>
+            </div>
+        </div>
     `;
     
-    // Force styling for the dot
+    // Apply pulse animation for online status
     setTimeout(() => {
         const dot = statusElement.querySelector('.status-dot');
-        if (dot) {
-            dot.style.cssText = `
-                border-radius: 50% !important;
-                width: 8px !important;
-                height: 8px !important;
-                display: inline-block !important;
-                background-color: ${isOnline ? '#27ae60' : '#e74c3c'} !important;
-                ${isOnline ? 'animation: pulse 2s infinite !important;' : ''}
-            `;
+        if (dot && isOnline) {
+            dot.style.animation = 'pulse 2s infinite';
         }
     }, 10);
     
@@ -128,13 +145,31 @@ setupConnectionMonitoring(statusElement) {
     const updateStatus = (isOnline) => {
         const dot = statusElement.querySelector('.status-dot');
         const text = statusElement.querySelector('.status-text');
+        
         if (dot && text) {
+            // Update dot
             dot.className = `status-dot ${isOnline ? 'online' : 'offline'}`;
+            dot.style.backgroundColor = isOnline ? '#27ae60' : '#e74c3c';
+            
+            // Update text
             text.textContent = isOnline ? 'Online' : 'Offline';
+            text.style.color = 'rgba(255, 255, 255, 0.9)';
+            
+            // Add/remove pulse animation
+            if (isOnline) {
+                dot.style.animation = 'pulse 2s infinite';
+            } else {
+                dot.style.animation = 'none';
+            }
+            
             console.log(isOnline ? '✅ Online' : '⚠️ Offline');
         }
     };
     
+    // Set initial status
+    updateStatus(navigator.onLine);
+    
+    // Add event listeners
     window.addEventListener('online', () => updateStatus(true));
     window.addEventListener('offline', () => updateStatus(false));
 }
