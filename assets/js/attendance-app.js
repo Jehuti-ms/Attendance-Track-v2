@@ -65,64 +65,93 @@ class AttendanceApp {
 
     /** * Update navigation status indicator  * Shows: "Loading..." → "Username ● Online/Offline" */
 updateNavStatus() {
-    console.log('🔄 Updating nav status...');
-    
     const statusElement = document.getElementById('navUserStatus');
     if (!statusElement) {
-        setTimeout(() => this.updateNavStatus(), 500);
+        setTimeout(() => this.updateNavStatus(), 300);
         return;
     }
     
     // Get username
     let username = 'User';
+    let userRole = 'user';
+    
     if (this.state && this.state.currentUser) {
-        username = this.state.currentUser.name || 
-                  this.state.currentUser.email || 
-                  'User';
+        username = this.state.currentUser.name || this.state.currentUser.email || 'User';
+        userRole = this.state.currentUser.role || 'user';
     } else {
         try {
-            const storedUser = localStorage.getItem('attendance_user') || 
-                               localStorage.getItem('currentUser');
+            const storedUser = localStorage.getItem('attendance_user') || localStorage.getItem('currentUser');
             if (storedUser) {
                 const user = JSON.parse(storedUser);
                 username = user.name || user.email || 'User';
+                userRole = user.role || 'user';
             }
         } catch(e) {}
     }
+
+    // Get initials for avatar
+    function getInitials(name) {
+        return name.split(' ')
+            .map(word => word[0])
+            .join('')
+            .toUpperCase()
+            .substring(0, 2);
+    }
+    
+    const initials = getInitials(username);
+    
+    // Update HTML with avatar
+    statusElement.innerHTML = `
+        <span class="user-info-group">
+            <span class="user-avatar">${initials}</span>
+            <span class="user-name">${username}</span>
+        </span>
+        <span class="status-indicator">
+            <span class="status-dot ${status}"></span>
+            <span class="status-text">${statusText}</span>
+        </span>
+    `;
     
     // Get connection status
     const isOnline = navigator.onLine;
     const status = isOnline ? 'online' : 'offline';
     const statusText = isOnline ? 'Online' : 'Offline';
-    const dotColor = isOnline ? '#27ae60' : '#e74c3c';
     
-    // Update with CORRECT ORDER: Username first, then dot
+    // Choose icon based on role
+    const iconClass = userRole === 'admin' ? 'fas fa-user-shield' : 
+                     userRole === 'teacher' ? 'fas fa-chalkboard-teacher' : 
+                     'fas fa-user';
+    
+    // Update HTML with user icon
     statusElement.innerHTML = `
-        <span class="user-name">${username}</span>
+        <span class="user-info-group">
+            <i class="${iconClass} user-icon"></i>
+            <span class="user-name">${username}</span>
+        </span>
         <span class="status-indicator">
-            <span class="status-dot ${status}" style="background-color: ${dotColor} !important;"></span>
+            <span class="status-dot ${status}"></span>
             <span class="status-text">${statusText}</span>
         </span>
     `;
     
-    // Force CSS
+    // Force styling
     setTimeout(() => {
         const dot = statusElement.querySelector('.status-dot');
         if (dot) {
-            // Make it circular
             dot.style.cssText += `
                 border-radius: 50% !important;
                 width: 8px !important;
                 height: 8px !important;
                 display: inline-block !important;
-                animation: pulse 2s infinite !important;
+                background-color: ${isOnline ? '#27ae60' : '#e74c3c'} !important;
+                ${isOnline ? 'animation: pulse 2s infinite !important;' : ''}
             `;
         }
     }, 10);
     
     this.setupConnectionMonitoring(statusElement);
 }
-
+    
 /** * Monitor connection changes  */
 setupConnectionMonitoring(statusElement) {
     if (!statusElement) return;
