@@ -71,7 +71,7 @@ class AttendanceApp {
 updateNavStatus() {
     const statusElement = document.getElementById('navUserStatus');
     if (!statusElement) {
-        console.log('⚠️ navUserStatus element not found, trying again...');
+        console.log('⚠️ navUserStatus element not found');
         setTimeout(() => this.updateNavStatus(), 500);
         return;
     }
@@ -105,21 +105,19 @@ updateNavStatus() {
         const connectionStatus = isOnline ? 'online' : 'offline';
         const statusText = isOnline ? 'Online' : 'Offline';
         
-        // Update the HTML - KEEPING EXISTING STRUCTURE
+        // Create clean HTML structure
         statusElement.innerHTML = `
-            <span class="user-info-group">
-                <i class="fas fa-user user-icon"></i>
-                <span class="user-name">${username}</span>
-            </span>
-            <span class="status-indicator">
-                <span class="status-dot ${connectionStatus}"></span>
-                <span class="status-text">${statusText}</span>
-            </span>
+            <div class="status-content">
+                <div class="user-display">
+                    <i class="fas fa-user user-icon"></i>
+                    <span class="user-name">${username}</span>
+                </div>
+                <div class="connection-status">
+                    <span class="status-dot ${connectionStatus}"></span>
+                    <span class="status-text">${statusText}</span>
+                </div>
+            </div>
         `;
-        
-        // CSS will handle the animation automatically!
-        // No need for inline styles since your CSS has:
-        // .status-dot.online { animation: pulse 2s infinite; }
         
         // Setup connection monitoring
         this.setupConnectionMonitoring(statusElement);
@@ -128,13 +126,15 @@ updateNavStatus() {
         
     } catch (error) {
         console.error('❌ Error in updateNavStatus:', error);
-        // Show error state using your existing CSS class
+        // Simple error display
         if (statusElement) {
             statusElement.innerHTML = `
-                <span class="status-indicator">
-                    <span class="status-dot error"></span>
-                    <span class="status-text">Error</span>
-                </span>
+                <div class="status-content">
+                    <div class="connection-status">
+                        <span class="status-dot error"></span>
+                        <span class="status-text">Error</span>
+                    </div>
+                </div>
             `;
         }
     }
@@ -146,24 +146,13 @@ setupConnectionMonitoring(statusElement) {
     const updateStatus = (isOnline) => {
         console.log(isOnline ? '✅ Online' : '⚠️ Offline');
         
-        // Find elements
         const dot = statusElement.querySelector('.status-dot');
         const text = statusElement.querySelector('.status-text');
         
         if (dot && text) {
-            // Update classes - your CSS will handle the rest!
             dot.className = `status-dot ${isOnline ? 'online' : 'offline'}`;
             text.textContent = isOnline ? 'Online' : 'Offline';
         }
-        
-        // Optional: Show notification for connection changes
-        const previousOnline = statusElement.getAttribute('data-previous-online');
-        if (previousOnline !== null && previousOnline !== String(isOnline)) {
-            const notification = isOnline ? 'Connection restored' : 'Connection lost';
-            console.log(`📢 ${notification}`);
-        }
-        
-        statusElement.setAttribute('data-previous-online', isOnline);
     };
     
     // Set initial status
