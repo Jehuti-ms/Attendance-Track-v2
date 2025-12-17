@@ -805,3 +805,38 @@
     }
 }
 
+/* Avatar circle */
+.user-avatar {
+    width: 24px !important;
+    height: 24px !important;
+    border-radius: 50% !important;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    color: white !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 10px !important;
+    font-weight: bold !important;
+    flex-shrink: 0 !important;
+}
+
+/* Different colors based on username */
+.user-avatar[data-initials*="A"],
+.user-avatar[data-initials*="B"],
+.user-avatar[data-initials*="C"] {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+}
+
+.user-avatar[data-initials*="D"],
+.user-avatar[data-initials*="E"],
+.user-avatar[data-initials*="F"] {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%) !important;
+}
+
+.user-avatar[data-initials*="G"],
+.user-avatar[data-initials*="H"],
+.user-avatar[data-initials*="I"] {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%) !important;
+}
+
+
