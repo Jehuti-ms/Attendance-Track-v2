@@ -379,3 +379,39 @@
         background: transparent;
     }
 }
+
+/* Fix dashboard header connection status */
+.dashboard-header .connection-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    font-size: 0.9rem;
+    color: #ecf0f1;
+    width: auto !important; /* Prevent stretching */
+    max-width: fit-content;
+    margin-top: 15px;
+    flex-shrink: 0;
+}
+
+/* If connection-status is inside a flex container */
+.dashboard-header {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+/* Or if it's in a row with other elements */
+.dashboard-header > div {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    width: 100%;
+}
+
+.dashboard-header .connection-status {
+    margin-left: auto; /* Push to right if in a row */
+}
+
