@@ -690,3 +690,128 @@
     }
 }
 
+/* ===== USER STATUS INDICATOR ===== */
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.user-name {
+    font-weight: 500;
+    color: #333;
+    font-size: 15px;
+}
+
+.user-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    background: #f8f9fa;
+    border-radius: 12px;
+    font-size: 12px;
+    color: #666;
+    transition: all 0.3s ease;
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: #95a5a6; /* Default gray */
+    transition: background-color 0.3s ease;
+}
+
+.status-text {
+    font-weight: 500;
+}
+
+/* Online State */
+.user-status.online {
+    background: #e8f6ef;
+    color: #27ae60;
+}
+
+.user-status.online .status-dot {
+    background-color: #27ae60;
+    animation: pulse 2s infinite;
+    box-shadow: 0 0 0 rgba(39, 174, 96, 0.4);
+}
+
+/* Offline State */
+.user-status.offline {
+    background: #f5f5f5;
+    color: #95a5a6;
+}
+
+.user-status.offline .status-dot {
+    background-color: #95a5a6;
+}
+
+/* Away State */
+.user-status.away {
+    background: #fef9e7;
+    color: #f39c12;
+}
+
+.user-status.away .status-dot {
+    background-color: #f39c12;
+    animation: pulse 3s infinite;
+}
+
+/* Busy State */
+.user-status.busy {
+    background: #fdedec;
+    color: #e74c3c;
+}
+
+.user-status.busy .status-dot {
+    background-color: #e74c3c;
+    animation: blink 1s infinite;
+}
+
+/* Animations */
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.2);
+        opacity: 0.7;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+}
+
+/* Hide text on mobile, show only dot */
+@media (max-width: 768px) {
+    .status-text {
+        display: none;
+    }
+    
+    .user-status {
+        padding: 4px;
+        background: transparent;
+    }
+    
+    .user-info {
+        gap: 8px;
+    }
+}
+
+/* Hover effect */
+.user-status:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
