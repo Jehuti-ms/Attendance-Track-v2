@@ -706,26 +706,63 @@
 
 /* ===== FIX NAVIGATION STATUS ALIGNMENT ===== */
 
+/* ===== FIX NAV STATUS LAYOUT ===== */
+
 #navUserStatus {
     display: flex !important;
     align-items: center !important;
     gap: 8px !important;
-    flex-direction: row !important;
-    white-space: nowrap !important;
+    flex-direction: row !important; /* Horizontal layout */
+    flex-wrap: nowrap !important;
 }
 
+/* Username comes FIRST */
 #navUserStatus .user-name {
+    order: 1 !important;
     display: inline !important;
     margin: 0 !important;
     padding: 0 !important;
-    line-height: normal !important;
 }
 
+/* Status indicator comes SECOND */
 #navUserStatus .status-indicator {
+    order: 2 !important;
     display: flex !important;
     align-items: center !important;
     gap: 6px !important;
     flex-direction: row !important;
+}
+
+/* Force circular dots */
+.status-dot {
+    border-radius: 50% !important;
+    width: 8px !important;
+    height: 8px !important;
+    display: inline-block !important;
+    flex-shrink: 0 !important;
+}
+
+/* Color states */
+.status-dot.online {
+    background-color: #27ae60 !important;
+    animation: pulse 2s infinite !important;
+}
+
+.status-dot.offline {
+    background-color: #e74c3c !important;
+    animation: none !important;
+}
+
+.status-dot.loading {
+    background-color: #95a5a6 !important;
+    animation: pulse-slow 2s infinite !important;
+}
+
+/* Hide text on mobile */
+@media (max-width: 768px) {
+    .status-text {
+        display: none !important;
+    }
 }
 
 /* Force pulse animation to work */
