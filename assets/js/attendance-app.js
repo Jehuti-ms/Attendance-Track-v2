@@ -199,6 +199,7 @@ redirectTo(page) {
     console.log('🔀 Redirecting to:', page);
     window.location.href = page;
 }
+
     
 // ==================== INITIALIZATION ====================
 async init() {
