@@ -703,3 +703,52 @@
     color: #333;
     font-size: 15px;
 }
+
+/* ===== FIX NAVIGATION STATUS ALIGNMENT ===== */
+
+#navUserStatus {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    flex-direction: row !important;
+    white-space: nowrap !important;
+}
+
+#navUserStatus .user-name {
+    display: inline !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    line-height: normal !important;
+}
+
+#navUserStatus .status-indicator {
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    flex-direction: row !important;
+}
+
+/* Force pulse animation to work */
+.status-dot.loading,
+.status-dot.online {
+    animation: pulse 2s infinite !important;
+    display: inline-block !important;
+    visibility: visible !important;
+}
+
+/* Make sure animations are defined */
+@keyframes pulse {
+    0% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(39, 174, 96, 0.7);
+    }
+    70% {
+        transform: scale(1.1);
+        box-shadow: 0 0 0 10px rgba(39, 174, 96, 0);
+    }
+    100% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(39, 174, 96, 0);
+    }
+}
+
