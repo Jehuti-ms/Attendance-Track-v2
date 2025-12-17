@@ -1,4 +1,50 @@
 /* components.css - Additional component styles */
+/* ===== PAGE HEADER COMPONENT ===== */
+/* Reusable header for all pages - based on setup header style */
+.page-header {
+    background-color: #2c3e50;
+    color: white;
+    padding: 25px 30px;
+    border-bottom: 4px solid #3498db;
+    margin-bottom: 30px;
+    border-radius: 0 0 8px 8px;
+}
+
+.page-header h1 {
+    font-size: 28px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: white;
+}
+
+.page-header .subtitle {
+    color: #ecf0f1;
+    font-size: 16px;
+    opacity: 0.9;
+    margin: 0;
+}
+
+/* Optional: Different color themes */
+.page-header.primary {
+    background-color: #2c3e50;
+    border-color: #3498db;
+}
+
+.page-header.success {
+    background-color: #27ae60;
+    border-color: #2ecc71;
+}
+
+.page-header.warning {
+    background-color: #f39c12;
+    border-color: #f1c40f;
+}
+
+.page-header.danger {
+    background-color: #e74c3c;
+    border-color: #c0392b;
+}
+
 .card {
     background: white;
     border-radius: 10px;
