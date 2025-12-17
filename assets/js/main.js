@@ -256,6 +256,105 @@ window.forceUpdate = function() {
     }
 };
 
+// User Status Management
+function initUserStatus() {
+    const statusElement = document.getElementById('userStatus');
+    const statusDot = statusElement.querySelector('.status-dot');
+    const statusText = statusElement.querySelector('.status-text');
+    
+    // Set initial status based on connection
+    function updateConnectionStatus() {
+        if (navigator.onLine) {
+            setUserStatus('online', 'Online');
+        } else {
+            setUserStatus('offline', 'Offline');
+        }
+    }
+    
+    // Function to manually set status
+    function setUserStatus(status, text = null) {
+        // Remove all status classes
+        statusElement.classList.remove('online', 'offline', 'away', 'busy');
+        
+        // Add new status class
+        statusElement.classList.add(status);
+        
+        // Update text if provided
+        if (text) {
+            statusText.textContent = text;
+            statusElement.title = text;
+        }
+        
+        // Special handling for each status
+        switch(status) {
+            case 'online':
+                statusElement.title = 'Online - Connected to server';
+                break;
+            case 'offline':
+                statusElement.title = 'Offline - No internet connection';
+                break;
+            case 'away':
+                statusElement.title = 'Away - Idle for 5+ minutes';
+                break;
+            case 'busy':
+                statusElement.title = 'Busy - Do not disturb';
+                break;
+        }
+    }
+    
+    // Auto-detect network status
+    window.addEventListener('online', () => setUserStatus('online', 'Online'));
+    window.addEventListener('offline', () => setUserStatus('offline', 'Offline'));
+    
+    // Detect user idle/away time (optional)
+    let idleTime = 0;
+    const idleInterval = setInterval(() => {
+        idleTime++;
+        if (idleTime > 5 && statusElement.classList.contains('online')) { // 5 minutes
+            setUserStatus('away', 'Away');
+        }
+    }, 60000); // Check every minute
+    
+    // Reset idle time on user activity
+    ['mousemove', 'keypress', 'click', 'scroll'].forEach(event => {
+        document.addEventListener(event, () => {
+            idleTime = 0;
+            if (navigator.onLine && statusElement.classList.contains('away')) {
+                setUserStatus('online', 'Online');
+            }
+        });
+    });
+    
+    // Initialize
+    updateConnectionStatus();
+    
+    // Make function available globally
+    window.app = window.app || {};
+    window.app.setUserStatus = setUserStatus;
+    window.app.updateUserStatus = updateConnectionStatus;
+}
+
+// Update username (call this when user data loads)
+function updateUserName(name) {
+    const userElement = document.getElementById('currentUser');
+    if (name) {
+        userElement.textContent = name;
+        
+        // Set user initials for avatar if using Option 2 later
+        const initials = name.split(' ').map(n => n[0]).join('').toUpperCase();
+        localStorage.setItem('userInitials', initials);
+    }
+}
+
+// Initialize when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+    // Wait for app to load
+    setTimeout(initUserStatus, 1000);
+    
+    // Example: Set username after login
+    // updateUserName("John Doe");
+});
+
 // Export functions for use in other scripts
 window.initCommon = initCommon;
 window.handleLogout = handleLogout;
