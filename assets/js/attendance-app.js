@@ -3210,39 +3210,102 @@ class AttendanceApp {
         }
     }
 
-    renderFallbackHeader() {
-        const headerContainer = document.getElementById('header-container');
-        if (headerContainer) {
-            headerContainer.innerHTML = `
-                <header class="app-header">
-                    <nav class="nav-container">
-                        <div class="nav-brand">
-                            <h1>Attendance Tracker</h1>
-                        </div>
+   renderFallbackHeader() {
+    const headerContainer = document.getElementById('header-container');
+    if (headerContainer) {
+        headerContainer.innerHTML = `
+            <header class="main-header">
+                <div class="header-container">
+                    <div class="header-logo">
+                        <a href="dashboard.html" class="logo-link">
+                            <div class="logo-icon">
+                                <i class="fas fa-clipboard-check"></i>
+                            </div>
+                            <div class="logo-text">
+                                <span class="logo-primary">Attendance</span>
+                                <span class="logo-secondary">Track</span>
+                            </div>
+                        </a>
+                    </div>
+                    
+                    <nav class="main-nav">
                         <button class="mobile-menu-btn" aria-label="Toggle menu" aria-expanded="false">
-                            <span></span>
-                            <span></span>
-                            <span></span>
+                            <span class="menu-line"></span>
+                            <span class="menu-line"></span>
+                            <span class="menu-line"></span>
                         </button>
+                        
                         <ul class="nav-list">
                             ${this.user ? `
-                                <li><a href="dashboard.html" class="nav-link">Dashboard</a></li>
-                                <li><a href="attendance.html" class="nav-link">Attendance</a></li>
-                                <li><a href="reports.html" class="nav-link">Reports</a></li>
-                                <li><a href="setup.html" class="nav-link">Setup</a></li>
-                                <li><a href="settings.html" class="nav-link">Settings</a></li>
-                                <li><a href="#" id="logoutBtn" class="nav-link">Logout</a></li>
+                                <li class="nav-item">
+                                    <a href="dashboard.html" class="nav-link">
+                                        <i class="fas fa-tachometer-alt"></i>
+                                        <span>Dashboard</span>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="setup.html" class="nav-link">
+                                        <i class="fas fa-cogs"></i>
+                                        <span>Setup</span>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="attendance.html" class="nav-link">
+                                        <i class="fas fa-clipboard-list"></i>
+                                        <span>Attendance</span>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="reports.html" class="nav-link">
+                                        <i class="fas fa-chart-bar"></i>
+                                        <span>Reports</span>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="#" id="logoutBtn" class="nav-link">
+                                        <i class="fas fa-sign-out-alt"></i>
+                                        <span>Logout</span>
+                                    </a>
+                                </li>
                             ` : `
-                                <li><a href="index.html" class="nav-link">Home</a></li>
-                                <li><a href="index.html" class="nav-link">Login</a></li>
+                                <li class="nav-item">
+                                    <a href="index.html" class="nav-link">
+                                        <i class="fas fa-home"></i>
+                                        <span>Home</span>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="index.html" class="nav-link">
+                                        <i class="fas fa-sign-in-alt"></i>
+                                        <span>Login</span>
+                                    </a>
+                                </li>
                             `}
                         </ul>
+                        
+                        <div class="user-menu">
+                            <div class="user-info">
+                                <span class="user-name" id="currentUser">${this.user?.name || 'Guest'}</span>
+                                <span class="user-status" id="userStatus" title="Online">
+                                    <span class="status-dot"></span>
+                                    <span class="status-text">Online</span>
+                                </span>
+                            </div>
+                            <button id="logoutBtn" class="btn-logout" title="Logout">
+                                <i class="fas fa-sign-out-alt"></i>
+                            </button>
+                        </div>
                     </nav>
-                </header>
-            `;
+                </div>
+            </header>
+        `;
+        
+        // Setup navigation after fallback header loads
+        setTimeout(() => {
             this.setupNavigation();
-        }
+        }, 100);
     }
+}
 
     renderFallbackFooter() {
         const footerContainer = document.getElementById('footer-container');
