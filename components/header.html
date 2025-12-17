@@ -45,17 +45,19 @@
                     </a>
                 </li>
             </ul>
-                       
+            
+            <!-- FIXED: Proper container for user info and logout -->
+            <div class="header-actions">
                 <div class="user-info">
-                    <span class="user-status" id="navUserStatus">
-                        <!-- Start with just loading status -->
-                        <span class="status-indicator">
+                    <div class="user-status" id="navUserStatus">
+                        <!-- This will be populated by JavaScript -->
+                        <div class="status-indicator">
                             <span class="status-dot loading"></span>
                             <span class="status-text">Loading...</span>
-                        </span>
-                    </span>
+                        </div>
+                    </div>
                 </div>
-       
+                
                 <button id="logoutBtn" class="btn-logout" title="Logout">
                     <i class="fas fa-sign-out-alt"></i>
                 </button>
