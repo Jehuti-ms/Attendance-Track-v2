@@ -733,13 +733,29 @@
     flex-direction: row !important;
 }
 
-/* Force circular dots */
+/* ===== PREVENT FLASH OF UNSTYLED DOT ===== */
+
 .status-dot {
     border-radius: 50% !important;
     width: 8px !important;
     height: 8px !important;
     display: inline-block !important;
-    flex-shrink: 0 !important;
+    visibility: hidden !important; /* Hide until styled */
+    opacity: 0 !important; /* Hide until styled */
+    transition: opacity 0.3s ease !important;
+}
+
+.status-dot.loading,
+.status-dot.online,
+.status-dot.offline {
+    visibility: visible !important;
+    opacity: 1 !important; /* Show when class is added */
+}
+
+/* Force immediate styling */
+#navUserStatus .status-dot {
+    visibility: visible !important;
+    opacity: 1 !important;
 }
 
 /* Color states */
