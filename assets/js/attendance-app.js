@@ -26,11 +26,7 @@ class AttendanceApp {
 
         this.user = null;
         this.firebaseAvailable = false;
-
-         // Bind methods
-        this.updateNavStatus = this.updateNavStatus.bind(this);
-        this.setupConnectionMonitoring = this.setupConnectionMonitoring.bind(this);
-        
+       
         // Initialize app
         this.init();
     }
