@@ -234,13 +234,12 @@ setupConnectionMonitoring(statusElement) {
                 // Load page-specific content
                 await this.loadPageContent();
             }
-            
+               
             // Setup event listeners
             this.setupEventListeners();
-               setTimeout(() => this.updateNavStatus(), 800);
-    
-            // Setup event listeners
-            this.setupEventListeners();
+
+            // Update nav status with a small delay to ensure DOM is ready
+            setTimeout(() => this.updateNavStatus(), 100);
             
             // Initialize service worker
             this.initServiceWorker();
