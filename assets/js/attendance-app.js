@@ -75,64 +75,68 @@ updateNavStatus() {
         return;
     }
     
-    // Get username
-    let username = 'User';
-    let userRole = 'user';
-    
-    if (this.state && this.state.currentUser) {
-        username = this.state.currentUser.name || this.state.currentUser.email || 'User';
-        userRole = this.state.currentUser.role || 'user';
-    } else {
-        try {
+    try {
+        // Get username
+        let username = 'User';
+        let userRole = 'user';
+        
+        if (this.state && this.state.currentUser) {
+            username = this.state.currentUser.name || this.state.currentUser.email || 'User';
+            userRole = this.state.currentUser.role || 'user';
+        } else {
             const storedUser = localStorage.getItem('attendance_user') || localStorage.getItem('currentUser');
             if (storedUser) {
                 const user = JSON.parse(storedUser);
                 username = user.name || user.email || 'User';
                 userRole = user.role || 'user';
             }
-        } catch(e) {}
-    }
-    
-    // Get connection status
-    const isOnline = navigator.onLine;
-    const status = isOnline ? 'online' : 'offline';
-    const statusText = isOnline ? 'Online' : 'Offline';
-    
-    // Choose icon based on role
-    const iconClass = userRole === 'admin' ? 'fas fa-user-shield' : 
-                     userRole === 'teacher' ? 'fas fa-chalkboard-teacher' : 
-                     'fas fa-user';
-    
-    // Update HTML with user icon
-    statusElement.innerHTML = `
-        <span class="user-info-group">
-            <i class="${iconClass} user-icon"></i>
-            <span class="user-name">${username}</span>
-        </span>
-        <span class="status-indicator">
-            <span class="status-dot ${status}"></span>
-            <span class="status-text">${statusText}</span>
-        </span>
-    `;
-    
-    // Force styling
-    setTimeout(() => {
-        const dot = statusElement.querySelector('.status-dot');
-        if (dot) {
-            dot.style.cssText += `
-                border-radius: 50% !important;
-                width: 8px !important;
-                height: 8px !important;
-                display: inline-block !important;
-                background-color: ${isOnline ? '#27ae60' : '#e74c3c'} !important;
-                ${isOnline ? 'animation: pulse 2s infinite !important;' : ''}
-            `;
         }
-    }, 10);
-    
-    this.setupConnectionMonitoring(statusElement);
-}
-    
+        
+        // Get connection status
+        const isOnline = navigator.onLine;
+        const connectionStatus = isOnline ? 'online' : 'offline'; // Changed variable name to avoid conflicts
+        const statusText = isOnline ? 'Online' : 'Offline';
+        
+        // Choose icon based on role
+        const iconClass = userRole === 'admin' ? 'fas fa-user-shield' : 
+                         userRole === 'teacher' ? 'fas fa-chalkboard-teacher' : 
+                         'fas fa-user';
+        
+        // Update HTML with user icon
+        statusElement.innerHTML = `
+            <span class="user-info-group">
+                <i class="${iconClass} user-icon"></i>
+                <span class="user-name">${username}</span>
+            </span>
+            <span class="status-indicator">
+                <span class="status-dot ${connectionStatus}"></span>
+                <span class="status-text">${statusText}</span>
+            </span>
+        `;
+        
+        // Force styling
+        setTimeout(() => {
+            const dot = statusElement.querySelector('.status-dot');
+            if (dot) {
+                dot.style.cssText += `
+                    border-radius: 50% !important;
+                    width: 8px !important;
+                    height: 8px !important;
+                    display: inline-block !important;
+                    background-color: ${isOnline ? '#27ae60' : '#e74c3c'} !important;
+                    ${isOnline ? 'animation: pulse 2s infinite !important;' : ''}
+                `;
+            }
+        }, 10);
+        
+        this.setupConnectionMonitoring(statusElement);
+        
+    } catch (error) {
+        console.error('Error in updateNavStatus:', error);
+        // Try again after delay
+        setTimeout(() => this.updateNavStatus(), 1000);
+    }
+} 
 /** * Monitor connection changes  */
 setupConnectionMonitoring(statusElement) {
     if (!statusElement) return;
