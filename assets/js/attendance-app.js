@@ -63,6 +63,83 @@ class AttendanceApp {
         return '/';
     }
 
+    /**
+ * Update navigation status indicator
+ * Shows: "Loading..." → "Username ● Online/Offline"
+ */
+updateNavStatus() {
+    console.log('🔄 Starting navigation status update...');
+    
+    const statusElement = document.getElementById('navUserStatus');
+    if (!statusElement) {
+        console.log('⏳ navUserStatus not found yet, retrying in 500ms...');
+        setTimeout(() => this.updateNavStatus(), 500);
+        return;
+    }
+    
+    // Start with loading state
+    statusElement.innerHTML = `
+        <span class="status-indicator">
+            <span class="status-dot loading"></span>
+            <span class="status-text">Loading...</span>
+        </span>
+    `;
+    // ================ SHOW LOGGED IN USER ====================
+    // Simulate loading for 1.5 seconds, then show user + status
+    setTimeout(() => {
+        // Get username
+        let username = 'User';
+        if (this.state.currentUser) {
+            username = this.state.currentUser.name || 
+                      this.state.currentUser.email || 
+                      'User';
+            console.log('👤 User loaded:', username);
+        } else {
+            console.log('👤 No user found, using default');
+        }
+        
+        // Get connection status
+        const isOnline = navigator.onLine;
+        const status = isOnline ? 'online' : 'offline';
+        const statusText = isOnline ? 'Online' : 'Offline';
+        
+        console.log(`📶 Connection status: ${statusText}`);
+        
+        // Update with username and status
+        statusElement.innerHTML = `
+            <span class="user-name">${username}</span>
+            <span class="status-indicator">
+                <span class="status-dot ${status}"></span>
+                <span class="status-text">${statusText}</span>
+            </span>
+        `;
+        
+        // Setup real-time connection monitoring
+        this.setupConnectionMonitoring(statusElement);
+        
+    }, 1500);
+}
+
+/**
+ * Monitor connection changes
+ */
+setupConnectionMonitoring(statusElement) {
+    if (!statusElement) return;
+    
+    const updateStatus = (isOnline) => {
+        const dot = statusElement.querySelector('.status-dot');
+        const text = statusElement.querySelector('.status-text');
+        if (dot && text) {
+            dot.className = `status-dot ${isOnline ? 'online' : 'offline'}`;
+            text.textContent = isOnline ? 'Online' : 'Offline';
+            console.log(isOnline ? '✅ Online' : '⚠️ Offline');
+        }
+    };
+    
+    window.addEventListener('online', () => updateStatus(true));
+    window.addEventListener('offline', () => updateStatus(false));
+}
+    
     // ==================== INITIALIZATION ====================
     async init() {
         console.log('🚀 Initializing AttendanceApp...');
@@ -151,6 +228,10 @@ class AttendanceApp {
                 await this.loadPageContent();
             }
             
+            // Setup event listeners
+            this.setupEventListeners();
+               setTimeout(() => this.updateNavStatus(), 800);
+    
             // Setup event listeners
             this.setupEventListeners();
             
