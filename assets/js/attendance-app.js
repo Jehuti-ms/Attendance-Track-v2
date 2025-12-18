@@ -736,8 +736,6 @@ setupConnectionMonitoring(statusElement) {
                     <input type="date" id="date-picker" class="date-input" value="${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}">
                 </div>
                 
-               // In the loadAttendanceContent method, update the week-picker section:
-
                 <div class="control-group">
                     <label for="week-picker"><i class="fas fa-calendar-week"></i> Week</label>
                     <select id="week-picker" class="week-select">
