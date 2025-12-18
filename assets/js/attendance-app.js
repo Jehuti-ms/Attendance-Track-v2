@@ -3131,31 +3131,55 @@ async initializeAttendancePage() {
     }
 
     async loadHeader() {
-        try {
-            const headerContainer = document.getElementById('header-container');
-            if (!headerContainer) return;
-            
-            const basePath = this.getBasePath();
-            const response = await fetch(`${basePath}components/header.html`);
-            
-            if (!response.ok) {
-                throw new Error(`Failed to load header: ${response.status}`);
-            }
-            
-            const html = await response.text();
-            headerContainer.innerHTML = html;
-            
-            // Setup navigation after header loads
-            setTimeout(() => {
-                this.setupNavigation();
-            }, 100);
-            
-        } catch (error) {
-            console.error('❌ Failed to load header:', error);
-            this.renderFallbackHeader();
+    try {
+        const headerContainer = document.getElementById('header-container');
+        if (!headerContainer) return;
+        
+        const basePath = this.getBasePath();
+        const response = await fetch(`${basePath}components/header.html`);
+        
+        if (!response.ok) {
+            throw new Error(`Failed to load header: ${response.status}`);
         }
+        
+        const html = await response.text();
+        headerContainer.innerHTML = html;
+        
+        // The JavaScript in header.html will run automatically
+        // because it's included in the HTML
+        
+    } catch (error) {
+        console.error('❌ Failed to load header:', error);
+        this.renderFallbackHeader();
     }
+}
 
+// Fallback header
+renderFallbackHeader() {
+    const headerContainer = document.getElementById('header-container');
+    if (!headerContainer) return;
+    
+    headerContainer.innerHTML = `
+        <header style="background:#2c3e50;color:white;padding:15px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;max-width:1200px;margin:0 auto;">
+                <div>
+                    <a href="dashboard.html" style="color:white;text-decoration:none;font-weight:bold;font-size:20px;">
+                        Attendance Track
+                    </a>
+                </div>
+                <div>
+                    <a href="dashboard.html" style="color:white;margin:0 10px;">Dashboard</a>
+                    <a href="attendance.html" style="color:white;margin:0 10px;">Attendance</a>
+                    <a href="reports.html" style="color:white;margin:0 10px;">Reports</a>
+                    <a href="setup.html" style="color:white;margin:0 10px;">Setup</a>
+                    <button onclick="localStorage.clear();window.location.href='index.html'" style="margin-left:15px;padding:5px 10px;background:#e74c3c;color:white;border:none;border-radius:3px;cursor:pointer;">
+                        Logout
+                    </button>
+                </div>
+            </div>
+        </header>
+    `;
+}
     async loadFooter() {
         try {
             const footerContainer = document.getElementById('footer-container');
