@@ -1070,3 +1070,106 @@
     }
 }
 
+/* ===== MOBILE HAMBURGER MENU ===== */
+
+/* Hide hamburger on desktop, show on mobile */
+@media (max-width: 768px) {
+    .mobile-menu-btn {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        width: 30px;
+        height: 24px;
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 0;
+        margin-left: 15px;
+    }
+    
+    .menu-line {
+        display: block;
+        width: 100%;
+        height: 3px;
+        background-color: white;
+        border-radius: 3px;
+        transition: all 0.3s ease;
+    }
+    
+    /* Hamburger to X animation */
+    .mobile-menu-btn[aria-expanded="true"] .menu-line:nth-child(1) {
+        transform: translateY(10.5px) rotate(45deg);
+    }
+    
+    .mobile-menu-btn[aria-expanded="true"] .menu-line:nth-child(2) {
+        opacity: 0;
+    }
+    
+    .mobile-menu-btn[aria-expanded="true"] .menu-line:nth-child(3) {
+        transform: translateY(-10.5px) rotate(-45deg);
+    }
+    
+    /* Mobile navigation menu */
+    .nav-list {
+        display: none;
+        position: fixed;
+        top: 70px;
+        left: 0;
+        right: 0;
+        background: #2c3e50;
+        flex-direction: column;
+        padding: 20px;
+        z-index: 1000;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    }
+    
+    .nav-list.mobile-open {
+        display: flex;
+    }
+    
+    .nav-item {
+        margin: 5px 0;
+    }
+    
+    .nav-link {
+        padding: 12px 15px;
+        color: white;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        border-radius: 4px;
+        transition: background-color 0.3s;
+    }
+    
+    .nav-link:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+    
+    /* Prevent body scroll when menu is open */
+    body.menu-open {
+        overflow: hidden;
+    }
+}
+
+/* Desktop: hide hamburger, show regular nav */
+@media (min-width: 769px) {
+    .mobile-menu-btn {
+        display: none;
+    }
+    
+    .nav-list {
+        display: flex !important;
+    }
+}
+
+/* Active page highlighting */
+.nav-item.active .nav-link {
+    background-color: rgba(52, 152, 219, 0.2);
+    color: #3498db;
+}
+
+.nav-item.active .nav-link i {
+    color: #3498db;
+}
+
