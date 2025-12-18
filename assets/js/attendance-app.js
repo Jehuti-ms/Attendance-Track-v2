@@ -1839,6 +1839,36 @@ setupConnectionMonitoring(statusElement) {
     }
 }
 
+    setupAttendanceCheckboxes() {
+    const checkboxes = document.querySelectorAll('.session-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', (e) => {
+            const studentId = e.target.dataset.studentId;
+            const session = e.target.dataset.session;
+            const isChecked = e.target.checked;
+            
+            // Update status cell
+            const row = e.target.closest('tr');
+            if (row) {
+                const statusCell = row.querySelector('td:nth-child(6)');
+                if (statusCell) {
+                    // Simple logic: if any session is checked, mark as present
+                    const amChecked = row.querySelector('[data-session="am"]')?.checked || false;
+                    const pmChecked = row.querySelector('[data-session="pm"]')?.checked || false;
+                    
+                    if (amChecked || pmChecked) {
+                        statusCell.textContent = 'PRESENT';
+                        statusCell.className = 'status-present';
+                    } else {
+                        statusCell.textContent = 'ABSENT';
+                        statusCell.className = 'status-absent';
+                    }
+                }
+            }
+        });
+    });
+}
+
 // ==================== AUTO-SAVE FEATURE ====================
 
 // Add to your existing initializeAttendancePage or similar method
