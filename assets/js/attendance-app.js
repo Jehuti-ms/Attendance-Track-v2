@@ -1839,7 +1839,7 @@ setupConnectionMonitoring(statusElement) {
     }
 }
 
-    setupAttendanceCheckboxes() {
+   /* setupAttendanceCheckboxes() {
     const checkboxes = document.querySelectorAll('.session-checkbox');
     checkboxes.forEach(checkbox => {
         checkbox.addEventListener('change', (e) => {
@@ -1867,7 +1867,7 @@ setupConnectionMonitoring(statusElement) {
             }
         });
     });
-}
+} */
 
 // ==================== AUTO-SAVE FEATURE ====================
 
