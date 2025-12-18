@@ -1072,9 +1072,9 @@
 
 /* ===== HAMBURGER MENU STYLES ===== */
 
-/* Mobile Menu Button */
+/* Mobile Menu Button - FIXED VERSION */
 .mobile-menu-btn {
-    display: none;
+    display: none; /* Hidden by default on desktop */
     flex-direction: column;
     justify-content: space-between;
     width: 30px;
@@ -1083,7 +1083,8 @@
     border: none;
     cursor: pointer;
     padding: 0;
-    z-index: 1000;
+    z-index: 1001;
+    position: relative;
 }
 
 .menu-line {
@@ -1093,54 +1094,67 @@
     background-color: white;
     border-radius: 3px;
     transition: all 0.3s ease;
+    transform-origin: center;
 }
 
+/* Hamburger to X animation */
 .mobile-menu-btn[aria-expanded="true"] .menu-line:nth-child(1) {
-    transform: translateY(10px) rotate(45deg);
+    transform: translateY(10.5px) rotate(45deg);
 }
 
 .mobile-menu-btn[aria-expanded="true"] .menu-line:nth-child(2) {
     opacity: 0;
+    transform: scale(0);
 }
 
 .mobile-menu-btn[aria-expanded="true"] .menu-line:nth-child(3) {
-    transform: translateY(-10px) rotate(-45deg);
+    transform: translateY(-10.5px) rotate(-45deg);
 }
 
-/* Mobile Navigation */
+/* Mobile Navigation - FIXED VERSION */
 @media (max-width: 768px) {
+    /* Show hamburger button on mobile */
     .mobile-menu-btn {
-        display: flex;
+        display: flex !important; /* Force show on mobile */
+        margin-left: auto; /* Push to right side */
+        margin-right: 15px;
     }
     
+    /* Hide regular nav list by default on mobile */
     .nav-list {
+        display: flex;
+        flex-direction: column;
         position: fixed;
         top: 70px;
         left: 0;
         right: 0;
         background: #2c3e50;
-        flex-direction: column;
-        padding: 20px;
+        padding: 20px 0;
         transform: translateY(-100%);
         opacity: 0;
         visibility: hidden;
         transition: all 0.3s ease;
-        z-index: 999;
+        z-index: 1000;
         box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
         max-height: calc(100vh - 70px);
         overflow-y: auto;
+        pointer-events: none;
     }
     
+    /* Show nav when menu is open */
     .nav-list.mobile-open {
         transform: translateY(0);
         opacity: 1;
         visibility: visible;
+        pointer-events: auto;
     }
     
-    .nav-list.mobile-open + .header-actions {
-        transform: translateY(0);
-        opacity: 1;
-        visibility: visible;
+    /* Header layout adjustments for mobile */
+    .main-nav {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        width: 100%;
     }
     
     .nav-item {
@@ -1154,64 +1168,110 @@
     }
     
     .nav-link {
-        padding: 15px;
+        padding: 15px 20px;
         justify-content: flex-start;
         width: 100%;
+        color: white;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .nav-link:hover {
+        background-color: rgba(255, 255, 255, 0.1);
     }
     
     .nav-link i {
         width: 24px;
         text-align: center;
+        font-size: 18px;
     }
     
     /* Header actions on mobile */
     .header-actions {
+        display: none; /* Hide by default on mobile */
+    }
+    
+    .header-actions.mobile-open {
+        display: flex;
         position: fixed;
         top: 70px;
         right: 0;
         left: 0;
         background: #2c3e50;
         padding: 15px 20px;
-        transform: translateY(-100%);
-        opacity: 0;
-        visibility: hidden;
-        transition: all 0.3s ease;
-        z-index: 998;
-        display: flex;
         justify-content: space-between;
         align-items: center;
         border-top: 1px solid rgba(255, 255, 255, 0.1);
+        z-index: 999;
     }
     
-    .header-actions.mobile-open {
-        transform: translateY(0);
-        opacity: 1;
-        visibility: visible;
+    /* Prevent body scroll when menu is open */
+    body.menu-open,
+    body:has(.nav-list.mobile-open) {
+        overflow: hidden;
     }
     
-    .user-info {
+    /* Adjust header layout */
+    .header-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0 15px;
+    }
+    
+    .header-logo {
         flex: 1;
     }
     
-    .status-details {
+    .logo-link {
         display: flex;
-        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+        text-decoration: none;
     }
     
-    .user-name {
-        font-size: 14px;
+    .logo-icon {
+        font-size: 24px;
+        color: white;
+    }
+    
+    .logo-text {
+        display: flex;
+        flex-direction: column;
+        line-height: 1.2;
+    }
+    
+    .logo-primary {
+        font-size: 16px;
         font-weight: 600;
         color: white;
     }
     
-    .user-role {
-        font-size: 12px;
-        color: rgba(255, 255, 255, 0.7);
+    .logo-secondary {
+        font-size: 14px;
+        color: rgba(255, 255, 255, 0.8);
+    }
+}
+
+/* Desktop styles - ensure nav is visible */
+@media (min-width: 769px) {
+    .mobile-menu-btn {
+        display: none !important; /* Hide on desktop */
     }
     
-    /* Prevent body scroll when menu is open */
-    body.menu-open {
-        overflow: hidden;
+    .nav-list {
+        display: flex !important; /* Show on desktop */
+        flex-direction: row;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .header-actions {
+        display: flex !important; /* Show on desktop */
+        align-items: center;
+        gap: 15px;
     }
 }
 
@@ -1220,11 +1280,14 @@
     display: flex;
     align-items: center;
     gap: 10px;
+    padding: 5px 10px;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.1);
 }
 
 .status-dot {
-    width: 10px;
-    height: 10px;
+    width: 8px;
+    height: 8px;
     border-radius: 50%;
     display: inline-block;
 }
@@ -1253,12 +1316,46 @@
 .status-text {
     color: white;
     font-size: 14px;
+    font-weight: 500;
+}
+
+.status-details {
+    display: flex;
+    flex-direction: column;
+}
+
+.user-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: white;
+}
+
+.user-role {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+/* Logout button */
+.btn-logout {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 18px;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 4px;
+    transition: background-color 0.3s;
+}
+
+.btn-logout:hover {
+    background-color: rgba(255, 255, 255, 0.1);
 }
 
 /* Active Navigation Item */
 .nav-item.active .nav-link {
-    background-color: rgba(255, 255, 255, 0.1);
+    background-color: rgba(52, 152, 219, 0.2);
     color: #3498db;
+    border-radius: 4px;
 }
 
 .nav-item.active .nav-link i {
