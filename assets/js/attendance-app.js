@@ -736,16 +736,14 @@ setupConnectionMonitoring(statusElement) {
                     <input type="date" id="date-picker" class="date-input" value="${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}">
                 </div>
                 
-               <div class="control-group">
+               // In the loadAttendanceContent method, update the week-picker section:
+
+                <div class="control-group">
                     <label for="week-picker"><i class="fas fa-calendar-week"></i> Week</label>
                     <select id="week-picker" class="week-select">
-                        ${Array.from({length: 14}, (_, i) => {
-                            const weekNumber = i + 1;
-                            // Optional: Highlight current week
-                            const currentWeek = this.getCurrentWeek(); // You'd need to implement this method
-                            const isCurrentWeek = weekNumber === currentWeek;
-                            return `<option value="${weekNumber}" ${isCurrentWeek ? 'selected' : ''}>Week ${weekNumber}</option>`;
-                        }).join('')}
+                        ${Array.from({length: 14}, (_, i) => 
+                            `<option value="${i + 1}" ${i === 0 ? 'selected' : ''}>Week ${i + 1}</option>`
+                        ).join('')}
                     </select>
                 </div>
                 
