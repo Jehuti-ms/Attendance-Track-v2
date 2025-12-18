@@ -837,144 +837,6 @@ setupConnectionMonitoring(statusElement) {
     this.loadAttendanceData();
 }
 
-// Initialize event listeners for attendance page
-initializeAttendanceEvents() {
-    // Auto-save for date/week/term selections
-    document.getElementById('date-picker')?.addEventListener('change', (e) => {
-        this.saveAttendanceSettings();
-        this.showAutoSaveNotification('Date saved');
-    });
-    
-    document.getElementById('week-picker')?.addEventListener('change', (e) => {
-        this.saveAttendanceSettings();
-        this.showAutoSaveNotification('Week saved');
-    });
-    
-    document.getElementById('term-picker')?.addEventListener('change', (e) => {
-        this.saveAttendanceSettings();
-        this.showAutoSaveNotification('Term saved');
-    });
-    
-    // Session selection
-    document.querySelectorAll('.session-option').forEach(option => {
-        option.addEventListener('click', (e) => {
-            document.querySelectorAll('.session-option').forEach(opt => 
-                opt.classList.remove('active')
-            );
-            option.classList.add('active');
-            this.saveAttendanceSettings();
-            this.showAutoSaveNotification('Session saved');
-        });
-    });
-    
-    // Button events
-    document.querySelector('.take-attendance-btn')?.addEventListener('click', () => {
-        this.takeAttendance();
-    });
-    
-    document.querySelector('.print-report-btn')?.addEventListener('click', () => {
-        this.printAttendance();
-    });
-    
-    document.querySelector('.refresh-data-btn')?.addEventListener('click', () => {
-        this.refreshAttendanceData();
-    });
-}
-
-// Save attendance settings
-saveAttendanceSettings() {
-    const settings = {
-        date: document.getElementById('date-picker')?.value,
-        week: document.getElementById('week-picker')?.value,
-        term: document.getElementById('term-picker')?.value,
-        session: document.querySelector('.session-option.active')?.dataset.session || 'both'
-    };
-    
-    // Save to localStorage or send to server
-    localStorage.setItem('attendance_settings', JSON.stringify(settings));
-    return settings;
-}
-
-// Show auto-save notification
-showAutoSaveNotification(message) {
-    // Create or update notification
-    let notification = document.querySelector('.save-notification');
-    if (!notification) {
-        notification = document.createElement('div');
-        notification.className = 'save-notification';
-        document.querySelector('.attendance-report').appendChild(notification);
-    }
-    
-    notification.innerHTML = `<i class="fas fa-check-circle"></i> ${message}`;
-    notification.classList.add('show');
-    
-    setTimeout(() => {
-        notification.classList.remove('show');
-    }, 2000);
-}
-
-// Load attendance data
-async loadAttendanceData() {
-    const tableBody = document.getElementById('attendance-table-body');
-    if (!tableBody) return;
-    
-    // Show loading
-    tableBody.innerHTML = `
-        <tr class="loading-row">
-            <td colspan="13">
-                <div class="loading-spinner"></div>
-                <p>Loading attendance data...</p>
-            </td>
-        </tr>
-    `;
-    
-    try {
-        // In a real app, you would fetch from your API
-        // For now, using sample data
-        const sampleData = [
-            { yearGroup: '3rd Years', className: '3AN', total: 18, maleAM: 0, malePM: 0, femaleAM: 0, femalePM: 0, amRate: '0%', pmRate: '0%', dailyRate: '0%', cumulative: '287/31', vsAvg: '-100.0%' },
-            { yearGroup: '3rd Years', className: '3TL', total: 16, maleAM: 0, malePM: 0, femaleAM: 0, femalePM: 0, amRate: '0%', pmRate: '0%', dailyRate: '0%', cumulative: '295/31', vsAvg: '-100.0%' },
-            { yearGroup: '3rd Years', className: '3EY', total: 25, maleAM: 0, malePM: 0, femaleAM: 0, femalePM: 0, amRate: '0%', pmRate: '0%', dailyRate: '0%', cumulative: '369/30', vsAvg: '-100.0%' }
-        ];
-        
-        // Clear loading
-        tableBody.innerHTML = '';
-        
-        // Populate table
-        sampleData.forEach(data => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td class="year-group">${data.yearGroup}</td>
-                <td class="class-name">${data.className}</td>
-                <td class="total">${data.total}</td>
-                <td class="male-present am">${data.maleAM}</td>
-                <td class="male-present pm">${data.malePM}</td>
-                <td class="female-present am">${data.femaleAM}</td>
-                <td class="female-present pm">${data.femalePM}</td>
-                <td class="am-rate ${data.amRate === '0%' ? 'zero' : ''}">${data.amRate}</td>
-                <td class="pm-rate ${data.pmRate === '0%' ? 'zero' : ''}">${data.pmRate}</td>
-                <td class="daily-rate ${data.dailyRate === '0%' ? 'zero' : ''}">${data.dailyRate}</td>
-                <td class="cumulative">${data.cumulative}</td>
-                <td class="vs-avg ${data.vsAvg.startsWith('-') ? 'negative' : 'positive'}">${data.vsAvg}</td>
-            `;
-            tableBody.appendChild(row);
-        });
-        
-    } catch (error) {
-        console.error('Error loading attendance data:', error);
-        tableBody.innerHTML = `
-            <tr class="error-row">
-                <td colspan="13">
-                    <div class="error-message">
-                        <i class="fas fa-exclamation-circle"></i>
-                        <p>Error loading data. Please try again.</p>
-                    </div>
-                </td>
-            </tr>
-        `;
-    }
-}
-
     // ==================== REPORTS PAGE ====================
     loadReportsContent(container) {
         if (!this.user) {
@@ -1720,677 +1582,494 @@ async loadAttendanceData() {
 
     // ==================== ATTENDANCE METHODS ====================
     async loadAttendanceData() {
-        console.log('📋 Loading attendance data...');
+    console.log('📋 Loading attendance data...');
+    
+    try {
+        // Get selected date, week, term, session
+        const selectedDate = document.getElementById('date-picker')?.value;
+        const selectedWeek = document.getElementById('week-picker')?.value;
+        const selectedTerm = document.getElementById('term-picker')?.value;
+        const selectedSession = document.querySelector('.session-option.active')?.dataset.session || 'both';
         
-        try {
-            // Load classes from storage
-            const classes = Storage.get('classes') || [];
-            const students = Storage.get('students') || [];
-            const attendance = Storage.get('attendance') || [];
-            
-            const summaryTable = document.getElementById('summary-table-body');
-            const studentDetailsContainer = document.getElementById('student-details-container');
-            
-            if (!summaryTable || !studentDetailsContainer) {
-                console.error('Required elements not found');
-                return;
+        // Try to load from Firebase first
+        let classes = [];
+        let students = [];
+        let attendance = [];
+        
+        if (this.user && this.user.uid && typeof firestore !== 'undefined') {
+            try {
+                // Load classes from Firebase
+                const classesSnapshot = await firestore.collection('schools')
+                    .doc(this.user.schoolId || this.user.uid)
+                    .collection('classes')
+                    .get();
+                
+                classes = classesSnapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+                
+                // Load students from Firebase
+                const studentsSnapshot = await firestore.collection('schools')
+                    .doc(this.user.schoolId || this.user.uid)
+                    .collection('students')
+                    .get();
+                
+                students = studentsSnapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+                
+                // Load attendance from Firebase with filters
+                let attendanceQuery = firestore.collection('schools')
+                    .doc(this.user.schoolId || this.user.uid)
+                    .collection('attendance');
+                
+                if (selectedDate) {
+                    attendanceQuery = attendanceQuery.where('date', '==', selectedDate);
+                }
+                if (selectedWeek) {
+                    attendanceQuery = attendanceQuery.where('week', '==', parseInt(selectedWeek));
+                }
+                if (selectedTerm) {
+                    attendanceQuery = attendanceQuery.where('term', '==', parseInt(selectedTerm));
+                }
+                if (selectedSession !== 'both') {
+                    attendanceQuery = attendanceQuery.where('session', '==', selectedSession);
+                }
+                
+                const attendanceSnapshot = await attendanceQuery.get();
+                attendance = attendanceSnapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+                
+                // Sync Firebase data to localStorage for offline use
+                Storage.set('classes', classes);
+                Storage.set('students', students);
+                Storage.set('attendance', attendance);
+                
+                console.log('✅ Loaded from Firebase');
+                
+            } catch (firebaseError) {
+                console.warn('Firebase load failed, using localStorage:', firebaseError);
+                // Fallback to localStorage
+                classes = Storage.get('classes') || [];
+                students = Storage.get('students') || [];
+                attendance = Storage.get('attendance') || [];
             }
-            
-            // Clear previous content
-            summaryTable.innerHTML = '';
-            studentDetailsContainer.innerHTML = '';
-            
-            // For each class, create summary row and student details
-            classes.forEach((classItem, index) => {
-                // Get students in this class
-                const classStudents = students.filter(s => s.classId === classItem.id);
-                const classAttendance = attendance.filter(a => a.classId === classItem.id);
-                
-                // Calculate attendance stats
-                const today = new Date().toISOString().split('T')[0];
-                const todayAttendance = classAttendance.filter(a => a.date === today);
-                
-                // Calculate present counts
-                const presentCount = todayAttendance.filter(a => a.status === 'present').length;
-                const totalCount = classStudents.length;
-                const attendanceRate = totalCount > 0 ? Math.round((presentCount / totalCount) * 100) : 0;
-                
-                // Summary row for page 1
-                const summaryRow = document.createElement('tr');
-                summaryRow.innerHTML = `
-                    <td>${classItem.yearGroup || 'All Years'}</td>
-                    <td><strong>${classItem.code || classItem.name}</strong></td>
-                    <td>${totalCount}</td>
-                    <td>${Math.floor(presentCount / 2)}</td>
-                    <td>${Math.ceil(presentCount / 2)}</td>
-                    <td>${Math.floor(presentCount / 2)}</td>
-                    <td>${Math.ceil(presentCount / 2)}</td>
-                    <td>${attendanceRate}%</td>
-                    <td>${attendanceRate}%</td>
-                    <td>${attendanceRate}%</td>
-                    <td>${classAttendance.length > 0 ? 'N/A' : 'No Data'}</td>
-                    <td>${classAttendance.length > 0 ? 'N/A' : 'No Data'}</td>
-                `;
-                summaryTable.appendChild(summaryRow);
-                
-                // Student details section
-                const classSection = document.createElement('div');
-                classSection.className = 'class-details';
-                classSection.innerHTML = `
-                    <h4>${classItem.yearGroup || ''} ${classItem.name} (${classItem.code})</h4>
-                    <table class="student-attendance-table">
-                        <thead>
-                            <tr>
-                                <th>#</th>
-                                <th>Student Name</th>
-                                <th>Student ID</th>
-                                <th>AM Session</th>
-                                <th>PM Session</th>
-                                <th>Status</th>
-                                <th>Remarks</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${classStudents.map((student, idx) => {
-                                const studentAttendance = todayAttendance.find(a => a.studentId === student.id);
-                                const status = studentAttendance?.status || 'absent';
-                                const remarks = studentAttendance?.remarks || '';
-                                
-                                return `
-                                    <tr>
-                                        <td>${idx + 1}</td>
-                                        <td>${student.fullName}</td>
-                                        <td>${student.studentId}</td>
-                                        <td>
-                                            <input type="checkbox" class="session-checkbox" 
-                                                   data-student-id="${student.id}" 
-                                                   data-session="am"
-                                                   ${status === 'present' ? 'checked' : ''}>
-                                        </td>
-                                        <td>
-                                            <input type="checkbox" class="session-checkbox" 
-                                                   data-student-id="${student.id}" 
-                                                   data-session="pm"
-                                                   ${status === 'present' ? 'checked' : ''}>
-                                        </td>
-                                        <td class="status-${status}">${status.toUpperCase()}</td>
-                                        <td>
-                                            <input type="text" class="remarks-input" 
-                                                   data-student-id="${student.id}"
-                                                   value="${remarks}"
-                                                   placeholder="Add remarks...">
-                                        </td>
-                                    </tr>
-                                `;
-                            }).join('')}
-                        </tbody>
-                    </table>
-                `;
-                studentDetailsContainer.appendChild(classSection);
-            });
-            
-            // If no classes exist
-            if (classes.length === 0) {
-                summaryTable.innerHTML = `
-                    <tr>
-                        <td colspan="12" class="no-data">
-                            No classes found. Please setup classes first.
-                        </td>
-                    </tr>
-                `;
-                
-                studentDetailsContainer.innerHTML = `
-                    <div class="no-data-message">
-                        <p>No classes or students found.</p>
-                        <p>Go to <a href="setup.html">Setup</a> to add classes and students.</p>
-                    </div>
-                `;
-            }
-            
-            // Add event listeners for checkboxes
-            this.setupAttendanceCheckboxes();
-            
-        } catch (error) {
-            console.error('Error loading attendance data:', error);
-            this.showToast('Error loading attendance data', 'error');
+        } else {
+            // Use localStorage only
+            classes = Storage.get('classes') || [];
+            students = Storage.get('students') || [];
+            attendance = Storage.get('attendance') || [];
         }
-    }
-
-    setupAttendanceCheckboxes() {
-        const checkboxes = document.querySelectorAll('.session-checkbox');
-        checkboxes.forEach(checkbox => {
-            checkbox.addEventListener('change', (e) => {
-                const studentId = e.target.dataset.studentId;
-                const session = e.target.dataset.session;
-                const isChecked = e.target.checked;
-                
-                // Update status cell
-                const row = e.target.closest('tr');
-                if (row) {
-                    const statusCell = row.querySelector('td:nth-child(6)');
-                    if (statusCell) {
-                        // Simple logic: if any session is checked, mark as present
-                        const amChecked = row.querySelector('[data-session="am"]')?.checked || false;
-                        const pmChecked = row.querySelector('[data-session="pm"]')?.checked || false;
-                        
-                        if (amChecked || pmChecked) {
-                            statusCell.textContent = 'PRESENT';
-                            statusCell.className = 'status-present';
-                        } else {
-                            statusCell.textContent = 'ABSENT';
-                            statusCell.className = 'status-absent';
+        
+        const summaryTable = document.getElementById('summary-table-body');
+        const studentDetailsContainer = document.getElementById('student-details-container');
+        
+        if (!summaryTable || !studentDetailsContainer) {
+            console.error('Required elements not found');
+            return;
+        }
+        
+        // Clear previous content
+        summaryTable.innerHTML = '';
+        studentDetailsContainer.innerHTML = '';
+        
+        // Get filter date (use selected date or today)
+        const filterDate = selectedDate || new Date().toISOString().split('T')[0];
+        
+        // For each class, create summary row and student details
+        classes.forEach((classItem, index) => {
+            // Get students in this class
+            const classStudents = students.filter(s => s.classId === classItem.id);
+            const classAttendance = attendance.filter(a => a.classId === classItem.id);
+            
+            // Calculate attendance stats for filtered date
+            const filteredAttendance = classAttendance.filter(a => a.date === filterDate);
+            
+            // Calculate AM/PM counts
+            let malePresentAM = 0;
+            let malePresentPM = 0;
+            let femalePresentAM = 0;
+            let femalePresentPM = 0;
+            
+            classStudents.forEach(student => {
+                const studentAttendance = filteredAttendance.find(a => a.studentId === student.id);
+                if (studentAttendance) {
+                    if (student.gender?.toLowerCase() === 'male') {
+                        if (studentAttendance.session === 'AM' || studentAttendance.session === 'FULL') {
+                            malePresentAM++;
+                        }
+                        if (studentAttendance.session === 'PM' || studentAttendance.session === 'FULL') {
+                            malePresentPM++;
+                        }
+                    } else if (student.gender?.toLowerCase() === 'female') {
+                        if (studentAttendance.session === 'AM' || studentAttendance.session === 'FULL') {
+                            femalePresentAM++;
+                        }
+                        if (studentAttendance.session === 'PM' || studentAttendance.session === 'FULL') {
+                            femalePresentPM++;
                         }
                     }
                 }
             });
+            
+            const totalStudents = classStudents.length;
+            const totalMale = classStudents.filter(s => s.gender?.toLowerCase() === 'male').length;
+            const totalFemale = classStudents.filter(s => s.gender?.toLowerCase() === 'female').length;
+            
+            // Calculate rates
+            const amRate = totalMale > 0 ? Math.round((malePresentAM / totalMale) * 100) : 0;
+            const pmRate = totalMale > 0 ? Math.round((malePresentPM / totalMale) * 100) : 0;
+            const dailyRate = totalStudents > 0 ? Math.round(((malePresentAM + malePresentPM + femalePresentAM + femalePresentPM) / (totalStudents * 2)) * 100) : 0;
+            
+            // Calculate cumulative (simplified)
+            const totalAttendanceDays = [...new Set(classAttendance.map(a => a.date))].length;
+            const cumulative = `${totalAttendanceDays}/30`;
+            
+            // Calculate vs Avg (simplified - placeholder)
+            const vsAvg = classAttendance.length > 0 ? '0.0%' : '-100.0%';
+            
+            // Summary row
+            const summaryRow = document.createElement('tr');
+            summaryRow.innerHTML = `
+                <td>${classItem.yearGroup || 'All Years'}</td>
+                <td><strong>${classItem.code || classItem.name}</strong></td>
+                <td>${totalStudents}</td>
+                <td>${malePresentAM}</td>
+                <td>${malePresentPM}</td>
+                <td>${femalePresentAM}</td>
+                <td>${femalePresentPM}</td>
+                <td>${amRate}%</td>
+                <td>${pmRate}%</td>
+                <td>${dailyRate}%</td>
+                <td>${cumulative}</td>
+                <td>${vsAvg}</td>
+            `;
+            summaryTable.appendChild(summaryRow);
+            
+            // Student details section
+            const classSection = document.createElement('div');
+            classSection.className = 'class-details';
+            classSection.innerHTML = `
+                <h4>${classItem.yearGroup || ''} ${classItem.name} (${classItem.code})</h4>
+                <table class="student-attendance-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Student Name</th>
+                            <th>Student ID</th>
+                            <th>AM Session</th>
+                            <th>PM Session</th>
+                            <th>Status</th>
+                            <th>Remarks</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${classStudents.map((student, idx) => {
+                            const studentAttendance = filteredAttendance.find(a => a.studentId === student.id);
+                            const status = studentAttendance?.status || 'absent';
+                            const remarks = studentAttendance?.remarks || '';
+                            const session = studentAttendance?.session || '';
+                            
+                            return `
+                                <tr>
+                                    <td>${idx + 1}</td>
+                                    <td>${student.fullName}</td>
+                                    <td>${student.studentId}</td>
+                                    <td>
+                                        <input type="checkbox" class="session-checkbox" 
+                                               data-student-id="${student.id}" 
+                                               data-session="am"
+                                               ${session === 'AM' || session === 'FULL' ? 'checked' : ''}>
+                                    </td>
+                                    <td>
+                                        <input type="checkbox" class="session-checkbox" 
+                                               data-student-id="${student.id}" 
+                                               data-session="pm"
+                                               ${session === 'PM' || session === 'FULL' ? 'checked' : ''}>
+                                    </td>
+                                    <td class="status-${status}">${status.toUpperCase()}</td>
+                                    <td>
+                                        <input type="text" class="remarks-input" 
+                                               data-student-id="${student.id}"
+                                               value="${remarks}"
+                                               placeholder="Add remarks...">
+                                    </td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            `;
+            studentDetailsContainer.appendChild(classSection);
         });
-    }
-
-    takeAttendance() {
-        console.log('📝 Starting attendance taking...');
         
-        // Check if there are any classes
-        const classes = Storage.get('classes') || [];
-        const students = Storage.get('students') || [];
-        
+        // If no classes exist
         if (classes.length === 0) {
-            this.showToast('No classes found. Please setup classes first.', 'error');
-            return;
-        }
-        
-        if (students.length === 0) {
-            this.showToast('No students found. Please add students first.', 'error');
-            return;
-        }
-        
-        // Show class selection modal
-        this.showClassSelectionModal();
-    }
-
-    showClassSelectionModal() {
-        const classes = Storage.get('classes') || [];
-        
-        // Create modal HTML
-        const modalHTML = `
-            <div class="modal-overlay" id="class-selection-modal">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h3>Select Class for Attendance</h3>
-                        <button class="modal-close" onclick="window.app.closeModal()">&times;</button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="class-selection-list">
-                            ${classes.map(cls => `
-                                <div class="class-selection-item" data-class-id="${cls.id}">
-                                    <div class="class-info">
-                                        <h4>${cls.name}</h4>
-                                        <p>${cls.code} • ${cls.yearGroup ? 'Year ' + cls.yearGroup : ''}</p>
-                                    </div>
-                                    <button class="btn-primary select-class-btn" 
-                                            onclick="window.app.openAttendanceForClass('${cls.id}')">
-                                        <i class="fas fa-clipboard-check"></i> Take Attendance
-                                    </button>
-                                </div>
-                            `).join('')}
-                            
-                            ${classes.length === 0 ? `
-                                <div class="empty-state">
-                                    <i class="fas fa-chalkboard-teacher"></i>
-                                    <p>No classes found. Please setup classes first.</p>
-                                    <button class="btn-primary" onclick="window.location.href='setup.html'">
-                                        Go to Setup
-                                    </button>
-                                </div>
-                            ` : ''}
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button class="btn-secondary" onclick="window.app.closeModal()">Cancel</button>
-                    </div>
+            summaryTable.innerHTML = `
+                <tr>
+                    <td colspan="12" class="no-data">
+                        No classes found. Please setup classes first.
+                    </td>
+                </tr>
+            `;
+            
+            studentDetailsContainer.innerHTML = `
+                <div class="no-data-message">
+                    <p>No classes or students found.</p>
+                    <p>Go to <a href="setup.html">Setup</a> to add classes and students.</p>
                 </div>
-            </div>
-        `;
+            `;
+        }
         
-        // Add modal to page
-        document.body.insertAdjacentHTML('beforeend', modalHTML);
+        // Add event listeners for checkboxes
+        this.setupAttendanceCheckboxes();
+        
+    } catch (error) {
+        console.error('Error loading attendance data:', error);
+        this.showToast('Error loading attendance data', 'error');
     }
+}
 
-    openAttendanceForClass(classId) {
-        const classes = Storage.get('classes') || [];
-        const students = Storage.get('students') || [];
-        const cls = classes.find(c => c.id === classId);
-        
-        if (!cls) {
-            this.showToast('Class not found', 'error');
-            return;
-        }
-        
-        // Get students in this class
-        const classStudents = students.filter(s => s.classId === classId);
-        
-        if (classStudents.length === 0) {
-            this.showToast('No students found in this class', 'error');
-            return;
-        }
-        
-        // Close class selection modal
-        this.closeModal();
-        
-        // Open attendance sheet modal
-        this.showAttendanceSheet(cls, classStudents);
-    }
+// ==================== AUTO-SAVE FEATURE ====================
 
-    showAttendanceSheet(cls, students) {
-        const today = new Date().toISOString().split('T')[0];
-        const formattedDate = new Date().toLocaleDateString('en-US', {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-        });
-        
-        // Check if attendance already taken for today
-        const existingAttendance = Storage.get('attendance') || [];
-        const todayAttendance = existingAttendance.filter(a => 
-            a.classId === cls.id && a.date === today
-        );
-        
-        const attendanceSheetHTML = `
-            <div class="modal-overlay" id="attendance-sheet-modal">
-                <div class="modal-content attendance-sheet-modal">
-                    <div class="modal-header">
-                        <h3>
-                            <i class="fas fa-clipboard-check"></i>
-                            Attendance: ${cls.name}
-                        </h3>
-                        <div class="attendance-date">
-                            ${formattedDate}
-                        </div>
-                        <button class="modal-close" onclick="window.app.closeAttendanceSheet()">&times;</button>
-                    </div>
-                    
-                    <div class="modal-body">
-                        <div class="attendance-controls">
-                            <div class="control-group">
-                                <label>Session:</label>
-                                <select id="attendance-session" class="form-input">
-                                    <option value="AM">Morning (AM)</option>
-                                    <option value="PM">Afternoon (PM)</option>
-                                    <option value="FULL">Full Day</option>
-                                </select>
-                            </div>
-                            
-                            <div class="control-group">
-                                <label>Quick Actions:</label>
-                                <div class="quick-actions">
-                                    <button class="btn-secondary" onclick="window.app.markAllPresent()">
-                                        <i class="fas fa-check-circle"></i> Mark All Present
-                                    </button>
-                                    <button class="btn-secondary" onclick="window.app.markAllAbsent()">
-                                        <i class="fas fa-times-circle"></i> Mark All Absent
-                                    </button>
-                                    <button class="btn-secondary" onclick="window.app.clearAllAttendance()">
-                                        <i class="fas fa-eraser"></i> Clear All
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="attendance-table-container">
-                            <table class="attendance-table">
-                                <thead>
-                                    <tr>
-                                        <th>#</th>
-                                        <th>Student Name</th>
-                                        <th>Student ID</th>
-                                        <th>Status</th>
-                                        <th>Remarks</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="attendance-table-body">
-                                    ${students.map((student, index) => {
-                                        // Check if student already has attendance for today
-                                        const existingRecord = todayAttendance.find(a => a.studentId === student.id);
-                                        const status = existingRecord?.status || 'pending';
-                                        
-                                        return `
-                                            <tr data-student-id="${student.id}">
-                                                <td>${index + 1}</td>
-                                                <td class="student-name">
-                                                    <i class="fas fa-user"></i>
-                                                    ${student.fullName}
-                                                </td>
-                                                <td>${student.studentId}</td>
-                                                <td>
-                                                    <div class="status-buttons">
-                                                        <button class="status-btn present ${status === 'present' ? 'active' : ''}" 
-                                                                onclick="window.app.markAttendance('${student.id}', 'present')">
-                                                            <i class="fas fa-check"></i> Present
-                                                        </button>
-                                                        <button class="status-btn absent ${status === 'absent' ? 'active' : ''}" 
-                                                                onclick="window.app.markAttendance('${student.id}', 'absent')">
-                                                            <i class="fas fa-times"></i> Absent
-                                                        </button>
-                                                        <button class="status-btn late ${status === 'late' ? 'active' : ''}" 
-                                                                onclick="window.app.markAttendance('${student.id}', 'late')">
-                                                            <i class="fas fa-clock"></i> Late
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <input type="text" 
-                                                           class="remarks-input" 
-                                                           data-student-id="${student.id}"
-                                                           placeholder="Notes..."
-                                                           value="${existingRecord?.remarks || ''}">
-                                                </td>
-                                            </tr>
-                                        `;
-                                    }).join('')}
-                                </tbody>
-                            </table>
-                        </div>
-                        
-                        <div class="attendance-summary">
-                            <div class="summary-card">
-                                <div class="summary-icon present">
-                                    <i class="fas fa-check-circle"></i>
-                                </div>
-                                <div class="summary-info">
-                                    <span class="summary-count" id="present-count">0</span>
-                                    <span class="summary-label">Present</span>
-                                </div>
-                            </div>
-                            
-                            <div class="summary-card">
-                                <div class="summary-icon absent">
-                                    <i class="fas fa-times-circle"></i>
-                                </div>
-                                <div class="summary-info">
-                                    <span class="summary-count" id="absent-count">0</span>
-                                    <span class="summary-label">Absent</span>
-                                </div>
-                            </div>
-                            
-                            <div class="summary-card">
-                                <div class="summary-icon late">
-                                    <i class="fas fa-clock"></i>
-                                </div>
-                                <div class="summary-info">
-                                    <span class="summary-count" id="late-count">0</span>
-                                    <span class="summary-label">Late</span>
-                                </div>
-                            </div>
-                            
-                            <div class="summary-card">
-                                <div class="summary-icon total">
-                                    <i class="fas fa-users"></i>
-                                </div>
-                                <div class="summary-info">
-                                    <span class="summary-count">${students.length}</span>
-                                    <span class="summary-label">Total Students</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="modal-footer">
-                        <button class="btn-secondary" onclick="window.app.closeAttendanceSheet()">
-                            <i class="fas fa-times"></i> Cancel
-                        </button>
-                        <button class="btn-primary" onclick="window.app.saveAttendance('${cls.id}')">
-                            <i class="fas fa-save"></i> Save Attendance
-                        </button>
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        // Add modal to page
-        document.body.insertAdjacentHTML('beforeend', attendanceSheetHTML);
-        
-        // Initialize attendance counts
-        this.updateAttendanceCounts();
-        
-        // Load existing attendance if any
-        if (todayAttendance.length > 0) {
-            this.loadExistingAttendance(todayAttendance);
-        }
-    }
-
-    markAttendance(studentId, status) {
-        const row = document.querySelector(`tr[data-student-id="${studentId}"]`);
-        if (!row) return;
-        
-        // Update button states
-        const buttons = row.querySelectorAll('.status-btn');
-        buttons.forEach(btn => btn.classList.remove('active'));
-        
-        const activeBtn = row.querySelector(`.status-btn.${status}`);
-        if (activeBtn) {
-            activeBtn.classList.add('active');
-        }
-        
-        // Store in temporary storage
-        const attendanceData = window.tempAttendanceData = window.tempAttendanceData || {};
-        attendanceData[studentId] = {
-            ...attendanceData[studentId],
-            status: status,
-            timestamp: new Date().toISOString()
+// Add to your existing initializeAttendancePage or similar method
+setupAutoSaveFilters() {
+    console.log('🔧 Setting up auto-save filters...');
+    
+    // Debounce function to prevent too many saves
+    const debounce = (func, delay) => {
+        let timeoutId;
+        return (...args) => {
+            clearTimeout(timeoutId);
+            timeoutId = setTimeout(() => func.apply(this, args), delay);
         };
+    };
+    
+    // Auto-save function
+    const autoSave = debounce(async () => {
+        console.log('💾 Auto-saving attendance filters...');
+        await this.saveAttendanceFilters();
+        this.showAutoSaveNotification('Settings saved automatically');
         
-        // Update counts
-        this.updateAttendanceCounts();
+        // Reload data with new filters
+        await this.loadAttendanceData();
+    }, 1000); // 1 second delay
+    
+    // Add event listeners to all filter elements
+    const datePicker = document.getElementById('date-picker');
+    const weekPicker = document.getElementById('week-picker');
+    const termPicker = document.getElementById('term-picker');
+    const sessionOptions = document.querySelectorAll('.session-option');
+    
+    if (datePicker) {
+        datePicker.addEventListener('change', autoSave);
     }
-
-    markAllPresent() {
-        const rows = document.querySelectorAll('#attendance-table-body tr');
-        rows.forEach(row => {
-            const studentId = row.getAttribute('data-student-id');
-            this.markAttendance(studentId, 'present');
-        });
+    
+    if (weekPicker) {
+        weekPicker.addEventListener('change', autoSave);
     }
-
-    markAllAbsent() {
-        const rows = document.querySelectorAll('#attendance-table-body tr');
-        rows.forEach(row => {
-            const studentId = row.getAttribute('data-student-id');
-            this.markAttendance(studentId, 'absent');
-        });
+    
+    if (termPicker) {
+        termPicker.addEventListener('change', autoSave);
     }
-
-    clearAllAttendance() {
-        const rows = document.querySelectorAll('#attendance-table-body tr');
-        rows.forEach(row => {
-            const buttons = row.querySelectorAll('.status-btn');
-            buttons.forEach(btn => btn.classList.remove('active'));
-            
-            const studentId = row.getAttribute('data-student-id');
-            if (window.tempAttendanceData && window.tempAttendanceData[studentId]) {
-                delete window.tempAttendanceData[studentId];
-            }
-        });
-        
-        this.updateAttendanceCounts();
-    }
-
-    updateAttendanceCounts() {
-        const rows = document.querySelectorAll('#attendance-table-body tr');
-        let presentCount = 0;
-        let absentCount = 0;
-        let lateCount = 0;
-        
-        rows.forEach(row => {
-            const studentId = row.getAttribute('data-student-id');
-            let status = 'pending';
-            
-            // Check temp data first
-            if (window.tempAttendanceData && window.tempAttendanceData[studentId]) {
-                status = window.tempAttendanceData[studentId].status;
-            } 
-            // Check for active button in UI
-            else {
-                const activeBtn = row.querySelector('.status-btn.active');
-                if (activeBtn) {
-                    if (activeBtn.classList.contains('present')) status = 'present';
-                    else if (activeBtn.classList.contains('absent')) status = 'absent';
-                    else if (activeBtn.classList.contains('late')) status = 'late';
-                }
-            }
-            
-            switch(status) {
-                case 'present': presentCount++; break;
-                case 'absent': absentCount++; break;
-                case 'late': lateCount++; break;
-            }
-        });
-        
-        // Update display
-        const presentElement = document.getElementById('present-count');
-        const absentElement = document.getElementById('absent-count');
-        const lateElement = document.getElementById('late-count');
-        
-        if (presentElement) presentElement.textContent = presentCount;
-        if (absentElement) absentElement.textContent = absentCount;
-        if (lateElement) lateElement.textContent = lateCount;
-    }
-
-    loadExistingAttendance(attendanceRecords) {
-        attendanceRecords.forEach(record => {
-            const row = document.querySelector(`tr[data-student-id="${record.studentId}"]`);
-            if (row) {
-                const activeBtn = row.querySelector(`.status-btn.${record.status}`);
-                if (activeBtn) {
-                    activeBtn.classList.add('active');
-                }
+    
+    if (sessionOptions.length > 0) {
+        sessionOptions.forEach(option => {
+            option.addEventListener('click', async (e) => {
+                // Update UI immediately
+                document.querySelectorAll('.session-option').forEach(opt => 
+                    opt.classList.remove('active')
+                );
+                option.classList.add('active');
                 
-                const remarksInput = row.querySelector('.remarks-input');
-                if (remarksInput && record.remarks) {
-                    remarksInput.value = record.remarks;
-                }
-            }
-        });
-        
-        // Update counts
-        this.updateAttendanceCounts();
-    }
-
-    saveAttendance(classId) {
-        const session = document.getElementById('attendance-session')?.value || 'AM';
-        const rows = document.querySelectorAll('#attendance-table-body tr');
-        const attendanceData = [];
-        const today = new Date().toISOString().split('T')[0];
-        
-        // Get class info
-        const classes = Storage.get('classes') || [];
-        const cls = classes.find(c => c.id === classId);
-        
-        if (!cls) {
-            this.showToast('Class not found', 'error');
-            return;
-        }
-        
-        // Collect attendance data
-        rows.forEach(row => {
-            const studentId = row.getAttribute('data-student-id');
-            const activeBtn = row.querySelector('.status-btn.active');
-            const remarksInput = row.querySelector('.remarks-input');
-            
-            if (activeBtn) {
-                let status = '';
-                if (activeBtn.classList.contains('present')) status = 'present';
-                else if (activeBtn.classList.contains('absent')) status = 'absent';
-                else if (activeBtn.classList.contains('late')) status = 'late';
+                // Save settings
+                await this.saveAttendanceFilters();
+                this.showAutoSaveNotification('Session saved');
                 
-                if (status) {
-                    attendanceData.push({
-                        studentId: studentId,
-                        status: status,
-                        remarks: remarksInput?.value || '',
-                        session: session
-                    });
-                }
-            }
-        });
-        
-        // Validate that all students have attendance marked
-        if (attendanceData.length === 0) {
-            this.showToast('Please mark attendance for at least one student', 'error');
-            return;
-        }
-        
-        // Get existing attendance records
-        const existingAttendance = Storage.get('attendance') || [];
-        
-        // Remove existing records for today's class/session
-        const filteredAttendance = existingAttendance.filter(a => 
-            !(a.classId === classId && a.date === today && a.session === session)
-        );
-        
-        // Add new attendance records
-        attendanceData.forEach(data => {
-            filteredAttendance.push({
-                id: `attendance_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-                studentId: data.studentId,
-                classId: classId,
-                className: cls.name,
-                classCode: cls.code,
-                date: today,
-                session: session,
-                status: data.status,
-                remarks: data.remarks,
-                recordedBy: this.user.id,
-                recordedAt: new Date().toISOString()
+                // Reload data
+                await this.loadAttendanceData();
             });
         });
+    }
+}
+
+// Save attendance filters
+async saveAttendanceFilters() {
+    try {
+        const settings = {
+            date: document.getElementById('date-picker')?.value,
+            week: document.getElementById('week-picker')?.value,
+            term: document.getElementById('term-picker')?.value,
+            session: document.querySelector('.session-option.active')?.dataset.session || 'both',
+            lastUpdated: new Date().toISOString(),
+            userId: this.user?.uid
+        };
         
-        // Save to storage
-        Storage.set('attendance', filteredAttendance);
+        // Save to localStorage
+        localStorage.setItem('attendance_filters', JSON.stringify(settings));
         
-        // Show success message
-        this.showToast(`Attendance saved for ${attendanceData.length} students!`, 'success');
-        
-        // Close attendance sheet
-        this.closeAttendanceSheet();
-        
-        // Clear temp data
-        window.tempAttendanceData = null;
-        
-        // Refresh attendance data
-        this.loadAttendanceData();
-        
-        // Refresh dashboard if on dashboard page
-        if (this.state.currentPage === 'dashboard') {
-            this.refreshDashboard();
+        // Save to Firebase if available
+        if (this.user && this.user.uid && typeof firestore !== 'undefined') {
+            try {
+                await firestore.collection('users')
+                    .doc(this.user.uid)
+                    .collection('preferences')
+                    .doc('attendance_filters')
+                    .set(settings, { merge: true });
+                console.log('✅ Filters saved to Firebase');
+            } catch (firebaseError) {
+                console.warn('Failed to save to Firebase:', firebaseError);
+            }
         }
+        
+        return settings;
+        
+    } catch (error) {
+        console.error('Error saving attendance filters:', error);
+        throw error;
     }
+}
 
-    closeAttendanceSheet() {
-        const modal = document.getElementById('attendance-sheet-modal');
-        if (modal) {
-            modal.remove();
+// Load saved attendance filters
+async loadAttendanceFilters() {
+    try {
+        let settings = null;
+        
+        // Try Firebase first
+        if (this.user && this.user.uid && typeof firestore !== 'undefined') {
+            try {
+                const settingsDoc = await firestore.collection('users')
+                    .doc(this.user.uid)
+                    .collection('preferences')
+                    .doc('attendance_filters')
+                    .get();
+                
+                if (settingsDoc.exists) {
+                    settings = settingsDoc.data();
+                    console.log('✅ Filters loaded from Firebase');
+                }
+            } catch (firebaseError) {
+                console.warn('Failed to load from Firebase:', firebaseError);
+            }
         }
-        window.tempAttendanceData = null;
-    }
-
-    closeModal() {
-        const modal = document.getElementById('class-selection-modal');
-        if (modal) {
-            modal.remove();
+        
+        // Fallback to localStorage
+        if (!settings) {
+            const localSettings = localStorage.getItem('attendance_filters');
+            if (localSettings) {
+                settings = JSON.parse(localSettings);
+                console.log('✅ Filters loaded from localStorage');
+            }
         }
+        
+        // Apply defaults if no saved settings
+        if (!settings) {
+            const today = new Date();
+            settings = {
+                date: today.toISOString().split('T')[0],
+                week: '1',
+                term: '1',
+                session: 'both'
+            };
+            console.log('✅ Using default filters');
+        }
+        
+        return settings;
+        
+    } catch (error) {
+        console.error('Error loading attendance filters:', error);
+        return null;
     }
+}
 
-    refreshAttendanceData() {
-        console.log('🔄 Refreshing attendance data...');
-        this.loadAttendanceData();
-        this.showToast('Attendance data refreshed', 'success');
+// Show auto-save notification
+showAutoSaveNotification(message) {
+    // Remove existing notification
+    const existingNotification = document.querySelector('.save-notification');
+    if (existingNotification) {
+        existingNotification.remove();
     }
+    
+    // Create new notification
+    const notification = document.createElement('div');
+    notification.className = 'save-notification';
+    notification.innerHTML = `
+        <i class="fas fa-check-circle"></i>
+        <span>${message}</span>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Show with animation
+    setTimeout(() => {
+        notification.classList.add('show');
+    }, 10);
+    
+    // Auto-remove after 2 seconds
+    setTimeout(() => {
+        notification.classList.remove('show');
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
+        }, 300);
+    }, 2000);
+}
 
-    printAttendance() {
-        console.log('🖨️ Printing attendance report...');
-        window.print();
+// ==================== INITIALIZATION ====================
+
+// Update your attendance page initialization
+async initializeAttendancePage() {
+    try {
+        // Load saved filters
+        const savedFilters = await this.loadAttendanceFilters();
+        
+        // Apply saved filters to UI
+        if (savedFilters) {
+            const datePicker = document.getElementById('date-picker');
+            const weekPicker = document.getElementById('week-picker');
+            const termPicker = document.getElementById('term-picker');
+            
+            if (datePicker && savedFilters.date) {
+                datePicker.value = savedFilters.date;
+            }
+            
+            if (weekPicker && savedFilters.week) {
+                weekPicker.value = savedFilters.week;
+            }
+            
+            if (termPicker && savedFilters.term) {
+                termPicker.value = savedFilters.term;
+            }
+            
+            if (savedFilters.session) {
+                document.querySelectorAll('.session-option').forEach(option => {
+                    if (option.dataset.session === savedFilters.session) {
+                        option.classList.add('active');
+                        option.querySelector('input').checked = true;
+                    } else {
+                        option.classList.remove('active');
+                        option.querySelector('input').checked = false;
+                    }
+                });
+            }
+        }
+        
+        // Setup auto-save
+        this.setupAutoSaveFilters();
+        
+        // Load initial data
+        await this.loadAttendanceData();
+        
+    } catch (error) {
+        console.error('Error initializing attendance page:', error);
+        this.showToast('Error loading attendance page', 'error');
     }
-
+}
     // ==================== REPORTS PAGE METHODS ====================
     initializeReportsPage() {
         // Populate class dropdown
