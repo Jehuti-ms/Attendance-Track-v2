@@ -1027,14 +1027,19 @@
 .table-container {
     overflow-x: auto;
     position: relative;
+    margin-top: 20px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
 }
 
+/* Make the table headers sticky */
 .attendance-table.sticky-header thead {
     position: sticky;
     top: 0;
     z-index: 100;
 }
 
+/* First header row - Dark background */
 .attendance-table thead tr:first-child {
     background: var(--primary-color);
     color: white;
@@ -1045,28 +1050,66 @@
     padding: 16px 12px;
     font-weight: 600;
     text-align: center;
-    border-right: 1px solid rgba(255, 255, 255, 0.1);
+    color: white;
+    border-right: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .attendance-table thead tr:first-child th:last-child {
     border-right: none;
 }
 
+/* Second header row - Slightly lighter background */
 .attendance-table thead tr:last-child {
     background: var(--primary-dark);
 }
 
 .attendance-table thead tr:last-child th {
-    padding: 12px;
+    padding: 12px 12px;
     font-weight: 500;
     text-align: center;
     color: white;
-    border-right: 1px solid rgba(255, 255, 255, 0.1);
+    border-right: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .attendance-table thead tr:last-child th:last-child {
     border-right: none;
 }
+
+/* Make sure text is visible */
+.attendance-table thead th {
+    color: white !important;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+}
+
+/* Alternative: If you prefer a more contrasty header like your original */
+/* Uncomment this section if you want the original header style */
+/*
+.attendance-table thead {
+    background: var(--table-header-bg, #2c3e50);
+    color: white;
+}
+
+.attendance-table thead th {
+    padding: 12px 8px;
+    text-align: center;
+    font-weight: 600;
+    border-right: 1px solid var(--table-header-border, #34495e);
+    position: relative;
+    color: white;
+}
+
+.attendance-table thead th:last-child {
+    border-right: none;
+}
+
+.attendance-table thead tr.sub-header th {
+    background: var(--table-subheader-bg, #34495e);
+    font-size: 12px;
+    font-weight: 500;
+    padding: 8px;
+    color: white;
+}
+*/
 
 /* Table Body - Attendance specific */
 .attendance-table tbody tr {
@@ -1082,6 +1125,15 @@
     padding: 16px 12px;
     text-align: center;
     color: var(--text-primary);
+}
+
+/* Alternate row colors for better readability */
+.attendance-table tbody tr:nth-child(even) {
+    background-color: var(--background-light);
+}
+
+.attendance-table tbody tr:nth-child(even):hover {
+    background-color: var(--background-hover);
 }
 
 .attendance-table .year-group {
