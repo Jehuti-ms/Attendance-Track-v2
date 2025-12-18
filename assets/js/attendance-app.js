@@ -1583,8 +1583,6 @@ setupConnectionMonitoring(statusElement) {
     // ==================== ATTENDANCE METHODS ====================
     async loadAttendanceData() {
     console.log('📋 Loading attendance data...');
-    async loadAttendanceData() {
-    console.log('📋 Loading attendance data...');
     
     try {
         // Get selected date, week, term, session
