@@ -1597,7 +1597,7 @@ setupConnectionMonitoring(statusElement) {
         console.log('term-picker:', document.getElementById('term-picker'));
         console.log('session-option.active:', document.querySelector('.session-option.active'));
         
-        const summaryTable = document.getElementById('summary-table-body');
+        const summaryTable = document.getElementById('attendance-table-body');
         const studentDetailsContainer = document.getElementById('student-details-container');
         
         console.log('🔍 Element check:');
@@ -1859,7 +1859,7 @@ setupConnectionMonitoring(statusElement) {
                 </div>
             `;
         }
-                
+               
     } catch (error) {
         console.error('Error loading attendance data:', error);
         this.showToast('Error loading attendance data', 'error');
