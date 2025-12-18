@@ -834,11 +834,14 @@ setupConnectionMonitoring(statusElement) {
         </div>
     `;
     
-    // Initialize event listeners
-    this.initializeAttendanceEvents();
-    
     // Load initial data
     this.loadAttendanceData();
+    
+    // Setup checkboxes
+    this.setupAttendanceCheckboxes();
+    
+    // Setup auto-save filters
+    this.setupAutoSaveFilters();
 }
 
     // ==================== REPORTS PAGE ====================
