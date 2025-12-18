@@ -1581,7 +1581,7 @@ setupConnectionMonitoring(statusElement) {
     }
 
     // ==================== ATTENDANCE METHODS ====================
-    async loadAttendanceData() {
+   async loadAttendanceData() {
     console.log('📋 Loading attendance data...');
     
     try {
@@ -1633,14 +1633,6 @@ setupConnectionMonitoring(statusElement) {
             }
             return;
         }
-        
-        // Rest of your existing code...
-    try {
-        // Get selected date, week, term, session
-        const selectedDate = document.getElementById('date-picker')?.value;
-        const selectedWeek = document.getElementById('week-picker')?.value;
-        const selectedTerm = document.getElementById('term-picker')?.value;
-        const selectedSession = document.querySelector('.session-option.active')?.dataset.session || 'both';
         
         // Try to load from Firebase first
         let classes = [];
@@ -1714,14 +1706,6 @@ setupConnectionMonitoring(statusElement) {
             classes = Storage.get('classes') || [];
             students = Storage.get('students') || [];
             attendance = Storage.get('attendance') || [];
-        }
-        
-        const summaryTable = document.getElementById('summary-table-body');
-        const studentDetailsContainer = document.getElementById('student-details-container');
-        
-        if (!summaryTable || !studentDetailsContainer) {
-            console.error('Required elements not found');
-            return;
         }
         
         // Clear previous content
@@ -1875,48 +1859,14 @@ setupConnectionMonitoring(statusElement) {
                 </div>
             `;
         }
-        
-        // Add event listeners for checkboxes
-        this.setupAttendanceCheckboxes();
-        
+                
     } catch (error) {
         console.error('Error loading attendance data:', error);
         this.showToast('Error loading attendance data', 'error');
     }
 }
-
-   /* setupAttendanceCheckboxes() {
-    const checkboxes = document.querySelectorAll('.session-checkbox');
-    checkboxes.forEach(checkbox => {
-        checkbox.addEventListener('change', (e) => {
-            const studentId = e.target.dataset.studentId;
-            const session = e.target.dataset.session;
-            const isChecked = e.target.checked;
-            
-            // Update status cell
-            const row = e.target.closest('tr');
-            if (row) {
-                const statusCell = row.querySelector('td:nth-child(6)');
-                if (statusCell) {
-                    // Simple logic: if any session is checked, mark as present
-                    const amChecked = row.querySelector('[data-session="am"]')?.checked || false;
-                    const pmChecked = row.querySelector('[data-session="pm"]')?.checked || false;
-                    
-                    if (amChecked || pmChecked) {
-                        statusCell.textContent = 'PRESENT';
-                        statusCell.className = 'status-present';
-                    } else {
-                        statusCell.textContent = 'ABSENT';
-                        statusCell.className = 'status-absent';
-                    }
-                }
-            }
-        });
-    });
-} */
-
+    
 // ==================== AUTO-SAVE FEATURE ====================
-
 // Add to your existing initializeAttendancePage or similar method
 setupAutoSaveFilters() {
     console.log('🔧 Setting up auto-save filters...');
