@@ -713,8 +713,7 @@ setupConnectionMonitoring(statusElement) {
     }
 
     // ==================== ATTENDANCE PAGE ====================
-   // ==================== ATTENDANCE PAGE ====================
-loadAttendanceContent(container) {
+   loadAttendanceContent(container) {
     if (!this.user) {
         container.innerHTML = `<div class="error">No user found. Please login again.</div>`;
         return;
