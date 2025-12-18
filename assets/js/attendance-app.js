@@ -1583,7 +1583,60 @@ setupConnectionMonitoring(statusElement) {
     // ==================== ATTENDANCE METHODS ====================
     async loadAttendanceData() {
     console.log('📋 Loading attendance data...');
+    async loadAttendanceData() {
+    console.log('📋 Loading attendance data...');
     
+    try {
+        // Get selected date, week, term, session
+        const selectedDate = document.getElementById('date-picker')?.value;
+        const selectedWeek = document.getElementById('week-picker')?.value;
+        const selectedTerm = document.getElementById('term-picker')?.value;
+        const selectedSession = document.querySelector('.session-option.active')?.dataset.session || 'both';
+        
+        console.log('🔍 Debug: Looking for elements...');
+        console.log('date-picker:', document.getElementById('date-picker'));
+        console.log('week-picker:', document.getElementById('week-picker'));
+        console.log('term-picker:', document.getElementById('term-picker'));
+        console.log('session-option.active:', document.querySelector('.session-option.active'));
+        
+        const summaryTable = document.getElementById('summary-table-body');
+        const studentDetailsContainer = document.getElementById('student-details-container');
+        
+        console.log('🔍 Element check:');
+        console.log('- summary-table-body:', summaryTable);
+        console.log('- student-details-container:', studentDetailsContainer);
+        console.log('- Document body HTML length:', document.body.innerHTML.length);
+        
+        // Try to find elements in different ways
+        const allTableBodies = document.querySelectorAll('tbody');
+        console.log('All tbody elements:', allTableBodies.length);
+        allTableBodies.forEach((tbody, i) => {
+            console.log(`tbody[${i}]:`, tbody.id || 'no id', 'class:', tbody.className);
+        });
+        
+        if (!summaryTable || !studentDetailsContainer) {
+            console.error('❌ Required elements not found');
+            console.error('Full DOM search for summary-table-body:');
+            console.error(document.querySelector('#summary-table-body'));
+            console.error(document.querySelector('[id*="summary"]'));
+            console.error(document.querySelector('[id*="table"]'));
+            
+            // Show error in UI
+            const container = document.querySelector('.attendance-report') || document.querySelector('#app-container');
+            if (container) {
+                container.innerHTML += `
+                    <div class="error-message" style="padding: 20px; background: #fee; border-radius: 8px; margin: 20px;">
+                        <h3>Debug Information:</h3>
+                        <p>summary-table-body found: ${!!summaryTable}</p>
+                        <p>student-details-container found: ${!!studentDetailsContainer}</p>
+                        <p>Check browser console for details</p>
+                    </div>
+                `;
+            }
+            return;
+        }
+        
+        // Rest of your existing code...
     try {
         // Get selected date, week, term, session
         const selectedDate = document.getElementById('date-picker')?.value;
