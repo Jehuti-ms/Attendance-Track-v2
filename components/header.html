@@ -65,152 +65,125 @@
         </nav>
     </div>
     
-    <script>
-    // Hamburger Menu Functionality
-    document.addEventListener('DOMContentLoaded', function() {
-        const mobileMenuBtn = document.getElementById('mobile-menu-btn');
-        const navList = document.getElementById('nav-list');
-        const headerActions = document.querySelector('.header-actions');
+   <script>
+// Simple Hamburger Menu Functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+    const navList = document.getElementById('nav-list');
+    const logoutBtn = document.getElementById('logoutBtn');
+    
+    // Toggle mobile menu
+    if (mobileMenuBtn && navList) {
+        mobileMenuBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const isExpanded = this.getAttribute('aria-expanded') === 'true';
+            this.setAttribute('aria-expanded', !isExpanded);
+            navList.classList.toggle('mobile-open');
+            
+            // Toggle body scroll
+            if (!isExpanded) {
+                document.body.classList.add('menu-open');
+            } else {
+                document.body.classList.remove('menu-open');
+            }
+        });
+        
+        // Close menu when clicking anywhere outside
+        document.addEventListener('click', function(event) {
+            if (navList.classList.contains('mobile-open') && 
+                !event.target.closest('.nav-list') && 
+                !event.target.closest('.mobile-menu-btn')) {
+                closeMobileMenu();
+            }
+        });
+        
+        // Close menu when clicking nav links
+        const navLinks = document.querySelectorAll('.nav-link');
+        navLinks.forEach(link => {
+            link.addEventListener('click', closeMobileMenu);
+        });
+        
+        // Close menu on escape key
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape' && navList.classList.contains('mobile-open')) {
+                closeMobileMenu();
+            }
+        });
+        
+        function closeMobileMenu() {
+            mobileMenuBtn.setAttribute('aria-expanded', 'false');
+            navList.classList.remove('mobile-open');
+            document.body.classList.remove('menu-open');
+        }
+    }
+    
+    // Update user status
+    function updateUserStatus() {
         const navUserStatus = document.getElementById('navUserStatus');
-        const logoutBtn = document.getElementById('logoutBtn');
+        if (!navUserStatus) return;
         
-        // Toggle mobile menu
-        if (mobileMenuBtn && navList) {
-            mobileMenuBtn.addEventListener('click', function() {
-                const isExpanded = this.getAttribute('aria-expanded') === 'true';
-                this.setAttribute('aria-expanded', !isExpanded);
-                navList.classList.toggle('mobile-open');
+        try {
+            const userData = JSON.parse(localStorage.getItem('user'));
+            if (userData) {
+                const userName = userData.name || userData.email || 'User';
+                const userRole = userData.role || 'teacher';
                 
-                // Also toggle header actions on mobile
-                if (headerActions) {
-                    headerActions.classList.toggle('mobile-open');
-                }
-                
-                // Toggle body scroll lock
-                if (!isExpanded) {
-                    document.body.style.overflow = 'hidden';
-                } else {
-                    document.body.style.overflow = '';
-                }
-            });
-            
-            // Close menu when clicking outside
-            document.addEventListener('click', function(event) {
-                if (navList.classList.contains('mobile-open') && 
-                    !event.target.closest('.main-nav') && 
-                    !event.target.closest('.mobile-menu-btn')) {
-                    closeMobileMenu();
-                }
-            });
-            
-            // Close menu when clicking nav links
-            const navLinks = document.querySelectorAll('.nav-link');
-            navLinks.forEach(link => {
-                link.addEventListener('click', closeMobileMenu);
-            });
-            
-            // Close menu on escape key
-            document.addEventListener('keydown', function(event) {
-                if (event.key === 'Escape' && navList.classList.contains('mobile-open')) {
-                    closeMobileMenu();
-                }
-            });
-            
-            // Close menu on window resize
-            window.addEventListener('resize', function() {
-                if (window.innerWidth > 768 && navList.classList.contains('mobile-open')) {
-                    closeMobileMenu();
-                }
-            });
-            
-            function closeMobileMenu() {
-                mobileMenuBtn.setAttribute('aria-expanded', 'false');
-                navList.classList.remove('mobile-open');
-                if (headerActions) {
-                    headerActions.classList.remove('mobile-open');
-                }
-                document.body.style.overflow = '';
-            }
-        }
-        
-        // Update user status
-        function updateUserStatus() {
-            if (!navUserStatus) return;
-            
-            try {
-                const userData = JSON.parse(localStorage.getItem('user'));
-                if (userData) {
-                    const userName = userData.name || userData.email || 'User';
-                    const userRole = userData.role || 'teacher';
-                    const statusText = userData.isOnline !== false ? 'Online' : 'Offline';
-                    
-                    navUserStatus.innerHTML = `
-                        <div class="status-indicator">
-                            <span class="status-dot ${userData.isOnline !== false ? 'online' : 'offline'}"></span>
-                            <div class="status-details">
-                                <span class="user-name">${userName}</span>
-                                <span class="user-role">${userRole.charAt(0).toUpperCase() + userRole.slice(1)}</span>
-                            </div>
+                navUserStatus.innerHTML = `
+                    <div class="status-indicator">
+                        <span class="status-dot online"></span>
+                        <div class="status-details">
+                            <span class="user-name">${userName}</span>
+                            <span class="user-role">${userRole.charAt(0).toUpperCase() + userRole.slice(1)}</span>
                         </div>
-                    `;
-                } else {
-                    navUserStatus.innerHTML = `
-                        <div class="status-indicator">
-                            <span class="status-dot offline"></span>
-                            <span class="status-text">Not logged in</span>
-                        </div>
-                    `;
-                }
-            } catch (error) {
-                console.error('Error updating user status:', error);
+                    </div>
+                `;
             }
+        } catch (error) {
+            console.error('Error updating user status:', error);
         }
-        
-        // Update user status on load
-        updateUserStatus();
-        
-        // Update user status when storage changes
-        window.addEventListener('storage', updateUserStatus);
-        
-        // Logout functionality
-        if (logoutBtn) {
-            logoutBtn.addEventListener('click', function() {
-                if (confirm('Are you sure you want to logout?')) {
-                    if (window.app && window.app.logout) {
-                        window.app.logout();
-                    } else {
-                        // Fallback logout
-                        localStorage.removeItem('user');
-                        localStorage.removeItem('auth_token');
-                        window.location.href = 'index.html';
-                    }
+    }
+    
+    // Update user status on load
+    updateUserStatus();
+    
+    // Logout functionality
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', function() {
+            if (confirm('Are you sure you want to logout?')) {
+                if (window.app && window.app.logout) {
+                    window.app.logout();
+                } else {
+                    // Fallback logout
+                    localStorage.removeItem('user');
+                    localStorage.removeItem('auth_token');
+                    window.location.href = 'index.html';
                 }
-            });
-        }
+            }
+        });
+    }
+    
+    // Highlight active page
+    function highlightActivePage() {
+        const currentPath = window.location.pathname;
+        const currentPage = currentPath.split('/').pop();
         
-        // Highlight active page
-        function highlightActivePage() {
-            const currentPath = window.location.pathname;
-            const currentPage = currentPath.split('/').pop() || 'dashboard.html';
-            
-            const navItems = document.querySelectorAll('.nav-item');
-            navItems.forEach(item => {
-                const link = item.querySelector('a');
-                if (link) {
-                    const href = link.getAttribute('href');
-                    if (href === currentPage || 
-                        (currentPage === '' && href === 'dashboard.html') ||
-                        (currentPage === 'index.html' && href === 'dashboard.html')) {
-                        item.classList.add('active');
-                    } else {
-                        item.classList.remove('active');
-                    }
+        const navItems = document.querySelectorAll('.nav-item');
+        navItems.forEach(item => {
+            const link = item.querySelector('a');
+            if (link) {
+                const href = link.getAttribute('href');
+                if (href === currentPage || 
+                    (currentPage === '' && href === 'dashboard.html')) {
+                    item.classList.add('active');
+                } else {
+                    item.classList.remove('active');
                 }
-            });
-        }
-        
-        // Highlight active page on load
-        highlightActivePage();
-    });
-    </script>
+            }
+        });
+    }
+    
+    // Highlight active page on load
+    highlightActivePage();
+});
+</script>
 </header>
