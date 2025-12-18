@@ -3130,7 +3130,7 @@ async initializeAttendancePage() {
         await this.loadFooter();
     }
 
-    async loadHeader() {
+async loadHeader() {
     try {
         const headerContainer = document.getElementById('header-container');
         if (!headerContainer) return;
@@ -3146,12 +3146,38 @@ async initializeAttendancePage() {
         headerContainer.innerHTML = html;
         
         // The JavaScript in header.html will run automatically
-        // because it's included in the HTML
         
     } catch (error) {
         console.error('❌ Failed to load header:', error);
         this.renderFallbackHeader();
     }
+}
+
+renderFallbackHeader() {
+    const headerContainer = document.getElementById('header-container');
+    if (!headerContainer) return;
+    
+    headerContainer.innerHTML = `
+        <header style="background:#2c3e50;color:white;padding:15px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;max-width:1200px;margin:0 auto;">
+                <div>
+                    <a href="dashboard.html" style="color:white;text-decoration:none;font-weight:bold;font-size:20px;">
+                        Attendance Track
+                    </a>
+                </div>
+                <nav style="display:flex;gap:15px;align-items:center;">
+                    <a href="dashboard.html" style="color:white;text-decoration:none;">Dashboard</a>
+                    <a href="attendance.html" style="color:white;text-decoration:none;">Attendance</a>
+                    <a href="reports.html" style="color:white;text-decoration:none;">Reports</a>
+                    <a href="setup.html" style="color:white;text-decoration:none;">Setup</a>
+                    <button onclick="localStorage.clear();window.location.href='index.html'" 
+                            style="margin-left:15px;padding:5px 10px;background:#e74c3c;color:white;border:none;border-radius:3px;cursor:pointer;">
+                        Logout
+                    </button>
+                </nav>
+            </div>
+        </header>
+    `;
 }
 
 // Fallback header
