@@ -64,5 +64,137 @@
             </div>
         </nav>
     </div>
-    
+     <script>
+    // Header JavaScript - Runs on all pages
+    (function() {
+        // Wait for DOM to be ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initHeader);
+        } else {
+            initHeader();
+        }
+        
+        function initHeader() {
+            const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+            const navList = document.getElementById('nav-list');
+            const logoutBtn = document.getElementById('logoutBtn');
+            
+            // Initialize mobile menu if elements exist
+            if (mobileMenuBtn && navList) {
+                // Set initial state
+                mobileMenuBtn.setAttribute('aria-expanded', 'false');
+                
+                // Toggle mobile menu
+                mobileMenuBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const isExpanded = this.getAttribute('aria-expanded') === 'true';
+                    this.setAttribute('aria-expanded', !isExpanded);
+                    navList.classList.toggle('mobile-open');
+                    
+                    // Toggle body class for overflow
+                    if (!isExpanded) {
+                        document.body.classList.add('menu-open');
+                    } else {
+                        document.body.classList.remove('menu-open');
+                    }
+                });
+                
+                // Close menu when clicking outside
+                document.addEventListener('click', function(e) {
+                    if (navList.classList.contains('mobile-open') && 
+                        !e.target.closest('.nav-list') && 
+                        !e.target.closest('.mobile-menu-btn')) {
+                        closeMobileMenu();
+                    }
+                });
+                
+                // Close menu on escape
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape' && navList.classList.contains('mobile-open')) {
+                        closeMobileMenu();
+                    }
+                });
+                
+                // Close menu when clicking nav links
+                document.querySelectorAll('.nav-link').forEach(link => {
+                    link.addEventListener('click', closeMobileMenu);
+                });
+                
+                function closeMobileMenu() {
+                    mobileMenuBtn.setAttribute('aria-expanded', 'false');
+                    navList.classList.remove('mobile-open');
+                    document.body.classList.remove('menu-open');
+                }
+                
+                // Close menu on window resize
+                window.addEventListener('resize', function() {
+                    if (window.innerWidth > 768 && navList.classList.contains('mobile-open')) {
+                        closeMobileMenu();
+                    }
+                });
+            }
+            
+            // Logout functionality
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', function() {
+                    if (confirm('Are you sure you want to logout?')) {
+                        // Try to use app logout if available
+                        if (window.app && typeof window.app.logout === 'function') {
+                            window.app.logout();
+                        } else {
+                            // Fallback: clear storage and redirect
+                            localStorage.clear();
+                            window.location.href = 'index.html';
+                        }
+                    }
+                });
+            }
+            
+            // Update user info
+            updateUserInfo();
+            
+            // Highlight active page
+            highlightActivePage();
+        }
+        
+        function updateUserInfo() {
+            try {
+                const userData = JSON.parse(localStorage.getItem('user'));
+                if (userData) {
+                    const userName = userData.name || userData.email || 'User';
+                    const userRole = userData.role ? userData.role.charAt(0).toUpperCase() + userData.role.slice(1) : 'Teacher';
+                    
+                    // Update status display
+                    const statusElements = document.querySelectorAll('.status-text, .user-name');
+                    statusElements.forEach(el => {
+                        if (el.classList.contains('status-text')) {
+                            el.textContent = `${userName} (${userRole})`;
+                        } else if (el.classList.contains('user-name')) {
+                            el.textContent = userName;
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Error updating user info:', error);
+            }
+        }
+        
+        function highlightActivePage() {
+            const currentPath = window.location.pathname;
+            const currentPage = currentPath.split('/').pop() || 'dashboard.html';
+            
+            document.querySelectorAll('.nav-item').forEach(item => {
+                const link = item.querySelector('a');
+                if (link) {
+                    const href = link.getAttribute('href');
+                    if (href === currentPage) {
+                        item.classList.add('active');
+                    } else {
+                        item.classList.remove('active');
+                    }
+                }
+            });
+        }
+    })();
+    </script>
 </header>
