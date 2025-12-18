@@ -726,7 +726,7 @@ loadAttendanceContent(container) {
     
     container.innerHTML = `
         <div class="attendance-report">
-            <div class="attendance-header">
+            <div class="header">
                 <h1><i class="fas fa-clipboard-check"></i> Attendance Track</h1>
                 <p class="subtitle">Daily Attendance Report</p>
             </div>
