@@ -713,124 +713,268 @@ setupConnectionMonitoring(statusElement) {
     }
 
     // ==================== ATTENDANCE PAGE ====================
-    loadAttendanceContent(container) {
-        if (!this.user) {
-            container.innerHTML = `<div class="error">No user found. Please login again.</div>`;
-            return;
-        }
-        
-        // Get today's date in format: MM / DD / YYYY
-        const today = new Date();
-        const formattedDate = `${today.getMonth() + 1} / ${today.getDate()} / ${today.getFullYear()}`;
-        
-        container.innerHTML = `
-            <div class="attendance-report">
-                <div class="header">
-                    <h1>Attendance Track</h1>
-                    <h2>Daily Attendance</h2>
+   // ==================== ATTENDANCE PAGE ====================
+loadAttendanceContent(container) {
+    if (!this.user) {
+        container.innerHTML = `<div class="error">No user found. Please login again.</div>`;
+        return;
+    }
+    
+    // Get today's date
+    const today = new Date();
+    const formattedDate = `${today.getMonth() + 1} / ${today.getDate()} / ${today.getFullYear()}`;
+    
+    container.innerHTML = `
+        <div class="attendance-report">
+            <div class="attendance-header">
+                <h1><i class="fas fa-clipboard-check"></i> Attendance Track</h1>
+                <p class="subtitle">Daily Attendance Report</p>
+            </div>
+            
+            <div class="controls-row">
+                <div class="control-group">
+                    <label for="date-picker"><i class="fas fa-calendar-alt"></i> Date</label>
+                    <input type="date" id="date-picker" class="date-input" value="${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}">
                 </div>
                 
-                <div class="info-section">
-                    <div class="info-item">
-                        <label>Date:</label>
-                        <span class="date-value">${formattedDate}</span>
-                    </div>
-                    <div class="info-item">
-                        <label>Term:</label>
-                        <span class="term-value">Term 1</span>
-                    </div>
-                    <div class="info-item">
-                        <label>Week:</label>
-                        <span class="week-value">Week 1</span>
-                    </div>
+                <div class="control-group">
+                    <label for="week-picker"><i class="fas fa-calendar-week"></i> Week</label>
+                    <select id="week-picker" class="week-select">
+                        ${Array.from({length: 10}, (_, i) => 
+                            `<option value="${i + 1}" ${i === 0 ? 'selected' : ''}>Week ${i + 1}</option>`
+                        ).join('')}
+                    </select>
                 </div>
                 
-                <div class="session-selection">
-                    <div class="session-option">
-                        <input type="checkbox" id="both-sessions" checked disabled>
-                        <label for="both-sessions">Both Sessions</label>
-                    </div>
-                    <div class="session-option">
-                        <input type="checkbox" id="am-only">
-                        <label for="am-only">AM Session Only</label>
-                    </div>
-                    <div class="session-option">
-                        <input type="checkbox" id="pm-only">
-                        <label for="pm-only">PM Session Only</label>
-                    </div>
+                <div class="control-group">
+                    <label for="term-picker"><i class="fas fa-graduation-cap"></i> Term</label>
+                    <select id="term-picker" class="term-select">
+                        <option value="1" selected>Term 1</option>
+                        <option value="2">Term 2</option>
+                        <option value="3">Term 3</option>
+                    </select>
                 </div>
                 
-                <div class="table-container">
-                    <table class="summary-table">
-                        <thead>
-                            <tr>
-                                <th>Year Group</th>
-                                <th>Class</th>
-                                <th>Total</th>
-                                <th colspan="2">Male Present</th>
-                                <th colspan="2">Female Present</th>
-                                <th>AM Rate</th>
-                                <th>PM Rate</th>
-                                <th>Daily Rate</th>
-                                <th>Cumulative</th>
-                                <th>vs Avg</th>
-                            </tr>
-                            <tr class="sub-header">
-                                <th colspan="3"></th>
-                                <th>AM</th>
-                                <th>PM</th>
-                                <th>AM</th>
-                                <th>PM</th>
-                                <th colspan="5"></th>
-                            </tr>
-                        </thead>
-                        <tbody id="summary-table-body">
-                            <!-- Class rows will be inserted here -->
-                        </tbody>
-                    </table>
-                </div>
-                
-                <div class="attendance-actions">
-                    <button class="btn-primary" onclick="window.app.takeAttendance()">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                            <circle cx="8.5" cy="7" r="4"></circle>
-                            <line x1="20" y1="8" x2="20" y2="14"></line>
-                            <line x1="23" y1="11" x2="17" y2="11"></line>
-                        </svg>
-                        Take Attendance
-                    </button>
-                    <button class="btn-secondary" onclick="window.app.printAttendance()">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="6 9 6 2 18 2 18 9"></polyline>
-                            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
-                            <rect x="6" y="14" width="12" height="8"></rect>
-                        </svg>
-                        Print Report
-                    </button>
-                    <button class="btn-secondary" onclick="window.app.refreshAttendanceData()">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M23 4v6h-6"></path>
-                            <path d="M1 20v-6h6"></path>
-                            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-                        </svg>
-                        Refresh
-                    </button>
-                </div>
-                
-                <!-- Student Details Section -->
-                <div class="student-details-section">
-                    <h3>Student Attendance Details</h3>
-                    <div id="student-details-container">
-                        <!-- Student details will be inserted here -->
-                    </div>
+                <div class="auto-save-indicator">
+                    <i class="fas fa-save"></i> Auto-save enabled
                 </div>
             </div>
-        `;
-        
-        // Load the attendance data
-        this.loadAttendanceData();
+            
+            <div class="session-selector">
+                <div class="session-label">Session Type:</div>
+                <div class="session-options">
+                    <label class="session-option active" data-session="both">
+                        <input type="radio" name="session" value="both" checked>
+                        <span class="session-checkbox"></span>
+                        <span class="session-text">Both Sessions (AM & PM)</span>
+                    </label>
+                    <label class="session-option" data-session="am">
+                        <input type="radio" name="session" value="am">
+                        <span class="session-checkbox"></span>
+                        <span class="session-text">AM Session Only</span>
+                    </label>
+                    <label class="session-option" data-session="pm">
+                        <input type="radio" name="session" value="pm">
+                        <span class="session-checkbox"></span>
+                        <span class="session-text">PM Session Only</span>
+                    </label>
+                </div>
+            </div>
+            
+            <div class="table-container">
+                <table class="attendance-table sticky-header">
+                    <thead>
+                        <tr>
+                            <th rowspan="2">Year Group</th>
+                            <th rowspan="2">Class</th>
+                            <th rowspan="2">Total</th>
+                            <th colspan="2">Male Present</th>
+                            <th colspan="2">Female Present</th>
+                            <th rowspan="2">AM Rate</th>
+                            <th rowspan="2">PM Rate</th>
+                            <th rowspan="2">Daily Rate</th>
+                            <th rowspan="2">Cumulative</th>
+                            <th rowspan="2">vs Avg</th>
+                        </tr>
+                        <tr>
+                            <th>AM</th>
+                            <th>PM</th>
+                            <th>AM</th>
+                            <th>PM</th>
+                        </tr>
+                    </thead>
+                    <tbody id="attendance-table-body">
+                        <!-- Data will be loaded here -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="attendance-actions">
+                <button class="btn btn-primary take-attendance-btn">
+                    <i class="fas fa-user-check"></i>
+                    <span>Take Attendance</span>
+                </button>
+                <button class="btn btn-secondary print-report-btn">
+                    <i class="fas fa-print"></i>
+                    <span>Print Report</span>
+                </button>
+                <button class="btn btn-secondary refresh-data-btn">
+                    <i class="fas fa-sync-alt"></i>
+                    <span>Refresh</span>
+                </button>
+            </div>
+            
+            <div class="student-details-section" style="display: none;">
+                <h3><i class="fas fa-users"></i> Student Attendance Details</h3>
+                <div id="student-details-container"></div>
+            </div>
+        </div>
+    `;
+    
+    // Initialize event listeners
+    this.initializeAttendanceEvents();
+    
+    // Load initial data
+    this.loadAttendanceData();
+}
+
+// Initialize event listeners for attendance page
+initializeAttendanceEvents() {
+    // Auto-save for date/week/term selections
+    document.getElementById('date-picker')?.addEventListener('change', (e) => {
+        this.saveAttendanceSettings();
+        this.showAutoSaveNotification('Date saved');
+    });
+    
+    document.getElementById('week-picker')?.addEventListener('change', (e) => {
+        this.saveAttendanceSettings();
+        this.showAutoSaveNotification('Week saved');
+    });
+    
+    document.getElementById('term-picker')?.addEventListener('change', (e) => {
+        this.saveAttendanceSettings();
+        this.showAutoSaveNotification('Term saved');
+    });
+    
+    // Session selection
+    document.querySelectorAll('.session-option').forEach(option => {
+        option.addEventListener('click', (e) => {
+            document.querySelectorAll('.session-option').forEach(opt => 
+                opt.classList.remove('active')
+            );
+            option.classList.add('active');
+            this.saveAttendanceSettings();
+            this.showAutoSaveNotification('Session saved');
+        });
+    });
+    
+    // Button events
+    document.querySelector('.take-attendance-btn')?.addEventListener('click', () => {
+        this.takeAttendance();
+    });
+    
+    document.querySelector('.print-report-btn')?.addEventListener('click', () => {
+        this.printAttendance();
+    });
+    
+    document.querySelector('.refresh-data-btn')?.addEventListener('click', () => {
+        this.refreshAttendanceData();
+    });
+}
+
+// Save attendance settings
+saveAttendanceSettings() {
+    const settings = {
+        date: document.getElementById('date-picker')?.value,
+        week: document.getElementById('week-picker')?.value,
+        term: document.getElementById('term-picker')?.value,
+        session: document.querySelector('.session-option.active')?.dataset.session || 'both'
+    };
+    
+    // Save to localStorage or send to server
+    localStorage.setItem('attendance_settings', JSON.stringify(settings));
+    return settings;
+}
+
+// Show auto-save notification
+showAutoSaveNotification(message) {
+    // Create or update notification
+    let notification = document.querySelector('.save-notification');
+    if (!notification) {
+        notification = document.createElement('div');
+        notification.className = 'save-notification';
+        document.querySelector('.attendance-report').appendChild(notification);
     }
+    
+    notification.innerHTML = `<i class="fas fa-check-circle"></i> ${message}`;
+    notification.classList.add('show');
+    
+    setTimeout(() => {
+        notification.classList.remove('show');
+    }, 2000);
+}
+
+// Load attendance data
+async loadAttendanceData() {
+    const tableBody = document.getElementById('attendance-table-body');
+    if (!tableBody) return;
+    
+    // Show loading
+    tableBody.innerHTML = `
+        <tr class="loading-row">
+            <td colspan="13">
+                <div class="loading-spinner"></div>
+                <p>Loading attendance data...</p>
+            </td>
+        </tr>
+    `;
+    
+    try {
+        // In a real app, you would fetch from your API
+        // For now, using sample data
+        const sampleData = [
+            { yearGroup: '3rd Years', className: '3AN', total: 18, maleAM: 0, malePM: 0, femaleAM: 0, femalePM: 0, amRate: '0%', pmRate: '0%', dailyRate: '0%', cumulative: '287/31', vsAvg: '-100.0%' },
+            { yearGroup: '3rd Years', className: '3TL', total: 16, maleAM: 0, malePM: 0, femaleAM: 0, femalePM: 0, amRate: '0%', pmRate: '0%', dailyRate: '0%', cumulative: '295/31', vsAvg: '-100.0%' },
+            { yearGroup: '3rd Years', className: '3EY', total: 25, maleAM: 0, malePM: 0, femaleAM: 0, femalePM: 0, amRate: '0%', pmRate: '0%', dailyRate: '0%', cumulative: '369/30', vsAvg: '-100.0%' }
+        ];
+        
+        // Clear loading
+        tableBody.innerHTML = '';
+        
+        // Populate table
+        sampleData.forEach(data => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td class="year-group">${data.yearGroup}</td>
+                <td class="class-name">${data.className}</td>
+                <td class="total">${data.total}</td>
+                <td class="male-present am">${data.maleAM}</td>
+                <td class="male-present pm">${data.malePM}</td>
+                <td class="female-present am">${data.femaleAM}</td>
+                <td class="female-present pm">${data.femalePM}</td>
+                <td class="am-rate ${data.amRate === '0%' ? 'zero' : ''}">${data.amRate}</td>
+                <td class="pm-rate ${data.pmRate === '0%' ? 'zero' : ''}">${data.pmRate}</td>
+                <td class="daily-rate ${data.dailyRate === '0%' ? 'zero' : ''}">${data.dailyRate}</td>
+                <td class="cumulative">${data.cumulative}</td>
+                <td class="vs-avg ${data.vsAvg.startsWith('-') ? 'negative' : 'positive'}">${data.vsAvg}</td>
+            `;
+            tableBody.appendChild(row);
+        });
+        
+    } catch (error) {
+        console.error('Error loading attendance data:', error);
+        tableBody.innerHTML = `
+            <tr class="error-row">
+                <td colspan="13">
+                    <div class="error-message">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <p>Error loading data. Please try again.</p>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }
+}
 
     // ==================== REPORTS PAGE ====================
     loadReportsContent(container) {
