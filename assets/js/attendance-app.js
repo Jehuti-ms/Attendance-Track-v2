@@ -174,7 +174,7 @@ setupConnectionMonitoring(statusElement) {
     window.addEventListener('offline', () => updateStatus(false));
 }
 
-    // ==================== USER STATUS DESIGN FIX ====================
+   // ==================== USER STATUS DESIGN FIX ====================
 fixUserStatusDesign() {
     console.log('🎨 Applying dark design fixes...');
     
