@@ -520,3 +520,48 @@ html, body {
     pointer-events: auto !important;
 }
 
+/* ===== PERMANENT MOBILE MENU FIX ===== */
+@media (max-width: 768px) {
+    /* When mobile menu is open */
+    .nav-list.mobile-open {
+        /* Force correct position */
+        position: fixed !important;
+        top: 70px !important; /* Adjust based on your header height */
+        left: 0 !important;
+        right: 0 !important;
+        bottom: auto !important;
+        
+        /* Force correct dimensions */
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 100% !important;
+        
+        /* Reset any problematic transforms */
+        transform: none !important;
+        translate: none !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        
+        /* Make sure it's visible */
+        display: flex !important;
+        flex-direction: column !important;
+        background: white !important;
+        z-index: 9999 !important;
+        padding: 1rem !important;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.15) !important;
+        overflow-y: auto !important;
+        max-height: calc(100vh - 70px) !important;
+    }
+    
+    /* Ensure hamburger works */
+    .mobile-menu-btn {
+        display: flex !important;
+    }
+}
+
+/* Hide hamburger on desktop */
+@media (min-width: 769px) {
+    .mobile-menu-btn {
+        display: none !important;
+    }
+}
