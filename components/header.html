@@ -65,45 +65,51 @@
         </nav>
     </div>
      <script>
-    // Header JavaScript - Runs on all pages
-    (function() {
-        // Wait for DOM to be ready
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initHeader);
-        } else {
-            initHeader();
+    // GLOBAL MOBILE MENU - Works on ALL pages
+(function() {
+    console.log('Initializing global mobile menu...');
+    
+    // Wait for DOM
+    document.addEventListener('DOMContentLoaded', function() {
+        const hamburger = document.querySelector('.mobile-menu-btn');
+        const navList = document.querySelector('.nav-list');
+        
+        if (!hamburger || !navList) {
+            console.warn('Mobile menu elements not found on this page');
+            return;
         }
         
-function initHeader() {
-    // CORRECTED: Use querySelector instead of getElementById
-    const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
-    const navList = document.querySelector('.nav-list');
-    const logoutBtn = document.getElementById('logoutBtn');
-    
-    console.log('Header init:', { mobileMenuBtn, navList }); // Debug log
-    
-    // Initialize mobile menu if elements exist
-    if (mobileMenuBtn && navList) {
-        // Set initial state
-        mobileMenuBtn.setAttribute('aria-expanded', 'false');
+        console.log('Setting up mobile menu for', window.location.pathname);
         
-        // Toggle mobile menu
-        mobileMenuBtn.addEventListener('click', function(e) {
-            e.stopPropagation();
+        // Ensure hamburger is visible on mobile
+        if (window.innerWidth <= 768) {
+            hamburger.style.display = 'flex';
+        }
+        
+        // Setup click handler
+        hamburger.addEventListener('click', function(e) {
             e.preventDefault();
+            e.stopImmediatePropagation();
             
-            const isExpanded = this.getAttribute('aria-expanded') === 'true';
-            this.setAttribute('aria-expanded', !isExpanded);
+            console.log('Mobile menu toggled on', window.location.pathname);
+            
+            // Toggle menu
             navList.classList.toggle('mobile-open');
+            this.setAttribute('aria-expanded', 
+                navList.classList.contains('mobile-open'));
             
-            // Toggle body class for overflow
-            if (!isExpanded) {
-                document.body.classList.add('menu-open');
+            // Visual feedback
+            if (navList.classList.contains('mobile-open')) {
+                hamburger.style.background = '#4CAF50';
+                navList.style.display = 'flex';
             } else {
-                document.body.classList.remove('menu-open');
+                hamburger.style.background = '';
+                setTimeout(() => {
+                    if (!navList.classList.contains('mobile-open')) {
+                        navList.style.display = 'none';
+                    }
+                }, 300);
             }
-            
-            console.log('Menu toggled:', { isExpanded: !isExpanded }); // Debug
         });
         
         // Close menu when clicking outside
@@ -111,107 +117,25 @@ function initHeader() {
             if (navList.classList.contains('mobile-open') && 
                 !e.target.closest('.nav-list') && 
                 !e.target.closest('.mobile-menu-btn')) {
-                closeMobileMenu();
+                navList.classList.remove('mobile-open');
+                hamburger.setAttribute('aria-expanded', 'false');
+                navList.style.display = 'none';
+                hamburger.style.background = '';
             }
         });
         
-        // Close menu on escape
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape' && navList.classList.contains('mobile-open')) {
-                closeMobileMenu();
-            }
-        });
-        
-        // Close menu when clicking nav links
+        // Close menu when clicking links (for navigation)
         document.querySelectorAll('.nav-link').forEach(link => {
-            link.addEventListener('click', closeMobileMenu);
-        });
-        
-        function closeMobileMenu() {
-            mobileMenuBtn.setAttribute('aria-expanded', 'false');
-            navList.classList.remove('mobile-open');
-            document.body.classList.remove('menu-open');
-        }
-        
-        // Close menu on window resize (if resizing to desktop)
-        window.addEventListener('resize', function() {
-            if (window.innerWidth > 768 && navList.classList.contains('mobile-open')) {
-                closeMobileMenu();
-            }
-        });
-    } else {
-        console.error('Mobile menu elements not found!', { mobileMenuBtn, navList });
-    }
-               
-                // Close menu on window resize
-                window.addEventListener('resize', function() {
-                    if (window.innerWidth > 768 && navList.classList.contains('mobile-open')) {
-                        closeMobileMenu();
-                    }
-                });
-            }
-            
-            // Logout functionality
-            if (logoutBtn) {
-                logoutBtn.addEventListener('click', function() {
-                    if (confirm('Are you sure you want to logout?')) {
-                        // Try to use app logout if available
-                        if (window.app && typeof window.app.logout === 'function') {
-                            window.app.logout();
-                        } else {
-                            // Fallback: clear storage and redirect
-                            localStorage.clear();
-                            window.location.href = 'index.html';
-                        }
-                    }
-                });
-            }
-            
-            // Update user info
-            updateUserInfo();
-            
-            // Highlight active page
-            highlightActivePage();
-        }
-        
-        function updateUserInfo() {
-            try {
-                const userData = JSON.parse(localStorage.getItem('user'));
-                if (userData) {
-                    const userName = userData.name || userData.email || 'User';
-                    const userRole = userData.role ? userData.role.charAt(0).toUpperCase() + userData.role.slice(1) : 'Teacher';
-                    
-                    // Update status display
-                    const statusElements = document.querySelectorAll('.status-text, .user-name');
-                    statusElements.forEach(el => {
-                        if (el.classList.contains('status-text')) {
-                            el.textContent = `${userName} (${userRole})`;
-                        } else if (el.classList.contains('user-name')) {
-                            el.textContent = userName;
-                        }
-                    });
-                }
-            } catch (error) {
-                console.error('Error updating user info:', error);
-            }
-        }
-        
-        function highlightActivePage() {
-            const currentPath = window.location.pathname;
-            const currentPage = currentPath.split('/').pop() || 'dashboard.html';
-            
-            document.querySelectorAll('.nav-item').forEach(item => {
-                const link = item.querySelector('a');
-                if (link) {
-                    const href = link.getAttribute('href');
-                    if (href === currentPage) {
-                        item.classList.add('active');
-                    } else {
-                        item.classList.remove('active');
-                    }
-                }
+            link.addEventListener('click', function() {
+                navList.classList.remove('mobile-open');
+                hamburger.setAttribute('aria-expanded', 'false');
+                navList.style.display = 'none';
+                hamburger.style.background = '';
             });
-        }
-    })();
+        });
+        
+        console.log('✅ Mobile menu ready for', window.location.pathname);
+    });
+})();
     </script>
 </header>
