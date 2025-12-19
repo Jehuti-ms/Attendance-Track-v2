@@ -178,19 +178,15 @@ setupConnectionMonitoring(statusElement) {
 fixUserStatusDesign() {
     console.log('🎨 Applying dark design fixes...');
     
-    // Apply fixes with a small delay to ensure all elements are rendered
     setTimeout(() => {
-        // 1. Fix container sizes FIRST
+        // 1. Fix container sizes
         this.fixContainerSizes();
         
-        // 2. Apply dark design to containers
-        this.applyDarkDesignToContainers();
+        // 2. ENHANCE logout button (preserve existing clicks)
+        this.enhanceLogoutButton();
         
-        // 3. Enable logout button rotation WITHOUT breaking click
-        this.fixLogoutButton();
-        
-        // 4. Fix hamburger menu alignment WITHOUT breaking click
-        this.fixHamburgerMenu();
+        // 3. ENHANCE hamburger menu (preserve existing clicks)
+        this.enhanceHamburgerMenu();
         
         console.log('✅ Dark design fixes applied');
     }, 100);
@@ -199,26 +195,14 @@ fixUserStatusDesign() {
 fixContainerSizes() {
     console.log('📏 Fixing container sizes...');
     
-    // Find ALL user status related containers
     const allContainers = [
         document.querySelector('#navUserStatus'),
         document.querySelector('.user-status'),
-        document.querySelector('.status-content'),
-        ...document.querySelectorAll('[class*="user"][class*="status"]'),
-        ...document.querySelectorAll('[class*="status"][class*="content"]')
-    ].filter(el => el && el.isConnected); // Only elements in DOM
-    
-    console.log(`Found ${allContainers.length} user status containers`);
-    
-    // Sort by depth (deepest first) to fix nesting properly
-    allContainers.sort((a, b) => {
-        const depthA = this.getElementDepth(a);
-        const depthB = this.getElementDepth(b);
-        return depthB - depthA; // Deepest first
-    });
+        document.querySelector('.status-content')
+    ].filter(el => el && el.isConnected);
     
     allContainers.forEach((container, index) => {
-        // Check if this container is nested inside another user-status container
+        // Check if nested
         let parent = container.parentElement;
         let isNested = false;
         
@@ -230,209 +214,193 @@ fixContainerSizes() {
             parent = parent.parentElement;
         }
         
-        console.log(`Container ${index}: ${container.className || container.id}, Nested: ${isNested}`);
-        
         if (isNested) {
-            // Nested container - make it transparent and flexible
-            container.style.cssText = `
-                background: transparent !important;
-                border: none !important;
-                box-shadow: none !important;
-                padding: 0 !important;
-                margin: 0 !important;
-                display: flex !important;
-                align-items: center !important;
-                gap: 12px !important;
-                height: auto !important;
-                min-height: unset !important;
-                width: auto !important;
-                min-width: unset !important;
-                flex-shrink: 0 !important;
-                position: static !important;
-                z-index: auto !important;
-            `;
+            // Nested container - transparent
+            container.style.background = 'transparent';
+            container.style.border = 'none';
+            container.style.boxShadow = 'none';
+            container.style.padding = '0';
+            container.style.margin = '0';
+            container.style.height = 'auto';
         } else {
-            // Main/root container - apply fixed dark design
-            container.style.cssText = `
-                background: rgba(0, 0, 0, 0.85) !important;
-                border: 1px solid rgba(255, 255, 255, 0.2) !important;
-                border-radius: 20px !important;
-                height: 40px !important;
-                min-height: 40px !important;
-                max-height: 40px !important;
-                min-width: 200px !important;
-                max-width: fit-content !important;
-                padding: 8px 16px !important;
-                display: flex !important;
-                align-items: center !important;
-                flex-direction: row !important;
-                flex-wrap: nowrap !important;
-                gap: 12px !important;
-                color: white !important;
-                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4) !important;
-                position: relative !important;
-                z-index: 1000 !important;
-                overflow: visible !important;
-                box-sizing: border-box !important;
-                flex-shrink: 0 !important;
-            `;
+            // Main container - dark design
+            container.style.background = 'rgba(0, 0, 0, 0.85)';
+            container.style.border = '1px solid rgba(255, 255, 255, 0.2)';
+            container.style.borderRadius = '20px';
+            container.style.height = '40px';
+            container.style.minHeight = '40px';
+            container.style.padding = '8px 16px';
+            container.style.display = 'flex';
+            container.style.alignItems = 'center';
+            container.style.gap = '12px';
+            container.style.color = 'white';
+            container.style.boxShadow = '0 2px 10px rgba(0, 0, 0, 0.4)';
+            container.style.boxSizing = 'border-box';
         }
     });
 }
 
-// Helper to get element depth in DOM
-getElementDepth(element) {
-    let depth = 0;
-    let parent = element.parentElement;
-    
-    while (parent) {
-        depth++;
-        parent = parent.parentElement;
-    }
-    
-    return depth;
-}
-
-applyDarkDesignToContainers() {
-    // Now just ensure CSS classes are added for tracking
-    const mainContainers = [
-        '#navUserStatus',
-        '.user-status',
-        '.status-content'
-    ].map(selector => document.querySelector(selector))
-     .filter(el => el);
-    
-    mainContainers.forEach(container => {
-        if (!container.classList.contains('dark-design-fixed')) {
-            container.classList.add('dark-design-fixed');
-            console.log(`✅ Marked as fixed: ${container.className || container.id}`);
-        }
-    });
-}
-
-fixLogoutButton() {
+enhanceLogoutButton() {
     const logoutBtn = document.querySelector('.btn-logout');
     if (!logoutBtn) {
         console.log('ℹ️ No logout button found');
         return;
     }
     
-    console.log('🔄 Fixing logout button...');
+    console.log('🎯 Enhancing logout button (preserving existing click)...');
     
-    // Store the original onclick handler
-    const originalOnClick = logoutBtn.onclick;
+    // DEBUG: Show what we're working with
+    console.log('Logout button current state:', {
+        hasOnclickProperty: !!logoutBtn.onclick,
+        hasOnclickAttribute: logoutBtn.getAttribute('onclick'),
+        hasClickListeners: this.getClickListeners(logoutBtn)
+    });
     
-    // Apply rotation styles
-    logoutBtn.style.cssText += `
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        width: 40px !important;
-        height: 40px !important;
-        border-radius: 50% !important;
-        background: rgba(26, 35, 126, 0.15) !important;
-        border: 1px solid rgba(26, 35, 126, 0.3) !important;
-        color: #1a237e !important;
-        cursor: pointer !important;
-        transition: all 0.3s ease !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        flex-shrink: 0 !important;
-    `;
+    // Apply ONLY visual enhancements - DO NOT touch click handlers
+    Object.assign(logoutBtn.style, {
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: '40px',
+        height: '40px',
+        borderRadius: '50%',
+        background: 'rgba(26, 35, 126, 0.15)',
+        border: '1px solid rgba(26, 35, 126, 0.3)',
+        color: '#1a237e',
+        cursor: 'pointer',
+        transition: 'all 0.3s ease',
+        margin: '0',
+        padding: '0',
+        flexShrink: '0'
+    });
     
-    // Fix the icon if present
+    // Style icon
     const icon = logoutBtn.querySelector('i');
     if (icon) {
-        icon.style.cssText += `
-            color: #1a237e !important;
-            font-size: 18px !important;
-            transition: transform 0.3s ease !important;
-            display: inline-block !important;
-        `;
+        Object.assign(icon.style, {
+            color: '#1a237e',
+            fontSize: '18px',
+            transition: 'transform 0.3s ease',
+            display: 'inline-block'
+        });
     }
     
-    // Add rotation animation
-    logoutBtn.addEventListener('mouseenter', () => {
+    // Add rotation animation as ADDITIONAL behavior
+    const originalTransform = logoutBtn.style.transform;
+    const originalIconTransform = icon ? icon.style.transform : '';
+    
+    const rotateOnHover = () => {
         logoutBtn.style.transform = 'rotate(90deg)';
-        if (icon) {
-            icon.style.transform = 'rotate(-90deg)';
-        }
-    });
+        if (icon) icon.style.transform = 'rotate(-90deg)';
+    };
     
-    logoutBtn.addEventListener('mouseleave', () => {
-        logoutBtn.style.transform = 'rotate(0deg)';
-        if (icon) {
-            icon.style.transform = 'rotate(0deg)';
-        }
-    });
+    const resetRotation = () => {
+        logoutBtn.style.transform = originalTransform || 'rotate(0deg)';
+        if (icon) icon.style.transform = originalIconTransform || 'rotate(0deg)';
+    };
     
-    // Reattach original click handler
-    if (originalOnClick) {
-        logoutBtn.onclick = originalOnClick;
-    }
+    // Remove any previous rotation listeners we added
+    logoutBtn.removeEventListener('mouseenter', rotateOnHover);
+    logoutBtn.removeEventListener('mouseleave', resetRotation);
     
-    console.log('✅ Logout button fixed');
+    // Add new rotation listeners
+    logoutBtn.addEventListener('mouseenter', rotateOnHover);
+    logoutBtn.addEventListener('mouseleave', resetRotation);
+    
+    console.log('✅ Logout button enhanced with rotation (click preserved)');
 }
 
-fixHamburgerMenu() {
+enhanceHamburgerMenu() {
     const hamburger = document.querySelector('.hamburger-menu, .menu-toggle, .hamburger');
     if (!hamburger) {
         console.log('ℹ️ No hamburger menu found');
         return;
     }
     
-    console.log('🍔 Fixing hamburger menu...');
+    console.log('🎯 Enhancing hamburger menu (preserving existing click)...');
     
-    // Store original click handler
-    const originalOnClick = hamburger.onclick;
+    // DEBUG
+    console.log('Hamburger current state:', {
+        hasOnclickProperty: !!hamburger.onclick,
+        hasOnclickAttribute: hamburger.getAttribute('onclick'),
+        hasClickListeners: this.getClickListeners(hamburger)
+    });
     
-    // Apply styling
-    hamburger.style.cssText += `
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        width: 40px !important;
-        height: 40px !important;
-        border-radius: 50% !important;
-        background: rgba(26, 35, 126, 0.1) !important;
-        border: 1px solid rgba(26, 35, 126, 0.2) !important;
-        cursor: pointer !important;
-        flex-shrink: 0 !important;
-        margin: 0 !important;
-        padding: 0 !important;
-    `;
+    // Apply ONLY visual enhancements
+    Object.assign(hamburger.style, {
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: '40px',
+        height: '40px',
+        borderRadius: '50%',
+        background: 'rgba(26, 35, 126, 0.1)',
+        border: '1px solid rgba(26, 35, 126, 0.2)',
+        cursor: 'pointer',
+        flexShrink: '0',
+        margin: '0',
+        padding: '0'
+    });
     
-    // Style the menu lines
+    // Style menu lines
     const menuLines = hamburger.querySelectorAll('.menu-line');
     menuLines.forEach(line => {
-        line.style.cssText += `
-            background: #1a237e !important;
-            height: 2px !important;
-            width: 20px !important;
-            border-radius: 2px !important;
-            transition: background 0.3s ease !important;
-        `;
-    });
-    
-    // Add hover effect
-    hamburger.addEventListener('mouseenter', () => {
-        menuLines.forEach(line => {
-            line.style.background = '#3498db !important';
+        Object.assign(line.style, {
+            background: '#1a237e',
+            height: '2px',
+            width: '20px',
+            borderRadius: '2px',
+            transition: 'background 0.3s ease'
         });
     });
     
-    hamburger.addEventListener('mouseleave', () => {
-        menuLines.forEach(line => {
-            line.style.background = '#1a237e !important';
-        });
-    });
+    // Add hover effect as ADDITIONAL behavior
+    const originalColors = Array.from(menuLines).map(line => line.style.background);
     
-    // Reattach original click handler
-    if (originalOnClick) {
-        hamburger.onclick = originalOnClick;
+    const hoverEnter = () => {
+        menuLines.forEach(line => {
+            line.style.background = '#3498db';
+        });
+    };
+    
+    const hoverLeave = () => {
+        menuLines.forEach((line, index) => {
+            line.style.background = originalColors[index] || '#1a237e';
+        });
+    };
+    
+    // Remove any previous hover listeners we added
+    hamburger.removeEventListener('mouseenter', hoverEnter);
+    hamburger.removeEventListener('mouseleave', hoverLeave);
+    
+    // Add new hover listeners
+    hamburger.addEventListener('mouseenter', hoverEnter);
+    hamburger.addEventListener('mouseleave', hoverLeave);
+    
+    console.log('✅ Hamburger menu enhanced (click preserved)');
+}
+
+// Helper to check for click listeners (approximate)
+getClickListeners(element) {
+    const listeners = [];
+    
+    // Check onclick property
+    if (element.onclick) {
+        listeners.push('onclick property');
     }
     
-    console.log('✅ Hamburger menu fixed');
+    // Check onclick attribute
+    if (element.getAttribute('onclick')) {
+        listeners.push('onclick attribute');
+    }
+    
+    // Check for common event listener patterns
+    // Note: Can't directly access addEventListener list in JS
+    if (element._events) {
+        listeners.push('framework events object');
+    }
+    
+    return listeners.length > 0 ? listeners : 'No detectable click listeners';
 }
     
     // ==================== INITIALIZATION ====================
