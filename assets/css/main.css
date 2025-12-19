@@ -459,3 +459,64 @@ body {
     }
 }
 
+/* ===== HAMBURGER FIX ===== */
+@media (max-width: 768px) {
+    .mobile-menu-btn {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        
+        /* Reset any problematic styles */
+        pointer-events: auto !important;
+        position: relative !important;
+        z-index: 100 !important;
+        
+        /* Basic styling */
+        background: transparent;
+        border: none;
+        width: 40px;
+        height: 40px;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        cursor: pointer;
+        margin-left: auto;
+    }
+    
+    .menu-line {
+        width: 20px;
+        height: 2px;
+        background: currentColor;
+        margin: 3px 0;
+        display: block;
+    }
+}
+
+@media (min-width: 769px) {
+    .mobile-menu-btn {
+        display: none !important;
+    }
+}
+
+/* ===== LOGOUT BUTTON FIX ===== */
+#logoutBtn, .btn-logout {
+    pointer-events: auto !important;
+    cursor: pointer !important;
+    
+    /* Reset any problematic styles */
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    position: relative !important;
+    z-index: 100 !important;
+}
+
+/* ===== CRITICAL: FIX POINTER-EVENTS ON HTML/BODY ===== */
+html, body {
+    pointer-events: auto !important;
+}
+
+* {
+    pointer-events: auto !important;
+}
+
