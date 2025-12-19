@@ -753,3 +753,113 @@ html, body {
         margin-left: auto !important;
     }
 }
+
+/* ===== FINAL HAMBURGER FIX ===== */
+@media (max-width: 768px) {
+    /* Header container - overall layout */
+    .header-container {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        width: 100% !important;
+        padding: 0 1rem !important;
+        gap: 1rem !important;
+    }
+    
+    /* Main navigation - contains hamburger, menu, user actions */
+    .main-nav {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: flex-end !important;
+        flex: 1 !important;
+        gap: 10px !important;
+        min-width: 0 !important; /* Allow shrinking */
+        position: relative !important;
+    }
+    
+    /* Hamburger - FIRST in main-nav */
+    .mobile-menu-btn {
+        display: flex !important;
+        order: 1 !important;
+        flex-shrink: 0 !important;
+        
+        /* Size */
+        width: 44px !important;
+        height: 44px !important;
+        margin: 0 !important;
+        padding: 10px !important;
+        
+        /* Styling */
+        background: var(--primary-color, #1e3c72) !important;
+        border: 2px solid rgba(255,255,255,0.9) !important;
+        border-radius: 6px !important;
+        cursor: pointer !important;
+        
+        /* Center lines */
+        flex-direction: column !important;
+        justify-content: center !important;
+        align-items: center !important;
+    }
+    
+    /* Hamburger lines */
+    .menu-line {
+        display: block !important;
+        width: 20px !important;
+        height: 2px !important;
+        background: white !important;
+        margin: 3px 0 !important;
+        border-radius: 1px !important;
+    }
+    
+    /* Navigation menu - SECOND, hidden by default */
+    .nav-list {
+        display: none !important;
+        order: 2 !important;
+        flex: 1 !important;
+        justify-content: center !important;
+    }
+    
+    /* Show mobile menu when open */
+    .nav-list.mobile-open {
+        display: flex !important;
+        position: absolute !important;
+        top: 100% !important;
+        left: 0 !important;
+        right: 0 !important;
+        flex-direction: column !important;
+        background: white !important;
+        z-index: 1000 !important;
+        padding: 1rem !important;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.15) !important;
+    }
+    
+    /* User actions - THIRD in main-nav */
+    .header-actions {
+        display: flex !important;
+        order: 3 !important;
+        align-items: center !important;
+        gap: 10px !important;
+        flex-shrink: 0 !important;
+    }
+}
+
+/* Desktop - hide hamburger */
+@media (min-width: 769px) {
+    .mobile-menu-btn {
+        display: none !important;
+    }
+    
+    .main-nav {
+        gap: 2rem !important;
+    }
+    
+    .nav-list {
+        display: flex !important;
+        order: 1 !important;
+        gap: 1.5rem !important;
+    }
+    
+    .header-actions {
+        order: 2 !important;
+    }
+}
