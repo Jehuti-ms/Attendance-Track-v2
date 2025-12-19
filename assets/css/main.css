@@ -615,3 +615,48 @@ html, body {
         display: none !important;
     }
 }
+
+/* ===== FIX: Hide mobile menu by default ===== */
+@media (max-width: 768px) {
+    /* Hide regular navigation items on mobile */
+    .nav-list {
+        display: none !important; /* HIDE by default */
+        position: fixed !important;
+        top: 70px !important;
+        left: 0 !important;
+        right: 0 !important;
+        background: white !important;
+        z-index: 999 !important;
+        padding: 1rem !important;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.15) !important;
+        flex-direction: column !important;
+    }
+    
+    /* Show only when hamburger is clicked */
+    .nav-list.mobile-open {
+        display: flex !important; /* SHOW when toggled */
+    }
+    
+    /* Make hamburger visible on mobile */
+    .mobile-menu-btn {
+        display: flex !important;
+        order: 2; /* Move to right side */
+        margin-left: auto !important;
+    }
+}
+
+/* Desktop: show nav, hide hamburger */
+@media (min-width: 769px) {
+    .nav-list {
+        display: flex !important; /* SHOW on desktop */
+        flex-direction: row !important;
+        position: static !important;
+        background: transparent !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+    }
+    
+    .mobile-menu-btn {
+        display: none !important; /* HIDE on desktop */
+    }
+}
