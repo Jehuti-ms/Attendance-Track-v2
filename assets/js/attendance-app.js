@@ -183,11 +183,11 @@ fixUserStatusDesign() {
         // 1. Apply dark design to containers
         this.applyDarkDesignToContainers();
         
-        // 2. Enable logout button rotation
-        this.enableLogoutButtonRotation();
+        // 2. Enable logout button rotation WITHOUT breaking click
+        this.fixLogoutButton();
         
-        // 3. Fix hamburger menu alignment
-        this.fixHamburgerMenuAlignment();
+        // 3. Fix hamburger menu alignment WITHOUT breaking click
+        this.fixHamburgerMenu();
         
         console.log('✅ Dark design fixes applied');
     }, 100);
@@ -229,57 +229,150 @@ applyDarkDesignToContainers() {
     });
 }
 
-enableLogoutButtonRotation() {
+fixLogoutButton() {
     const logoutBtn = document.querySelector('.btn-logout');
     if (!logoutBtn) {
         console.log('ℹ️ No logout button found');
         return;
     }
     
-    console.log('🔄 Setting up logout button rotation');
+    console.log('🔄 Fixing logout button...');
     
-    // Clean clone to remove any existing listeners
-    const newBtn = logoutBtn.cloneNode(true);
-    logoutBtn.parentNode.replaceChild(newBtn, logoutBtn);
+    // Store the original onclick handler before we modify anything
+    const originalOnClick = logoutBtn.onclick;
+    const originalEventListeners = this.getEventListeners(logoutBtn, 'click');
     
-    // Add smooth rotation effects
-    newBtn.addEventListener('mouseenter', () => {
-        newBtn.style.transform = 'rotate(90deg)';
-        newBtn.style.transition = 'transform 0.3s ease';
-        
-        const icon = newBtn.querySelector('i');
+    // Apply rotation styles WITHOUT cloning (to preserve click handlers)
+    logoutBtn.style.cssText += `
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        width: 40px !important;
+        height: 40px !important;
+        border-radius: 50% !important;
+        background: rgba(26, 35, 126, 0.15) !important;
+        border: 1px solid rgba(26, 35, 126, 0.3) !important;
+        color: #1a237e !important;
+        cursor: pointer !important;
+        transition: all 0.3s ease !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        flex-shrink: 0 !important;
+    `;
+    
+    // Fix the icon if present
+    const icon = logoutBtn.querySelector('i');
+    if (icon) {
+        icon.style.cssText += `
+            color: #1a237e !important;
+            font-size: 18px !important;
+            transition: transform 0.3s ease !important;
+            display: inline-block !important;
+        `;
+    }
+    
+    // Add rotation animation with mouse events
+    logoutBtn.addEventListener('mouseenter', () => {
+        logoutBtn.style.transform = 'rotate(90deg)';
         if (icon) {
             icon.style.transform = 'rotate(-90deg)';
-            icon.style.transition = 'transform 0.3s ease';
         }
     });
     
-    newBtn.addEventListener('mouseleave', () => {
-        newBtn.style.transform = 'rotate(0deg)';
-        const icon = newBtn.querySelector('i');
+    logoutBtn.addEventListener('mouseleave', () => {
+        logoutBtn.style.transform = 'rotate(0deg)';
         if (icon) {
             icon.style.transform = 'rotate(0deg)';
         }
     });
+    
+    // Reattach original click handler if it exists
+    if (originalOnClick) {
+        logoutBtn.onclick = originalOnClick;
+    }
+    
+    // Also check for data attributes or other click bindings
+    if (logoutBtn.getAttribute('onclick')) {
+        // Keep the inline onclick attribute
+        console.log('Preserved inline onclick handler');
+    }
+    
+    // Check if it has a click event listener from your setupEventListeners
+    if (this.state && this.state.logoutHandler) {
+        logoutBtn.addEventListener('click', this.state.logoutHandler);
+    }
+    
+    console.log('✅ Logout button fixed (rotation + click preserved)');
 }
 
-fixHamburgerMenuAlignment() {
+fixHamburgerMenu() {
     const hamburger = document.querySelector('.hamburger-menu, .menu-toggle, .hamburger');
-    if (hamburger) {
-        hamburger.style.cssText = `
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            width: 40px !important;
-            height: 40px !important;
-            border-radius: 50% !important;
-            background: rgba(26, 35, 126, 0.1) !important;
-            border: 1px solid rgba(26, 35, 126, 0.2) !important;
-            cursor: pointer !important;
-            flex-shrink: 0 !important;
-        `;
-        console.log('✅ Hamburger menu aligned');
+    if (!hamburger) {
+        console.log('ℹ️ No hamburger menu found');
+        return;
     }
+    
+    console.log('🍔 Fixing hamburger menu...');
+    
+    // Store original click handlers
+    const originalOnClick = hamburger.onclick;
+    const originalEventListeners = this.getEventListeners(hamburger, 'click');
+    
+    // Apply styling WITHOUT cloning
+    hamburger.style.cssText += `
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        width: 40px !important;
+        height: 40px !important;
+        border-radius: 50% !important;
+        background: rgba(26, 35, 126, 0.1) !important;
+        border: 1px solid rgba(26, 35, 126, 0.2) !important;
+        cursor: pointer !important;
+        flex-shrink: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    `;
+    
+    // Style the menu lines if present
+    const menuLines = hamburger.querySelectorAll('.menu-line');
+    menuLines.forEach(line => {
+        line.style.cssText += `
+            background: #1a237e !important;
+            height: 2px !important;
+            width: 20px !important;
+            border-radius: 2px !important;
+            transition: all 0.3s ease !important;
+        `;
+    });
+    
+    // Add hover effect
+    hamburger.addEventListener('mouseenter', () => {
+        menuLines.forEach(line => {
+            line.style.background = '#3498db !important';
+        });
+    });
+    
+    hamburger.addEventListener('mouseleave', () => {
+        menuLines.forEach(line => {
+            line.style.background = '#1a237e !important';
+        });
+    });
+    
+    // Reattach original click handler
+    if (originalOnClick) {
+        hamburger.onclick = originalOnClick;
+    }
+    
+    console.log('✅ Hamburger menu fixed (click preserved)');
+}
+
+// Helper to get event listeners (for debugging)
+getEventListeners(element, eventType) {
+    // This is a debugging helper - browser DevTools have this built-in
+    console.log(`Event listeners for ${eventType}:`, 
+        element._events ? element._events[eventType] : 'No internal tracking');
+    return [];
 }
     
     // ==================== INITIALIZATION ====================
