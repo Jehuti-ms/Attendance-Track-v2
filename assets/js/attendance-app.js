@@ -176,67 +176,95 @@ setupConnectionMonitoring(statusElement) {
 
     // ==================== USER STATUS DESIGN FIX ====================
 fixUserStatusDesign() {
-    console.log('🎨 Fixing user status design...');
+    console.log('🎨 Applying dark design fixes...');
     
-    // 1. Wait for any dynamic content
+    // Apply fixes with a small delay to ensure all elements are rendered
     setTimeout(() => {
-        this.applyDarkDesignStyles();
-        this.enableLogoutRotation();
-        this.fixHamburgerAlignment();
-    }, 50);
+        // 1. Apply dark design to containers
+        this.applyDarkDesignToContainers();
+        
+        // 2. Enable logout button rotation
+        this.enableLogoutButtonRotation();
+        
+        // 3. Fix hamburger menu alignment
+        this.fixHamburgerMenuAlignment();
+        
+        console.log('✅ Dark design fixes applied');
+    }, 100);
 }
 
-applyDarkDesignStyles() {
-    // Apply consistent styling to all status containers
+applyDarkDesignToContainers() {
     const containers = [
-        document.querySelector('#navUserStatus'),
-        document.querySelector('.user-status'),
-        document.querySelector('.status-content')
-    ].filter(el => el);
+        '#navUserStatus',
+        '.user-status',
+        '.status-content'
+    ].map(selector => document.querySelector(selector))
+     .filter(el => el);
     
     containers.forEach(container => {
-        // Only apply if not already styled
-        if (!container.classList.contains('dark-design-applied')) {
-            container.classList.add('dark-design-applied');
+        if (!container.classList.contains('dark-design-fixed')) {
+            container.classList.add('dark-design-fixed');
             
-            // Ensure dark background is applied
-            container.style.backgroundColor = 'rgba(0, 0, 0, 0.85)';
-            container.style.border = '1px solid rgba(255, 255, 255, 0.2)';
-            container.style.borderRadius = '20px';
-            container.style.height = '40px';
-            container.style.padding = '8px 16px';
+            // Ensure dark theme is applied
+            container.style.cssText += `
+                background: rgba(0, 0, 0, 0.85) !important;
+                border: 1px solid rgba(255, 255, 255, 0.2) !important;
+                border-radius: 20px !important;
+                height: 40px !important;
+                min-height: 40px !important;
+                padding: 8px 16px !important;
+                display: flex !important;
+                align-items: center !important;
+                gap: 12px !important;
+                color: white !important;
+                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4) !important;
+                position: relative !important;
+                z-index: 1000 !important;
+                overflow: visible !important;
+                box-sizing: border-box !important;
+            `;
             
-            console.log('✅ Applied dark design to container');
+            console.log(`✅ Applied dark design to: ${container.className || container.id}`);
         }
     });
 }
 
-enableLogoutRotation() {
+enableLogoutButtonRotation() {
     const logoutBtn = document.querySelector('.btn-logout');
-    if (!logoutBtn) return;
+    if (!logoutBtn) {
+        console.log('ℹ️ No logout button found');
+        return;
+    }
     
-    // Clean existing listeners
+    console.log('🔄 Setting up logout button rotation');
+    
+    // Clean clone to remove any existing listeners
     const newBtn = logoutBtn.cloneNode(true);
     logoutBtn.parentNode.replaceChild(newBtn, logoutBtn);
     
-    // Add rotation effect
+    // Add smooth rotation effects
     newBtn.addEventListener('mouseenter', () => {
         newBtn.style.transform = 'rotate(90deg)';
+        newBtn.style.transition = 'transform 0.3s ease';
+        
         const icon = newBtn.querySelector('i');
-        if (icon) icon.style.transform = 'rotate(-90deg)';
+        if (icon) {
+            icon.style.transform = 'rotate(-90deg)';
+            icon.style.transition = 'transform 0.3s ease';
+        }
     });
     
     newBtn.addEventListener('mouseleave', () => {
         newBtn.style.transform = 'rotate(0deg)';
         const icon = newBtn.querySelector('i');
-        if (icon) icon.style.transform = 'rotate(0deg)';
+        if (icon) {
+            icon.style.transform = 'rotate(0deg)';
+        }
     });
-    
-    console.log('✅ Logout button rotation enabled');
 }
 
-fixHamburgerAlignment() {
-    const hamburger = document.querySelector('.hamburger-menu, .menu-toggle');
+fixHamburgerMenuAlignment() {
+    const hamburger = document.querySelector('.hamburger-menu, .menu-toggle, .hamburger');
     if (hamburger) {
         hamburger.style.cssText = `
             display: flex !important;
@@ -247,6 +275,8 @@ fixHamburgerAlignment() {
             border-radius: 50% !important;
             background: rgba(26, 35, 126, 0.1) !important;
             border: 1px solid rgba(26, 35, 126, 0.2) !important;
+            cursor: pointer !important;
+            flex-shrink: 0 !important;
         `;
         console.log('✅ Hamburger menu aligned');
     }
