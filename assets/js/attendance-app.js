@@ -173,111 +173,192 @@ setupConnectionMonitoring(statusElement) {
     window.addEventListener('online', () => updateStatus(true));
     window.addEventListener('offline', () => updateStatus(false));
 }
+
+    // ==================== USER STATUS DESIGN FIX ====================
+fixUserStatusDesign() {
+    console.log('🎨 Fixing user status design...');
+    
+    // 1. Wait for any dynamic content
+    setTimeout(() => {
+        this.applyDarkDesignStyles();
+        this.enableLogoutRotation();
+        this.fixHamburgerAlignment();
+    }, 50);
+}
+
+applyDarkDesignStyles() {
+    // Apply consistent styling to all status containers
+    const containers = [
+        document.querySelector('#navUserStatus'),
+        document.querySelector('.user-status'),
+        document.querySelector('.status-content')
+    ].filter(el => el);
+    
+    containers.forEach(container => {
+        // Only apply if not already styled
+        if (!container.classList.contains('dark-design-applied')) {
+            container.classList.add('dark-design-applied');
+            
+            // Ensure dark background is applied
+            container.style.backgroundColor = 'rgba(0, 0, 0, 0.85)';
+            container.style.border = '1px solid rgba(255, 255, 255, 0.2)';
+            container.style.borderRadius = '20px';
+            container.style.height = '40px';
+            container.style.padding = '8px 16px';
+            
+            console.log('✅ Applied dark design to container');
+        }
+    });
+}
+
+enableLogoutRotation() {
+    const logoutBtn = document.querySelector('.btn-logout');
+    if (!logoutBtn) return;
+    
+    // Clean existing listeners
+    const newBtn = logoutBtn.cloneNode(true);
+    logoutBtn.parentNode.replaceChild(newBtn, logoutBtn);
+    
+    // Add rotation effect
+    newBtn.addEventListener('mouseenter', () => {
+        newBtn.style.transform = 'rotate(90deg)';
+        const icon = newBtn.querySelector('i');
+        if (icon) icon.style.transform = 'rotate(-90deg)';
+    });
+    
+    newBtn.addEventListener('mouseleave', () => {
+        newBtn.style.transform = 'rotate(0deg)';
+        const icon = newBtn.querySelector('i');
+        if (icon) icon.style.transform = 'rotate(0deg)';
+    });
+    
+    console.log('✅ Logout button rotation enabled');
+}
+
+fixHamburgerAlignment() {
+    const hamburger = document.querySelector('.hamburger-menu, .menu-toggle');
+    if (hamburger) {
+        hamburger.style.cssText = `
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            width: 40px !important;
+            height: 40px !important;
+            border-radius: 50% !important;
+            background: rgba(26, 35, 126, 0.1) !important;
+            border: 1px solid rgba(26, 35, 126, 0.2) !important;
+        `;
+        console.log('✅ Hamburger menu aligned');
+    }
+}
     
     // ==================== INITIALIZATION ====================
-    async init() {
-        console.log('🚀 Initializing AttendanceApp...');
-        
-        // DEBUG: Check current state
-        console.log('=== INIT DEBUG ===');
-        console.log('Current page:', this.state.currentPage);
-        console.log('Pathname:', window.location.pathname);
-        console.log('Full URL:', window.location.href);
-        
-        const storedUser = localStorage.getItem('attendance_user');
-        console.log('Stored user raw:', storedUser);
-        console.log('Stored user parsed:', JSON.parse(storedUser || 'null'));
-        console.log('=== END DEBUG ===');
+async init() {
+    console.log('🚀 Initializing AttendanceApp...');
+    
+    // DEBUG: Check current state
+    console.log('=== INIT DEBUG ===');
+    console.log('Current page:', this.state.currentPage);
+    console.log('Pathname:', window.location.pathname);
+    console.log('Full URL:', window.location.href);
+    
+    const storedUser = localStorage.getItem('attendance_user');
+    console.log('Stored user raw:', storedUser);
+    console.log('Stored user parsed:', JSON.parse(storedUser || 'null'));
+    console.log('=== END DEBUG ===');
 
-        // Force service worker update
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.getRegistrations().then(registrations => {
-                for (let registration of registrations) {
-                    registration.update();
-                }
+    // Force service worker update
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(registrations => {
+            for (let registration of registrations) {
+                registration.update();
+            }
+        });
+    }
+    
+    try {
+        // 1. Get current page and user
+        const currentPage = this.state.currentPage;
+        const authResult = await this.checkAuth();
+        const hasUser = authResult.success;
+        
+        console.log(`📄 Page: ${currentPage}, Has user: ${hasUser}`);
+        
+        // 2. Define which pages are public
+        const publicPages = ['index', 'login', 'setup']; // setup is public
+        const isPublicPage = publicPages.includes(currentPage);
+        
+        // 3. DECISION MATRIX:
+        console.log(`Decision: Public page? ${isPublicPage}, Has user? ${hasUser}`);
+        
+        // CASE 1: User logged in AND on public page (except setup) → redirect to dashboard
+        if (hasUser && isPublicPage && currentPage !== 'setup') {
+            console.log('⚠️ Logged-in user on public page → redirecting to dashboard');
+            window.location.replace('dashboard.html');
+            return; // STOP here
+        }
+        
+        // CASE 2: No user AND on protected page → redirect to index
+        if (!hasUser && !isPublicPage) {
+            console.log('🔒 No user on protected page → redirecting to index');
+            window.location.replace('index.html');
+            return; // STOP here
+        }
+        
+        // CASE 3: User logged in AND on protected page → CONTINUE
+        if (hasUser && !isPublicPage) {
+            console.log('✅ Authenticated user accessing protected page');
+            this.user = authResult.user;
+            this.state.currentUser = authResult.user;
+            
+            // Try Firebase sync (non-blocking)
+            this.syncLocalUserToFirebase().catch(err => {
+                console.log('Firebase sync optional:', err.message);
             });
         }
         
-        try {
-            // 1. Get current page and user
-            const currentPage = this.state.currentPage;
-            const authResult = await this.checkAuth();
-            const hasUser = authResult.success;
-            
-            console.log(`📄 Page: ${currentPage}, Has user: ${hasUser}`);
-            
-            // 2. Define which pages are public
-            const publicPages = ['index', 'login', 'setup']; // setup is public
-            const isPublicPage = publicPages.includes(currentPage);
-            
-            // 3. DECISION MATRIX:
-            console.log(`Decision: Public page? ${isPublicPage}, Has user? ${hasUser}`);
-            
-            // CASE 1: User logged in AND on public page (except setup) → redirect to dashboard
-            if (hasUser && isPublicPage && currentPage !== 'setup') {
-                console.log('⚠️ Logged-in user on public page → redirecting to dashboard');
-                window.location.replace('dashboard.html');
-                return; // STOP here
-            }
-            
-            // CASE 2: No user AND on protected page → redirect to index
-            if (!hasUser && !isPublicPage) {
-                console.log('🔒 No user on protected page → redirecting to index');
-                window.location.replace('index.html');
-                return; // STOP here
-            }
-            
-            // CASE 3: User logged in AND on protected page → CONTINUE
-            if (hasUser && !isPublicPage) {
-                console.log('✅ Authenticated user accessing protected page');
-                this.user = authResult.user;
-                this.state.currentUser = authResult.user;
-                
-                // Try Firebase sync (non-blocking)
-                this.syncLocalUserToFirebase().catch(err => {
-                    console.log('Firebase sync optional:', err.message);
-                });
-            }
-            
-            // CASE 4: No user AND on public page → CONTINUE (show login form)
-            if (!hasUser && isPublicPage) {
-                console.log('👋 No user on public page → showing login form');
-                this.user = null;
-                this.state.currentUser = null;
-            }
-            
-            // 4. Continue with app initialization (only if no redirect happened)
-            console.log('Continuing with app initialization...');
-            
-            // Setup page specific initialization
-            if (currentPage === 'setup') {
-                await this.initSetupPage();
-            } else {
-                // Load UI components (header/footer only for protected pages)
-                if (!isPublicPage) {
-                    await this.loadUIComponents();
-                }
-                
-                // Load page-specific content
-                await this.loadPageContent();
-            }
-               
-            // Setup event listeners
-            this.setupEventListeners();
-
-            // Update nav status with a small delay to ensure DOM is ready
-            setTimeout(() => this.updateNavStatus(), 100);
-            
-            // Initialize service worker
-            this.initServiceWorker();
-            
-            console.log('✅ AttendanceApp initialized successfully');
-            
-        } catch (error) {
-            console.error('❌ Error initializing app:', error);
-            this.showError(error.message);
+        // CASE 4: No user AND on public page → CONTINUE (show login form)
+        if (!hasUser && isPublicPage) {
+            console.log('👋 No user on public page → showing login form');
+            this.user = null;
+            this.state.currentUser = null;
         }
+        
+        // 4. Continue with app initialization (only if no redirect happened)
+        console.log('Continuing with app initialization...');
+        
+        // Setup page specific initialization
+        if (currentPage === 'setup') {
+            await this.initSetupPage();
+        } else {
+            // Load UI components (header/footer only for protected pages)
+            if (!isPublicPage) {
+                await this.loadUIComponents();
+            }
+            
+            // Load page-specific content
+            await this.loadPageContent();
+        }
+           
+        // Setup event listeners
+        this.setupEventListeners();
+
+        // ✅ UPDATED: Update nav status AND apply dark design fixes
+        setTimeout(() => {
+            this.updateNavStatus();
+            this.fixUserStatusDesign(); // NEW: Apply dark design fixes
+        }, 200); // Slightly longer delay for DOM to be ready
+        
+        // Initialize service worker
+        this.initServiceWorker();
+        
+        console.log('✅ AttendanceApp initialized successfully');
+        
+    } catch (error) {
+        console.error('❌ Error initializing app:', error);
+        this.showError(error.message);
     }
+}
 
     // ==================== SETUP PAGE INITIALIZATION ====================
     async initSetupPage() {
