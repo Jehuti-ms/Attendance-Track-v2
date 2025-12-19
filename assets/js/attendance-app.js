@@ -180,41 +180,93 @@ fixUserStatusDesign() {
     
     // Apply fixes with a small delay to ensure all elements are rendered
     setTimeout(() => {
-        // 1. Apply dark design to containers
+        // 1. Fix container sizes FIRST
+        this.fixContainerSizes();
+        
+        // 2. Apply dark design to containers
         this.applyDarkDesignToContainers();
         
-        // 2. Enable logout button rotation WITHOUT breaking click
+        // 3. Enable logout button rotation WITHOUT breaking click
         this.fixLogoutButton();
         
-        // 3. Fix hamburger menu alignment WITHOUT breaking click
+        // 4. Fix hamburger menu alignment WITHOUT breaking click
         this.fixHamburgerMenu();
         
         console.log('✅ Dark design fixes applied');
     }, 100);
 }
 
-applyDarkDesignToContainers() {
-    const containers = [
-        '#navUserStatus',
-        '.user-status',
-        '.status-content'
-    ].map(selector => document.querySelector(selector))
-     .filter(el => el);
+fixContainerSizes() {
+    console.log('📏 Fixing container sizes...');
     
-    containers.forEach(container => {
-        if (!container.classList.contains('dark-design-fixed')) {
-            container.classList.add('dark-design-fixed');
-            
-            // Ensure dark theme is applied
-            container.style.cssText += `
+    // Find ALL user status related containers
+    const allContainers = [
+        document.querySelector('#navUserStatus'),
+        document.querySelector('.user-status'),
+        document.querySelector('.status-content'),
+        ...document.querySelectorAll('[class*="user"][class*="status"]'),
+        ...document.querySelectorAll('[class*="status"][class*="content"]')
+    ].filter(el => el && el.isConnected); // Only elements in DOM
+    
+    console.log(`Found ${allContainers.length} user status containers`);
+    
+    // Sort by depth (deepest first) to fix nesting properly
+    allContainers.sort((a, b) => {
+        const depthA = this.getElementDepth(a);
+        const depthB = this.getElementDepth(b);
+        return depthB - depthA; // Deepest first
+    });
+    
+    allContainers.forEach((container, index) => {
+        // Check if this container is nested inside another user-status container
+        let parent = container.parentElement;
+        let isNested = false;
+        
+        while (parent) {
+            if (allContainers.includes(parent)) {
+                isNested = true;
+                break;
+            }
+            parent = parent.parentElement;
+        }
+        
+        console.log(`Container ${index}: ${container.className || container.id}, Nested: ${isNested}`);
+        
+        if (isNested) {
+            // Nested container - make it transparent and flexible
+            container.style.cssText = `
+                background: transparent !important;
+                border: none !important;
+                box-shadow: none !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                display: flex !important;
+                align-items: center !important;
+                gap: 12px !important;
+                height: auto !important;
+                min-height: unset !important;
+                width: auto !important;
+                min-width: unset !important;
+                flex-shrink: 0 !important;
+                position: static !important;
+                z-index: auto !important;
+            `;
+        } else {
+            // Main/root container - apply fixed dark design
+            container.style.cssText = `
                 background: rgba(0, 0, 0, 0.85) !important;
                 border: 1px solid rgba(255, 255, 255, 0.2) !important;
                 border-radius: 20px !important;
                 height: 40px !important;
                 min-height: 40px !important;
+                max-height: 40px !important;
+                min-width: 200px !important;
+                max-width: fit-content !important;
                 padding: 8px 16px !important;
                 display: flex !important;
                 align-items: center !important;
+                flex-direction: row !important;
+                flex-wrap: nowrap !important;
                 gap: 12px !important;
                 color: white !important;
                 box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4) !important;
@@ -222,9 +274,38 @@ applyDarkDesignToContainers() {
                 z-index: 1000 !important;
                 overflow: visible !important;
                 box-sizing: border-box !important;
+                flex-shrink: 0 !important;
             `;
-            
-            console.log(`✅ Applied dark design to: ${container.className || container.id}`);
+        }
+    });
+}
+
+// Helper to get element depth in DOM
+getElementDepth(element) {
+    let depth = 0;
+    let parent = element.parentElement;
+    
+    while (parent) {
+        depth++;
+        parent = parent.parentElement;
+    }
+    
+    return depth;
+}
+
+applyDarkDesignToContainers() {
+    // Now just ensure CSS classes are added for tracking
+    const mainContainers = [
+        '#navUserStatus',
+        '.user-status',
+        '.status-content'
+    ].map(selector => document.querySelector(selector))
+     .filter(el => el);
+    
+    mainContainers.forEach(container => {
+        if (!container.classList.contains('dark-design-fixed')) {
+            container.classList.add('dark-design-fixed');
+            console.log(`✅ Marked as fixed: ${container.className || container.id}`);
         }
     });
 }
@@ -238,11 +319,10 @@ fixLogoutButton() {
     
     console.log('🔄 Fixing logout button...');
     
-    // Store the original onclick handler before we modify anything
+    // Store the original onclick handler
     const originalOnClick = logoutBtn.onclick;
-    const originalEventListeners = this.getEventListeners(logoutBtn, 'click');
     
-    // Apply rotation styles WITHOUT cloning (to preserve click handlers)
+    // Apply rotation styles
     logoutBtn.style.cssText += `
         display: flex !important;
         align-items: center !important;
@@ -271,7 +351,7 @@ fixLogoutButton() {
         `;
     }
     
-    // Add rotation animation with mouse events
+    // Add rotation animation
     logoutBtn.addEventListener('mouseenter', () => {
         logoutBtn.style.transform = 'rotate(90deg)';
         if (icon) {
@@ -286,23 +366,12 @@ fixLogoutButton() {
         }
     });
     
-    // Reattach original click handler if it exists
+    // Reattach original click handler
     if (originalOnClick) {
         logoutBtn.onclick = originalOnClick;
     }
     
-    // Also check for data attributes or other click bindings
-    if (logoutBtn.getAttribute('onclick')) {
-        // Keep the inline onclick attribute
-        console.log('Preserved inline onclick handler');
-    }
-    
-    // Check if it has a click event listener from your setupEventListeners
-    if (this.state && this.state.logoutHandler) {
-        logoutBtn.addEventListener('click', this.state.logoutHandler);
-    }
-    
-    console.log('✅ Logout button fixed (rotation + click preserved)');
+    console.log('✅ Logout button fixed');
 }
 
 fixHamburgerMenu() {
@@ -314,11 +383,10 @@ fixHamburgerMenu() {
     
     console.log('🍔 Fixing hamburger menu...');
     
-    // Store original click handlers
+    // Store original click handler
     const originalOnClick = hamburger.onclick;
-    const originalEventListeners = this.getEventListeners(hamburger, 'click');
     
-    // Apply styling WITHOUT cloning
+    // Apply styling
     hamburger.style.cssText += `
         display: flex !important;
         align-items: center !important;
@@ -334,7 +402,7 @@ fixHamburgerMenu() {
         padding: 0 !important;
     `;
     
-    // Style the menu lines if present
+    // Style the menu lines
     const menuLines = hamburger.querySelectorAll('.menu-line');
     menuLines.forEach(line => {
         line.style.cssText += `
@@ -342,7 +410,7 @@ fixHamburgerMenu() {
             height: 2px !important;
             width: 20px !important;
             border-radius: 2px !important;
-            transition: all 0.3s ease !important;
+            transition: background 0.3s ease !important;
         `;
     });
     
@@ -364,15 +432,7 @@ fixHamburgerMenu() {
         hamburger.onclick = originalOnClick;
     }
     
-    console.log('✅ Hamburger menu fixed (click preserved)');
-}
-
-// Helper to get event listeners (for debugging)
-getEventListeners(element, eventType) {
-    // This is a debugging helper - browser DevTools have this built-in
-    console.log(`Event listeners for ${eventType}:`, 
-        element._events ? element._events[eventType] : 'No internal tracking');
-    return [];
+    console.log('✅ Hamburger menu fixed');
 }
     
     // ==================== INITIALIZATION ====================
