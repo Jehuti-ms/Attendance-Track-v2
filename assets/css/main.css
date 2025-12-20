@@ -798,3 +798,66 @@ aside {
     }
 }
 
+/* Logout Button Styles */
+.logout-btn-styled {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 40px !important;
+    height: 40px !important;
+    border-radius: 50% !important;
+    background: rgba(26, 35, 126, 0.15) !important;
+    border: 1px solid rgba(26, 35, 126, 0.3) !important;
+    color: #1a237e !important;
+    cursor: pointer !important;
+    transition: all 0.3s ease !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    flex-shrink: 0 !important;
+    position: relative !important;
+    z-index: 10 !important;
+    transform: rotate(0deg) !important;
+}
+
+.logout-btn-styled:hover {
+    background: rgba(26, 35, 126, 0.25) !important;
+    box-shadow: 0 4px 12px rgba(26, 35, 126, 0.2) !important;
+}
+
+/* Rotation animation on hover */
+.logout-hover {
+    transform: rotate(90deg) !important;
+}
+
+.logout-icon {
+    color: #1a237e !important;
+    font-size: 18px !important;
+    transition: transform 0.3s ease !important;
+    display: inline-block !important;
+    transform: rotate(0deg) !important;
+}
+
+.logout-hover .logout-icon {
+    transform: rotate(-90deg) !important;
+    color: #283593 !important;
+}
+
+/* Click animation */
+.logout-click {
+    animation: logoutClick 0.2s ease !important;
+}
+
+@keyframes logoutClick {
+    0% {
+        transform: scale(1) rotate(0deg);
+    }
+    50% {
+        transform: scale(0.9) rotate(90deg);
+        background: rgba(26, 35, 126, 0.35) !important;
+    }
+    100% {
+        transform: scale(1) rotate(0deg);
+        background: rgba(26, 35, 126, 0.15) !important;
+    }
+}
+
