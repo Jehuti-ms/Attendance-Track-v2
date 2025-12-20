@@ -1182,7 +1182,19 @@ async init() {
         // ✅ UPDATED: Update nav status AND apply dark design fixes
         setTimeout(() => {
             this.updateNavStatus();
-            this.fixUserStatusDesign(); // NEW: Apply dark design fixes
+            this.fixUserStatusDesign(); // Apply dark design fixes
+            
+            // Initialize responsive hamburger behavior
+            if (!isPublicPage && hasUser) {
+                setTimeout(() => {
+                    if (typeof this.initWindowResizeListener === 'function') {
+                        this.initWindowResizeListener();
+                    }
+                    if (typeof this.checkResponsiveView === 'function') {
+                        this.checkResponsiveView();
+                    }
+                }, 300);
+            }
         }, 200); // Slightly longer delay for DOM to be ready
         
         // Initialize service worker
@@ -1195,7 +1207,7 @@ async init() {
         this.showError(error.message);
     }
 }
-
+    
     // ==================== SETUP PAGE INITIALIZATION ====================
     async initSetupPage() {
         console.log('⚙️ Initializing setup page...');
