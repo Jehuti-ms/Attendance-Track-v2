@@ -598,7 +598,6 @@ toggleNavigationLinks() {
 }
     
 // ==================== CORRECTED TOGGLE LOGIC ====================
-
 setupNavbarToggling() {
     console.log('🔧 Setting up navbar toggling...');
     
@@ -669,84 +668,6 @@ setupNavbarToggling() {
         console.log('✅ Navigation links stored for toggling');
     } else {
         console.log('⚠️ No navigation links found for toggling');
-    }
-}
-
-toggleNavbarVisibility() {
-    console.log('🔄 Toggling navigation links visibility...');
-    
-    // Get stored references
-    const navLinks = this.state.navLinksElement;
-    const hamburger = this.state.hamburgerElement || 
-                     document.querySelector('.hamburger-menu, .navbar-toggle');
-    
-    if (!navLinks || !hamburger) {
-        console.log('❌ Missing elements for toggling');
-        return;
-    }
-    
-    // Check if we're on small screen - only toggle on mobile
-    const screenWidth = window.innerWidth;
-    const isLargeScreen = screenWidth >= 768;
-    
-    if (isLargeScreen) {
-        console.log('🖥️ On large screen - navigation links should always be visible');
-        return; // Don't toggle on large screens
-    }
-    
-    console.log('📱 On small screen - toggling navigation links');
-    
-    // Check current state
-    const computedStyle = window.getComputedStyle(navLinks);
-    const isCurrentlyVisible = 
-        computedStyle.display !== 'none' && 
-        computedStyle.visibility !== 'hidden' &&
-        navLinks.offsetWidth > 0 && 
-        navLinks.offsetHeight > 0;
-    
-    console.log(`Navigation links state: visible=${isCurrentlyVisible}`);
-    
-    if (isCurrentlyVisible) {
-        // Hide navigation links (mobile menu)
-        console.log('👁️‍🗨️ Hiding navigation links...');
-        navLinks.style.cssText = `
-            display: none !important;
-            visibility: hidden !important;
-            opacity: 0 !important;
-            pointer-events: none !important;
-        `;
-        navLinks.classList.remove('links-visible');
-        navLinks.classList.add('links-hidden');
-        hamburger.innerHTML = '☰';
-        hamburger.setAttribute('aria-expanded', 'false');
-        console.log('✅ Navigation links hidden');
-    } else {
-        // Show navigation links as mobile menu
-        console.log('👁️‍🗨️ Showing navigation links as mobile menu...');
-        navLinks.style.cssText = `
-            display: flex !important;
-            visibility: visible !important;
-            opacity: 1 !important;
-            pointer-events: all !important;
-            flex-direction: column !important;
-            position: fixed !important;
-            top: 70px !important;
-            right: 20px !important;
-            background: rgba(0, 0, 0, 0.95) !important;
-            border-radius: 10px !important;
-            padding: 15px !important;
-            z-index: 9999 !important;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.4) !important;
-            border: 1px solid rgba(255,255,255,0.1) !important;
-            min-width: 200px !important;
-            max-width: 300px !important;
-            gap: 10px !important;
-        `;
-        navLinks.classList.add('links-visible');
-        navLinks.classList.remove('links-hidden');
-        hamburger.innerHTML = '✕';
-        hamburger.setAttribute('aria-expanded', 'true');
-        console.log('✅ Navigation links shown as mobile menu');
     }
 }
 
@@ -882,7 +803,9 @@ checkResponsiveView() {
             hamburger.innerHTML = '✕';
             hamburger.setAttribute('aria-expanded', 'true');
         }
-
+    }
+}
+    
 // ==================== FIXUSERSTATUSDESIGN METHOD ====================
 fixUserStatusDesign() {
     console.log('🎨 Applying dark design fixes...');
@@ -1046,7 +969,7 @@ setupResponsiveHamburger(hamburger) {
         e.preventDefault();
         e.stopPropagation();
         console.log('🍔 Hamburger clicked - toggling navbar');
-        this.toggleNavbarVisibility();
+        this.toggleNavigationLinks();
     });
 }
 
@@ -1112,47 +1035,6 @@ handleResponsiveNavbar() {
         }
         
         console.log('📱 Small screen: Hamburger visible, navbar togglable');
-    }
-}
-
-toggleNavbarVisibility() {
-    const navbar = this.state.toggleableNavbar;
-    const hamburger = document.querySelector('.hamburger-menu, .navbar-toggle');
-    
-    if (!navbar || !hamburger) {
-        console.log('❌ No navbar or hamburger found for toggling');
-        return;
-    }
-    
-    const isCurrentlyVisible = navbar.style.display !== 'none' && 
-                              navbar.offsetWidth > 0 && 
-                              navbar.offsetHeight > 0;
-    
-    console.log(`🔄 Toggling navbar. Currently visible: ${isCurrentlyVisible}`);
-    
-    if (isCurrentlyVisible) {
-        // Hide navbar
-        navbar.style.display = 'none';
-        navbar.classList.remove('navbar-visible');
-        navbar.classList.add('navbar-hidden');
-        hamburger.innerHTML = '☰'; // Hamburger icon
-        console.log('✅ Navbar hidden');
-    } else {
-        // Show navbar
-        navbar.style.display = 'flex'; // Adjust based on your navbar's display
-        navbar.style.flexDirection = 'column'; // Stack vertically on mobile
-        navbar.style.position = 'absolute';
-        navbar.style.top = '60px'; // Below header
-        navbar.style.right = '20px';
-        navbar.style.background = 'rgba(0, 0, 0, 0.9)';
-        navbar.style.borderRadius = '10px';
-        navbar.style.padding = '15px';
-        navbar.style.zIndex = '99';
-        navbar.style.boxShadow = '0 5px 15px rgba(0,0,0,0.3)';
-        navbar.classList.add('navbar-visible');
-        navbar.classList.remove('navbar-hidden');
-        hamburger.innerHTML = '✕'; // Close icon
-        console.log('✅ Navbar shown (mobile menu)');
     }
 }
 
