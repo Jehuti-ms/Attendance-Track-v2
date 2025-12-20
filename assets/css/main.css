@@ -941,5 +941,72 @@ aside {
     }
 }
 
+/*------------------F ooter ------------------*/
+/* ===== FOOTER CENTERING ===== */
+.main-footer {
+    background: #1a237e;
+    color: white;
+    padding: 25px 0;
+    margin-top: auto; /* Pushes footer to bottom if using flex column layout */
+    width: 100%;
+}
+
+.footer-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+.footer-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* Centers horizontally */
+    justify-content: center; /* Centers vertically if needed */
+    gap: 15px;
+    text-align: center;
+}
+
+.footer-copyright {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.footer-links {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    justify-content: center; /* Centers the links */
+}
+
+.footer-link {
+    color: rgba(255, 255, 255, 0.8);
+    text-decoration: none;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
+.footer-link:hover {
+    color: white;
+    background: rgba(255, 255, 255, 0.1);
+    text-decoration: underline;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .footer-content {
+        gap: 12px;
+    }
+    
+    .footer-links {
+        gap: 15px;
+    }
+    
+    .footer-copyright,
+    .footer-link {
+        font-size: 13px;
+    }
+}
 
 
