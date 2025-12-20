@@ -759,6 +759,62 @@ aside {
     }
 }
 
+/* LARGE SCREENS (≥768px) - DESKTOP */
+@media (min-width: 768px) {
+    /* Hide hamburger on desktop */
+    .hamburger-menu.navbar-toggle {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+    }
+    
+    /* ALWAYS show navigation links on desktop, regardless of classes */
+    .toggleable-links,
+    .toggleable-links.links-hidden,
+    .toggleable-links.links-visible {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        pointer-events: all !important;
+        flex-direction: row !important;
+        position: static !important;
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+        min-width: auto !important;
+        max-width: none !important;
+        top: auto !important;
+        right: auto !important;
+        z-index: auto !important;
+        gap: 20px !important;
+        margin: 0 !important;
+    }
+    
+    /* Style the nav links for desktop */
+    .toggleable-links .nav-link {
+        color: #1a237e !important;
+        background: rgba(26, 35, 126, 0.08) !important;
+        border: 1px solid rgba(26, 35, 126, 0.1) !important;
+        padding: 8px 16px !important;
+        border-radius: 8px !important;
+    }
+    
+    .toggleable-links .nav-link:hover {
+        background: rgba(26, 35, 126, 0.15) !important;
+        color: #283593 !important;
+        transform: translateY(-2px) !important;
+    }
+    
+    .toggleable-links .nav-link.active {
+        background: rgba(26, 35, 126, 0.25) !important;
+        color: #1a237e !important;
+        font-weight: 600 !important;
+        border-left: 3px solid #1a237e !important;
+    }
+}
+
 /* Style for navigation links */
 .toggleable-links a,
 .toggleable-links .nav-link {
