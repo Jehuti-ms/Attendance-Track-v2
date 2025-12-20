@@ -944,7 +944,7 @@ aside {
 /*------------------ Footer ------------------*/
 /* ===== FOOTER CENTERING ===== */
 .main-footer {
-    background: #162b5a; /*#1a237e*/
+    background: linear-gradient(135deg, #1a237e 0%, #283593 100%) !important;
     color: white;
     padding: 25px 0;
     margin-top: auto; /* Pushes footer to bottom if using flex column layout */
