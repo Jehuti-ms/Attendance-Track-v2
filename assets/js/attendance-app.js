@@ -179,21 +179,22 @@ fixUserStatusDesign() {
     console.log('🎨 Applying dark design fixes...');
     
     setTimeout(() => {
-        // 1. Fix container sizes and positioning
-        this.fixContainerPositioning();
+        // 1. Fix container sizes
+        this.fixContainerSizes();
         
         // 2. Setup logout button
         this.setupLogoutButton();
         
-        // 3. Find and setup hamburger menu with proper z-index
-        this.findAndSetupHamburgerMenu();
+        // 3. Setup responsive hamburger menu
+        this.setupResponsiveHamburgerMenu();
         
         console.log('✅ Dark design fixes applied');
     }, 100);
 }
 
-fixContainerPositioning() {
-    console.log('📐 Fixing container positioning...');
+// Make sure this method exists
+fixContainerSizes() {
+    console.log('📏 Fixing container sizes...');
     
     const allContainers = [
         document.querySelector('#navUserStatus'),
@@ -214,7 +215,6 @@ fixContainerPositioning() {
         }
         
         if (isNested) {
-            // Nested container - make it part of the flow
             container.style.cssText = `
                 background: transparent !important;
                 border: none !important;
@@ -229,7 +229,6 @@ fixContainerPositioning() {
                 z-index: auto !important;
             `;
         } else {
-            // Main container - ensure proper stacking
             container.style.cssText = `
                 background: rgba(0, 0, 0, 0.85) !important;
                 border: 1px solid rgba(255, 255, 255, 0.2) !important;
@@ -240,13 +239,16 @@ fixContainerPositioning() {
                 padding: 8px 16px !important;
                 display: flex !important;
                 align-items: center !important;
+                flex-direction: row !important;
+                flex-wrap: nowrap !important;
                 gap: 12px !important;
                 color: white !important;
                 box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4) !important;
-                box-sizing: border-box !important;
                 position: relative !important;
-                z-index: 5 !important;  /* Lower than hamburger */
+                z-index: 5 !important;
                 overflow: visible !important;
+                box-sizing: border-box !important;
+                flex-shrink: 0 !important;
             `;
         }
     });
@@ -306,7 +308,7 @@ setupLogoutButton() {
     logoutBtn.addEventListener('mouseenter', rotateOnHover);
     logoutBtn.addEventListener('mouseleave', resetRotation);
     
-    // Click handler
+    // Add click handler
     logoutBtn.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -315,6 +317,209 @@ setupLogoutButton() {
     });
     
     console.log('✅ Logout button setup complete');
+}
+
+setupResponsiveHamburgerMenu() {
+    console.log('🔍 Setting up responsive hamburger menu...');
+    
+    // Find or create hamburger
+    let hamburger = document.querySelector('button[aria-label*="menu"], button[aria-label*="Menu"], .hamburger-menu, .menu-toggle');
+    
+    if (!hamburger) {
+        hamburger = this.createHamburgerButton();
+    }
+    
+    this.setupHamburgerButton(hamburger);
+    this.setupNavbarToggling();
+    
+    // Initial responsive check
+    setTimeout(() => this.checkResponsiveView(), 50);
+}
+
+createHamburgerButton() {
+    console.log('➕ Creating hamburger button...');
+    
+    const hamburger = document.createElement('button');
+    hamburger.className = 'hamburger-menu navbar-toggle';
+    hamburger.setAttribute('aria-label', 'Toggle navigation menu');
+    hamburger.innerHTML = '☰';
+    
+    // Add to user status area
+    const userStatus = document.querySelector('#navUserStatus, .user-status, .status-content');
+    if (userStatus) {
+        userStatus.appendChild(hamburger);
+    }
+    
+    return hamburger;
+}
+
+setupHamburgerButton(element) {
+    console.log('🔧 Setting up hamburger button...');
+    
+    // Apply hamburger styling
+    Object.assign(element.style, {
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: '40px',
+        height: '40px',
+        borderRadius: '50%',
+        background: 'rgba(26, 35, 126, 0.1)',
+        border: '1px solid rgba(26, 35, 126, 0.2)',
+        color: '#1a237e',
+        cursor: 'pointer',
+        fontSize: '20px',
+        margin: '0',
+        padding: '0',
+        flexShrink: '0',
+        position: 'relative',
+        zIndex: '100',
+        transition: 'all 0.3s ease'
+    });
+    
+    // Hover effect
+    element.addEventListener('mouseenter', () => {
+        element.style.background = 'rgba(26, 35, 126, 0.2)';
+        element.style.color = '#3498db';
+        element.style.transform = 'scale(1.1)';
+    });
+    
+    element.addEventListener('mouseleave', () => {
+        element.style.background = 'rgba(26, 35, 126, 0.1)';
+        element.style.color = '#1a237e';
+        element.style.transform = 'scale(1)';
+    });
+    
+    // Click handler - toggle navbar
+    element.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('🍔 Hamburger clicked - toggling navbar');
+        this.toggleNavbarVisibility();
+    });
+}
+
+setupNavbarToggling() {
+    // Find the main navbar to toggle
+    const navbarSelectors = [
+        '.navbar',
+        '.nav-links',
+        '.navigation',
+        'nav:not(.sidebar)',
+        '.main-nav'
+    ];
+    
+    let navbar = null;
+    for (const selector of navbarSelectors) {
+        navbar = document.querySelector(selector);
+        if (navbar) {
+            console.log(`📍 Found navbar for toggling: ${selector}`);
+            break;
+        }
+    }
+    
+    if (navbar) {
+        // Mark it as toggleable
+        navbar.classList.add('toggleable-navbar');
+        // Store reference
+        this.state.toggleableNavbar = navbar;
+    } else {
+        console.log('⚠️ No main navbar found for toggling');
+    }
+}
+
+checkResponsiveView() {
+    const hamburger = document.querySelector('.hamburger-menu, .navbar-toggle');
+    const navbar = this.state.toggleableNavbar;
+    
+    if (!hamburger || !navbar) return;
+    
+    const screenWidth = window.innerWidth;
+    const isLargeScreen = screenWidth >= 768;
+    
+    if (isLargeScreen) {
+        // Large screens: hide hamburger, show navbar
+        hamburger.style.display = 'none';
+        navbar.style.display = 'flex';
+        navbar.classList.remove('navbar-hidden');
+    } else {
+        // Small screens: show hamburger, hide navbar initially
+        hamburger.style.display = 'flex';
+        if (!navbar.classList.contains('navbar-visible')) {
+            navbar.style.display = 'none';
+            navbar.classList.add('navbar-hidden');
+        }
+    }
+}
+
+toggleNavbarVisibility() {
+    const navbar = this.state.toggleableNavbar;
+    const hamburger = document.querySelector('.hamburger-menu, .navbar-toggle');
+    
+    if (!navbar || !hamburger) {
+        console.log('❌ No navbar or hamburger found');
+        return;
+    }
+    
+    const isCurrentlyVisible = navbar.style.display !== 'none' && 
+                              navbar.offsetWidth > 0 && 
+                              navbar.offsetHeight > 0;
+    
+    if (isCurrentlyVisible) {
+        // Hide navbar
+        navbar.style.display = 'none';
+        navbar.classList.remove('navbar-visible');
+        navbar.classList.add('navbar-hidden');
+        hamburger.innerHTML = '☰';
+        console.log('✅ Navbar hidden');
+    } else {
+        // Show navbar (mobile menu)
+        navbar.style.display = 'flex';
+        navbar.style.flexDirection = 'column';
+        navbar.style.position = 'absolute';
+        navbar.style.top = '70px';
+        navbar.style.right = '20px';
+        navbar.style.background = 'rgba(0, 0, 0, 0.95)';
+        navbar.style.borderRadius = '10px';
+        navbar.style.padding = '15px';
+        navbar.style.zIndex = '99';
+        navbar.style.boxShadow = '0 5px 15px rgba(0,0,0,0.3)';
+        navbar.classList.add('navbar-visible');
+        navbar.classList.remove('navbar-hidden');
+        hamburger.innerHTML = '✕';
+        console.log('✅ Navbar shown (mobile menu)');
+    }
+}
+
+handleLogout() {
+    console.log('🚪 Handling logout...');
+    
+    if (confirm('Are you sure you want to logout?')) {
+        localStorage.removeItem('attendance_user');
+        this.user = null;
+        this.state.currentUser = null;
+        
+        // Show notification
+        if (typeof this.showNotification === 'function') {
+            this.showNotification('Successfully logged out!', 'success');
+        } else {
+            alert('Successfully logged out!');
+        }
+        
+        // Redirect to login page
+        setTimeout(() => {
+            window.location.href = 'index.html';
+        }, 1000);
+    }
+}
+
+// Add window resize listener
+initWindowResizeListener() {
+    window.addEventListener('resize', () => {
+        if (typeof this.checkResponsiveView === 'function') {
+            this.checkResponsiveView();
+        }
+    });
 }
 
 // ==================== RESPONSIVE HAMBURGER SETUP ====================
