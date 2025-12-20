@@ -22,8 +22,8 @@ class AttendanceApp {
         currentPage: this.getCurrentPage(),
         isOnline: navigator.onLine,
         settings: Storage.get('app_settings', {}),
-        // ADD THESE:
-        toggleableNavbar: null,
+        // UPDATE THESE:
+        navLinksElement: null, // Changed from toggleableNavbar
         hamburgerElement: null,
         resizeListenerInitialized: false
     };
