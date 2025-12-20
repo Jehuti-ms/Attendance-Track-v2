@@ -566,46 +566,122 @@ handleLogout() {
 toggleSidebar() {
     console.log('📱 Toggling sidebar...');
     
-    // Look for sidebar
-    const sidebar = document.querySelector('.sidebar, .side-nav, nav, aside');
-    const mainContent = document.querySelector('main, .main-content, .content');
+    // Find sidebar
+    const sidebar = this.findSidebarElement();
     
-    if (sidebar) {
-        const isHidden = sidebar.style.display === 'none' || 
-                        sidebar.classList.contains('hidden') ||
-                        sidebar.classList.contains('collapsed');
-        
-        if (isHidden) {
-            // Show sidebar
-            sidebar.style.display = 'flex';
-            sidebar.style.transform = 'translateX(0)';
-            sidebar.classList.remove('hidden', 'collapsed');
-            if (mainContent) {
-                mainContent.style.marginLeft = '250px';
-                mainContent.style.transition = 'margin-left 0.3s ease';
-            }
-            console.log('✅ Sidebar shown');
-        } else {
-            // Hide sidebar
-            sidebar.style.transform = 'translateX(-100%)';
-            sidebar.classList.add('collapsed');
-            if (mainContent) {
-                mainContent.style.marginLeft = '0';
-            }
-            setTimeout(() => {
-                sidebar.style.display = 'none';
-            }, 300);
-            console.log('✅ Sidebar hidden');
-        }
+    if (!sidebar) {
+        console.log('❌ No sidebar found');
+        this.showNotification('Menu not available', 'info');
+        return;
+    }
+    
+    // Use a class to track state instead of checking styles
+    if (sidebar.classList.contains('sidebar-hidden')) {
+        // Currently hidden, so SHOW it
+        this.showSidebar(sidebar);
     } else {
-        console.log('⚠️ No sidebar found');
-        // Fallback: toggle a menu
-        const menu = document.querySelector('.menu, .dropdown, .user-menu');
-        if (menu) {
-            menu.classList.toggle('show');
-            console.log('✅ Toggled menu visibility');
+        // Currently visible, so HIDE it
+        this.hideSidebar(sidebar);
+    }
+}
+
+findSidebarElement() {
+    const selectors = [
+        '.sidebar',
+        '.side-nav',
+        'nav[class*="side"]',
+        'aside',
+        '.navigation',
+        '.nav-menu',
+        '.main-nav',
+        '[role="navigation"]'
+    ];
+    
+    for (const selector of selectors) {
+        const element = document.querySelector(selector);
+        if (element) {
+            console.log(`📍 Found sidebar: ${selector}`);
+            return element;
+        }
+    }
+    
+    // Look for any nav with significant width (likely a sidebar)
+    const allNavs = document.querySelectorAll('nav, aside');
+    for (const nav of allNavs) {
+        const rect = nav.getBoundingClientRect();
+        if (rect.width > 150) { // Sidebars are usually wide
+            console.log('📍 Found wide nav element (likely sidebar):', nav.className);
+            return nav;
+        }
+    }
+    
+    return null;
+}
+
+showSidebar(sidebar) {
+    console.log('👁️‍🗨️ Showing sidebar...');
+    
+    // Remove hidden classes
+    sidebar.classList.remove('sidebar-hidden', 'hidden', 'collapsed');
+    
+    // Show the sidebar
+    sidebar.style.display = 'flex';
+    sidebar.style.visibility = 'visible';
+    sidebar.style.opacity = '1';
+    sidebar.style.transform = 'translateX(0)';
+    sidebar.style.transition = 'all 0.3s ease';
+    
+    // Adjust main content
+    this.adjustMainContentForSidebar(true);
+    
+    console.log('✅ Sidebar shown');
+}
+
+hideSidebar(sidebar) {
+    console.log('👁️‍🗨️ Hiding sidebar...');
+    
+    // Add hidden class
+    sidebar.classList.add('sidebar-hidden');
+    
+    // Hide the sidebar
+    sidebar.style.transform = 'translateX(-100%)';
+    sidebar.style.opacity = '0';
+    sidebar.style.transition = 'all 0.3s ease';
+    
+    // After transition, hide completely
+    setTimeout(() => {
+        sidebar.style.visibility = 'hidden';
+    }, 300);
+    
+    // Adjust main content
+    this.adjustMainContentForSidebar(false);
+    
+    console.log('✅ Sidebar hidden');
+}
+
+adjustMainContentForSidebar(showSidebar) {
+    const mainSelectors = [
+        'main',
+        '.main-content',
+        '.content',
+        '#app',
+        '.container',
+        '.page-content'
+    ];
+    
+    let mainContent = null;
+    for (const selector of mainSelectors) {
+        mainContent = document.querySelector(selector);
+        if (mainContent) break;
+    }
+    
+    if (mainContent) {
+        if (showSidebar) {
+            mainContent.style.marginLeft = '250px';
+            mainContent.style.transition = 'margin-left 0.3s ease';
         } else {
-            this.showNotification('Menu clicked!', 'info');
+            mainContent.style.marginLeft = '0';
+            mainContent.style.transition = 'margin-left 0.3s ease';
         }
     }
 }
