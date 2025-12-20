@@ -317,68 +317,224 @@ setupLogoutButton() {
     console.log('✅ Logout button setup complete');
 }
 
+// ==================== RESPONSIVE HAMBURGER SETUP ====================
 findAndSetupHamburgerMenu() {
-    // Try different selectors
-    const selectors = [
-        '.hamburger-menu',
-        '.menu-toggle', 
-        '.hamburger',
-        '.menu-btn',
-        '.nav-toggle',
-        '[data-menu-toggle]',
-        '.sidebar-toggle',
-        '.navbar-toggler',
-        'button[aria-label*="menu"], button[aria-label*="Menu"]',
-        '.btn-menu'
+    console.log('🔍 Setting up responsive hamburger menu...');
+    
+    // Find or create hamburger
+    let hamburger = document.querySelector('button[aria-label*="menu"], button[aria-label*="Menu"], .hamburger-menu, .menu-toggle');
+    
+    if (!hamburger) {
+        hamburger = this.createHamburgerButton();
+    }
+    
+    this.setupResponsiveHamburger(hamburger);
+    this.setupNavbarVisibility();
+    
+    // Listen for window resize
+    window.addEventListener('resize', () => {
+        this.handleResponsiveNavbar();
+    });
+    
+    // Initial responsive check
+    setTimeout(() => this.handleResponsiveNavbar(), 100);
+}
+
+createHamburgerButton() {
+    console.log('➕ Creating hamburger button...');
+    
+    const hamburger = document.createElement('button');
+    hamburger.className = 'hamburger-menu navbar-toggle';
+    hamburger.setAttribute('aria-label', 'Toggle navigation menu');
+    hamburger.innerHTML = '☰';
+    
+    // Position in user status area
+    const userStatus = document.querySelector('#navUserStatus, .user-status, .status-content');
+    if (userStatus) {
+        userStatus.appendChild(hamburger);
+    } else {
+        // Fallback to header
+        const header = document.querySelector('header, .header');
+        if (header) {
+            header.appendChild(hamburger);
+        } else {
+            document.body.appendChild(hamburger);
+        }
+    }
+    
+    return hamburger;
+}
+
+setupResponsiveHamburger(hamburger) {
+    console.log('🔧 Setting up responsive hamburger...');
+    
+    // Apply hamburger styling
+    Object.assign(hamburger.style, {
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: '40px',
+        height: '40px',
+        borderRadius: '50%',
+        background: 'rgba(26, 35, 126, 0.1)',
+        border: '1px solid rgba(26, 35, 126, 0.2)',
+        color: '#1a237e',
+        cursor: 'pointer',
+        fontSize: '20px',
+        margin: '0',
+        padding: '0',
+        flexShrink: '0',
+        position: 'relative',
+        zIndex: '100',
+        transition: 'all 0.3s ease'
+    });
+    
+    // Hover effect
+    hamburger.addEventListener('mouseenter', () => {
+        hamburger.style.background = 'rgba(26, 35, 126, 0.2)';
+        hamburger.style.color = '#3498db';
+        hamburger.style.transform = 'scale(1.1)';
+    });
+    
+    hamburger.addEventListener('mouseleave', () => {
+        hamburger.style.background = 'rgba(26, 35, 126, 0.1)';
+        hamburger.style.color = '#1a237e';
+        hamburger.style.transform = 'scale(1)';
+    });
+    
+    // Click handler - toggle navbar visibility
+    hamburger.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('🍔 Hamburger clicked - toggling navbar');
+        this.toggleNavbarVisibility();
+    });
+}
+
+setupNavbarVisibility() {
+    // Find the navbar that should be toggled
+    const navbarSelectors = [
+        '.navbar',
+        '.nav-links',
+        '.navigation',
+        'nav',
+        '.main-nav',
+        '.page-nav',
+        '[role="navigation"]:not(.sidebar)'
     ];
     
-    let hamburger = null;
-    for (const selector of selectors) {
-        hamburger = document.querySelector(selector);
-        if (hamburger) {
-            console.log(`🍔 Found hamburger with selector: ${selector}`);
+    let navbar = null;
+    for (const selector of navbarSelectors) {
+        const element = document.querySelector(selector);
+        if (element && !element.classList.contains('sidebar')) {
+            navbar = element;
+            console.log(`📍 Found main navbar: ${selector}`);
             break;
         }
     }
     
-    // If still not found, look for common patterns
-    if (!hamburger) {
-        console.log('🔍 Searching for hamburger pattern...');
-        
-        // Look in header/nav
-        const header = document.querySelector('header, .header, .navbar, nav');
-        if (header) {
-            // Look for buttons with hamburger-like content
-            const buttons = header.querySelectorAll('button, .btn, a');
-            buttons.forEach(btn => {
-                const text = btn.textContent.trim();
-                const html = btn.innerHTML;
-                
-                // Common hamburger indicators
-                const isLikelyHamburger = 
-                    text === '☰' || text === '≡' || text === 'Menu' ||
-                    text === 'menu' || html.includes('☰') || html.includes('≡') ||
-                    btn.className.toLowerCase().includes('menu') ||
-                    btn.className.toLowerCase().includes('toggle') ||
-                    btn.getAttribute('aria-label')?.toLowerCase().includes('menu');
-                
-                if (isLikelyHamburger && !hamburger) {
-                    hamburger = btn;
-                    console.log('🍔 Likely hamburger found:', btn.className, text);
-                }
-            });
-        }
+    if (!navbar) {
+        console.log('⚠️ No main navbar found for toggling');
+        return;
     }
     
-    if (hamburger) {
-        this.setupHamburgerMenu(hamburger);
+    // Add a class to identify this navbar
+    navbar.classList.add('toggleable-navbar');
+    
+    // Store reference in app state
+    this.state.toggleableNavbar = navbar;
+}
+
+handleResponsiveNavbar() {
+    const hamburger = document.querySelector('.hamburger-menu, .navbar-toggle');
+    const navbar = this.state.toggleableNavbar;
+    
+    if (!hamburger || !navbar) return;
+    
+    const screenWidth = window.innerWidth;
+    const isLargeScreen = screenWidth >= 768; // Standard tablet breakpoint
+    
+    console.log(`📱 Screen width: ${screenWidth}px, Large screen: ${isLargeScreen}`);
+    
+    if (isLargeScreen) {
+        // LARGE SCREENS: Show navbar, hide hamburger
+        hamburger.style.display = 'none';
+        navbar.style.display = 'flex'; // or whatever your navbar uses
+        navbar.classList.remove('navbar-hidden');
+        console.log('🖥️ Large screen: Navbar visible, hamburger hidden');
     } else {
-        console.log('⚠️ No hamburger menu found');
-        // Create one if needed
-        this.createHamburgerMenuIfNeeded();
+        // SMALL SCREENS: Show hamburger, navbar starts hidden
+        hamburger.style.display = 'flex';
+        
+        // Only hide navbar on initial load if it's not already toggled open
+        if (!navbar.classList.contains('navbar-visible')) {
+            navbar.style.display = 'none';
+            navbar.classList.add('navbar-hidden');
+        }
+        
+        console.log('📱 Small screen: Hamburger visible, navbar togglable');
     }
 }
 
+toggleNavbarVisibility() {
+    const navbar = this.state.toggleableNavbar;
+    const hamburger = document.querySelector('.hamburger-menu, .navbar-toggle');
+    
+    if (!navbar || !hamburger) {
+        console.log('❌ No navbar or hamburger found for toggling');
+        return;
+    }
+    
+    const isCurrentlyVisible = navbar.style.display !== 'none' && 
+                              navbar.offsetWidth > 0 && 
+                              navbar.offsetHeight > 0;
+    
+    console.log(`🔄 Toggling navbar. Currently visible: ${isCurrentlyVisible}`);
+    
+    if (isCurrentlyVisible) {
+        // Hide navbar
+        navbar.style.display = 'none';
+        navbar.classList.remove('navbar-visible');
+        navbar.classList.add('navbar-hidden');
+        hamburger.innerHTML = '☰'; // Hamburger icon
+        console.log('✅ Navbar hidden');
+    } else {
+        // Show navbar
+        navbar.style.display = 'flex'; // Adjust based on your navbar's display
+        navbar.style.flexDirection = 'column'; // Stack vertically on mobile
+        navbar.style.position = 'absolute';
+        navbar.style.top = '60px'; // Below header
+        navbar.style.right = '20px';
+        navbar.style.background = 'rgba(0, 0, 0, 0.9)';
+        navbar.style.borderRadius = '10px';
+        navbar.style.padding = '15px';
+        navbar.style.zIndex = '99';
+        navbar.style.boxShadow = '0 5px 15px rgba(0,0,0,0.3)';
+        navbar.classList.add('navbar-visible');
+        navbar.classList.remove('navbar-hidden');
+        hamburger.innerHTML = '✕'; // Close icon
+        console.log('✅ Navbar shown (mobile menu)');
+    }
+}
+
+// Update the fixUserStatusDesign to include responsive setup
+fixUserStatusDesign() {
+    console.log('🎨 Applying dark design fixes...');
+    
+    setTimeout(() => {
+        // 1. Fix container sizes
+        this.fixContainerSizes();
+        
+        // 2. Setup logout button
+        this.setupLogoutButton();
+        
+        // 3. Setup responsive hamburger menu
+        this.findAndSetupHamburgerMenu();
+        
+        console.log('✅ Dark design fixes applied');
+    }, 100);
+}
+    
 setupHamburgerMenu(element) {
     console.log('🔧 Setting up hamburger menu with proper z-index...');
     
