@@ -433,11 +433,12 @@ setupHamburgerButton(element) {
 }
 
 // RENAME the toggle method to be clearer:
+// Update the SHOW navigation links section in toggleNavigationLinks():
 toggleNavigationLinks() {
     console.log('🔄 Toggling navigation links visibility...');
     
     // Get stored references
-    const navLinks = this.state.navLinksElement; // Looking for navLinks, not navbar
+    const navLinks = this.state.navLinksElement;
     const hamburger = this.state.hamburgerElement || 
                      document.querySelector('.hamburger-menu, .navbar-toggle');
     
@@ -480,6 +481,8 @@ toggleNavigationLinks() {
             visibility: hidden !important;
             opacity: 0 !important;
             pointer-events: none !important;
+            transform: translateY(-20px) !important;
+            transition: all 0.3s ease !important;
         `;
         navLinks.classList.remove('links-visible');
         navLinks.classList.add('links-hidden');
@@ -489,6 +492,8 @@ toggleNavigationLinks() {
     } else {
         // Show navigation links as mobile menu
         console.log('👁️‍🗨️ Showing navigation links as mobile menu...');
+        
+        // First, reset any positioning
         navLinks.style.cssText = `
             display: flex !important;
             visibility: visible !important;
@@ -496,31 +501,52 @@ toggleNavigationLinks() {
             pointer-events: all !important;
             flex-direction: column !important;
             position: fixed !important;
-            top: 70px !important;
-            right: 20px !important;
+            top: 80px !important;  /* Increased from 70px */
+            right: 10px !important; /* Changed from 20px */
             background: rgba(0, 0, 0, 0.95) !important;
-            border-radius: 10px !important;
-            padding: 15px !important;
-            z-index: 9999 !important;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.4) !important;
-            border: 1px solid rgba(255,255,255,0.1) !important;
-            min-width: 200px !important;
-            max-width: 300px !important;
-            gap: 10px !important;
+            border-radius: 12px !important;
+            padding: 20px !important;
+            z-index: 99999 !important; /* Higher z-index */
+            box-shadow: 0 8px 30px rgba(0,0,0,0.5) !important;
+            border: 2px solid rgba(255,255,255,0.15) !important;
+            min-width: 220px !important;
+            max-width: 320px !important;
+            gap: 12px !important;
+            transform: translateY(0) !important;
+            transition: all 0.3s ease !important;
+            backdrop-filter: blur(10px) !important;
         `;
+        
+        // Make sure it's on top of everything
+        navLinks.style.zIndex = '99999';
+        
         navLinks.classList.add('links-visible');
         navLinks.classList.remove('links-hidden');
         hamburger.innerHTML = '✕';
         hamburger.setAttribute('aria-expanded', 'true');
+        
+        // Force a reflow to ensure styles are applied
+        navLinks.offsetHeight;
+        
         console.log('✅ Navigation links shown as mobile menu');
+        
+        // Add a visual indicator that it's working
+        setTimeout(() => {
+            console.log('📍 Mobile menu position:', {
+                top: navLinks.style.top,
+                right: navLinks.style.right,
+                zIndex: navLinks.style.zIndex,
+                display: navLinks.style.display
+            });
+        }, 10);
     }
 }
 
-// Also update the responsive check to use the same naming:
+// Also update the checkResponsiveView() method for when links are already visible:
 checkResponsiveView() {
     const hamburger = this.state.hamburgerElement || 
                      document.querySelector('.hamburger-menu, .navbar-toggle');
-    const navLinks = this.state.navLinksElement; // Changed from toggleableNavbar
+    const navLinks = this.state.navLinksElement;
     
     if (!hamburger || !navLinks) {
         console.log('ℹ️ No hamburger or navigation links for responsive check:', {
@@ -569,6 +595,8 @@ checkResponsiveView() {
             z-index: auto !important;
             margin: 0 !important;
             gap: 20px !important;
+            transform: none !important;
+            backdrop-filter: none !important;
         `;
         
         // Remove all mobile classes
@@ -612,6 +640,8 @@ checkResponsiveView() {
                 visibility: hidden !important;
                 opacity: 0 !important;
                 pointer-events: none !important;
+                transform: translateY(-20px) !important;
+                transition: all 0.3s ease !important;
             `;
             navLinks.classList.add('links-hidden');
             navLinks.classList.remove('links-visible');
@@ -626,17 +656,20 @@ checkResponsiveView() {
                 pointer-events: all !important;
                 flex-direction: column !important;
                 position: fixed !important;
-                top: 70px !important;
-                right: 20px !important;
+                top: 80px !important;
+                right: 10px !important;
                 background: rgba(0, 0, 0, 0.95) !important;
-                border-radius: 10px !important;
-                padding: 15px !important;
-                z-index: 9999 !important;
-                box-shadow: 0 5px 20px rgba(0,0,0,0.4) !important;
-                border: 1px solid rgba(255,255,255,0.1) !important;
-                min-width: 200px !important;
-                max-width: 300px !important;
-                gap: 10px !important;
+                border-radius: 12px !important;
+                padding: 20px !important;
+                z-index: 99999 !important;
+                box-shadow: 0 8px 30px rgba(0,0,0,0.5) !important;
+                border: 2px solid rgba(255,255,255,0.15) !important;
+                min-width: 220px !important;
+                max-width: 320px !important;
+                gap: 12px !important;
+                transform: translateY(0) !important;
+                transition: all 0.3s ease !important;
+                backdrop-filter: blur(10px) !important;
             `;
             hamburger.innerHTML = '✕';
             hamburger.setAttribute('aria-expanded', 'true');
