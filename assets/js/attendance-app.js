@@ -174,26 +174,26 @@ setupConnectionMonitoring(statusElement) {
     window.addEventListener('offline', () => updateStatus(false));
 }
 
-  // ==================== USER STATUS DESIGN FIX ====================
+// ==================== USER STATUS DESIGN FIX ====================
 fixUserStatusDesign() {
     console.log('🎨 Applying dark design fixes...');
     
     setTimeout(() => {
-        // 1. Fix container sizes
-        this.fixContainerSizes();
+        // 1. Fix container sizes and positioning
+        this.fixContainerPositioning();
         
-        // 2. Setup logout button WITH click handler
+        // 2. Setup logout button
         this.setupLogoutButton();
         
-        // 3. Find and setup hamburger menu
+        // 3. Find and setup hamburger menu with proper z-index
         this.findAndSetupHamburgerMenu();
         
         console.log('✅ Dark design fixes applied');
     }, 100);
 }
 
-fixContainerSizes() {
-    console.log('📏 Fixing container sizes...');
+fixContainerPositioning() {
+    console.log('📐 Fixing container positioning...');
     
     const allContainers = [
         document.querySelector('#navUserStatus'),
@@ -214,25 +214,40 @@ fixContainerSizes() {
         }
         
         if (isNested) {
-            container.style.background = 'transparent';
-            container.style.border = 'none';
-            container.style.boxShadow = 'none';
-            container.style.padding = '0';
-            container.style.margin = '0';
-            container.style.height = 'auto';
+            // Nested container - make it part of the flow
+            container.style.cssText = `
+                background: transparent !important;
+                border: none !important;
+                box-shadow: none !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                height: auto !important;
+                display: flex !important;
+                align-items: center !important;
+                gap: 12px !important;
+                position: static !important;
+                z-index: auto !important;
+            `;
         } else {
-            container.style.background = 'rgba(0, 0, 0, 0.85)';
-            container.style.border = '1px solid rgba(255, 255, 255, 0.2)';
-            container.style.borderRadius = '20px';
-            container.style.height = '40px';
-            container.style.minHeight = '40px';
-            container.style.padding = '8px 16px';
-            container.style.display = 'flex';
-            container.style.alignItems = 'center';
-            container.style.gap = '12px';
-            container.style.color = 'white';
-            container.style.boxShadow = '0 2px 10px rgba(0, 0, 0, 0.4)';
-            container.style.boxSizing = 'border-box';
+            // Main container - ensure proper stacking
+            container.style.cssText = `
+                background: rgba(0, 0, 0, 0.85) !important;
+                border: 1px solid rgba(255, 255, 255, 0.2) !important;
+                border-radius: 20px !important;
+                height: 40px !important;
+                min-height: 40px !important;
+                max-height: 40px !important;
+                padding: 8px 16px !important;
+                display: flex !important;
+                align-items: center !important;
+                gap: 12px !important;
+                color: white !important;
+                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4) !important;
+                box-sizing: border-box !important;
+                position: relative !important;
+                z-index: 5 !important;  /* Lower than hamburger */
+                overflow: visible !important;
+            `;
         }
     });
 }
@@ -261,7 +276,9 @@ setupLogoutButton() {
         transition: 'all 0.3s ease',
         margin: '0',
         padding: '0',
-        flexShrink: '0'
+        flexShrink: '0',
+        position: 'relative',
+        zIndex: '10'
     });
     
     // Style icon
@@ -289,7 +306,7 @@ setupLogoutButton() {
     logoutBtn.addEventListener('mouseenter', rotateOnHover);
     logoutBtn.addEventListener('mouseleave', resetRotation);
     
-    // ADD CLICK HANDLER since none exists
+    // Click handler
     logoutBtn.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -297,11 +314,11 @@ setupLogoutButton() {
         this.handleLogout();
     });
     
-    console.log('✅ Logout button setup complete with click handler');
+    console.log('✅ Logout button setup complete');
 }
 
 findAndSetupHamburgerMenu() {
-    // Try different selectors for hamburger menu
+    // Try different selectors
     const selectors = [
         '.hamburger-menu',
         '.menu-toggle', 
@@ -310,33 +327,44 @@ findAndSetupHamburgerMenu() {
         '.nav-toggle',
         '[data-menu-toggle]',
         '.sidebar-toggle',
-        '.navbar-toggler'
+        '.navbar-toggler',
+        'button[aria-label*="menu"], button[aria-label*="Menu"]',
+        '.btn-menu'
     ];
     
     let hamburger = null;
     for (const selector of selectors) {
         hamburger = document.querySelector(selector);
         if (hamburger) {
-            console.log(`🍔 Found hamburger menu with selector: ${selector}`);
+            console.log(`🍔 Found hamburger with selector: ${selector}`);
             break;
         }
     }
     
+    // If still not found, look for common patterns
     if (!hamburger) {
-        console.log('ℹ️ No hamburger menu found with any selector');
-        // Let's check if there's a menu button in the header
-        const header = document.querySelector('header, .header, .navbar');
+        console.log('🔍 Searching for hamburger pattern...');
+        
+        // Look in header/nav
+        const header = document.querySelector('header, .header, .navbar, nav');
         if (header) {
-            const buttons = header.querySelectorAll('button, .btn, [class*="menu"], [class*="toggle"]');
-            console.log(`Found ${buttons.length} buttons in header, checking...`);
-            
+            // Look for buttons with hamburger-like content
+            const buttons = header.querySelectorAll('button, .btn, a');
             buttons.forEach(btn => {
-                console.log('Button classes:', btn.className, 'Text:', btn.textContent.trim());
-                if (btn.textContent.includes('☰') || btn.textContent.includes('≡') || 
-                    btn.textContent.includes('Menu') || btn.className.includes('menu') ||
-                    btn.className.includes('toggle')) {
+                const text = btn.textContent.trim();
+                const html = btn.innerHTML;
+                
+                // Common hamburger indicators
+                const isLikelyHamburger = 
+                    text === '☰' || text === '≡' || text === 'Menu' ||
+                    text === 'menu' || html.includes('☰') || html.includes('≡') ||
+                    btn.className.toLowerCase().includes('menu') ||
+                    btn.className.toLowerCase().includes('toggle') ||
+                    btn.getAttribute('aria-label')?.toLowerCase().includes('menu');
+                
+                if (isLikelyHamburger && !hamburger) {
                     hamburger = btn;
-                    console.log('🍔 Likely hamburger button found:', btn.className);
+                    console.log('🍔 Likely hamburger found:', btn.className, text);
                 }
             });
         }
@@ -344,13 +372,35 @@ findAndSetupHamburgerMenu() {
     
     if (hamburger) {
         this.setupHamburgerMenu(hamburger);
+    } else {
+        console.log('⚠️ No hamburger menu found');
+        // Create one if needed
+        this.createHamburgerMenuIfNeeded();
     }
 }
 
 setupHamburgerMenu(element) {
-    console.log('🔧 Setting up hamburger menu...');
+    console.log('🔧 Setting up hamburger menu with proper z-index...');
     
-    // Apply visual styles
+    // FIRST, move hamburger OUT of any dark container if it's inside
+    const darkContainers = [
+        document.querySelector('#navUserStatus'),
+        document.querySelector('.user-status'),
+        document.querySelector('.status-content')
+    ].filter(el => el);
+    
+    let isInsideDarkContainer = false;
+    darkContainers.forEach(container => {
+        if (container.contains(element)) {
+            console.log('⚠️ Hamburger is inside dark container, adjusting...');
+            isInsideDarkContainer = true;
+            
+            // Move hamburger after the container
+            container.parentNode.insertBefore(element, container.nextSibling);
+        }
+    });
+    
+    // Apply styles with HIGHER z-index
     Object.assign(element.style, {
         display: 'flex',
         alignItems: 'center',
@@ -363,13 +413,16 @@ setupHamburgerMenu(element) {
         cursor: 'pointer',
         flexShrink: '0',
         margin: '0',
-        padding: '0'
+        padding: '0',
+        position: 'relative',
+        zIndex: '20',  // Higher than dark container
+        marginLeft: isInsideDarkContainer ? '-50px' : '0' // Adjust position if moved
     });
     
-    // Check if it has menu lines or is just text/icon
+    // Check content type
     const menuLines = element.querySelectorAll('.menu-line');
     const isIcon = element.querySelector('i, svg, img');
-    const hasText = element.textContent.trim().length > 0;
+    const text = element.textContent.trim();
     
     if (menuLines.length > 0) {
         // Style menu lines
@@ -383,48 +436,110 @@ setupHamburgerMenu(element) {
             });
         });
         
-        // Add hover effect for menu lines
-        const hoverEnter = () => {
+        // Hover effect
+        element.addEventListener('mouseenter', () => {
             menuLines.forEach(line => {
                 line.style.background = '#3498db';
             });
-        };
+        });
         
-        const hoverLeave = () => {
+        element.addEventListener('mouseleave', () => {
             menuLines.forEach(line => {
                 line.style.background = '#1a237e';
             });
-        };
+        });
+    } else if (isIcon || text === '☰' || text === '≡' || text === 'Menu') {
+        // Icon or symbol button
+        if (text === '☰' || text === '≡') {
+            element.style.fontSize = '20px';
+            element.style.color = '#1a237e';
+        }
         
-        element.addEventListener('mouseenter', hoverEnter);
-        element.addEventListener('mouseleave', hoverLeave);
-    } else if (isIcon || hasText) {
-        // It's an icon or text button
-        element.style.color = '#1a237e';
-        element.style.fontSize = '18px';
         element.style.transition = 'all 0.3s ease';
         
-        // Add hover effect
+        // Hover effect
         element.addEventListener('mouseenter', () => {
             element.style.background = 'rgba(26, 35, 126, 0.2)';
             element.style.color = '#3498db';
+            element.style.transform = 'scale(1.1)';
         });
         
         element.addEventListener('mouseleave', () => {
             element.style.background = 'rgba(26, 35, 126, 0.1)';
             element.style.color = '#1a237e';
+            element.style.transform = 'scale(1)';
         });
     }
     
-    // ADD CLICK HANDLER for hamburger menu
+    // Click handler
     element.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        console.log('🍔 Hamburger menu clicked!');
+        console.log('🍔 Hamburger clicked!');
         this.toggleSidebar();
     });
     
-    console.log('✅ Hamburger menu setup complete with click handler');
+    console.log('✅ Hamburger menu setup with proper positioning');
+}
+
+createHamburgerMenuIfNeeded() {
+    // Only create if we're in a protected page (not login/setup)
+    const currentPage = this.state.currentPage;
+    const protectedPages = ['dashboard', 'attendance', 'reports', 'classes'];
+    
+    if (protectedPages.includes(currentPage)) {
+        console.log('➕ Creating hamburger menu...');
+        
+        // Create hamburger button
+        const hamburger = document.createElement('button');
+        hamburger.className = 'hamburger-menu dark-design-hamburger';
+        hamburger.innerHTML = '☰';
+        hamburger.setAttribute('aria-label', 'Toggle menu');
+        
+        // Style it
+        Object.assign(hamburger.style, {
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '40px',
+            height: '40px',
+            borderRadius: '50%',
+            background: 'rgba(26, 35, 126, 0.1)',
+            border: '1px solid rgba(26, 35, 126, 0.2)',
+            color: '#1a237e',
+            cursor: 'pointer',
+            fontSize: '20px',
+            position: 'fixed',
+            top: '20px',
+            left: '20px',
+            zIndex: '1000',
+            transition: 'all 0.3s ease'
+        });
+        
+        // Hover effect
+        hamburger.addEventListener('mouseenter', () => {
+            hamburger.style.background = 'rgba(26, 35, 126, 0.2)';
+            hamburger.style.color = '#3498db';
+            hamburger.style.transform = 'scale(1.1)';
+        });
+        
+        hamburger.addEventListener('mouseleave', () => {
+            hamburger.style.background = 'rgba(26, 35, 126, 0.1)';
+            hamburger.style.color = '#1a237e';
+            hamburger.style.transform = 'scale(1)';
+        });
+        
+        // Click handler
+        hamburger.addEventListener('click', (e) => {
+            e.preventDefault();
+            console.log('🍔 Created hamburger clicked!');
+            this.toggleSidebar();
+        });
+        
+        // Add to page
+        document.body.appendChild(hamburger);
+        console.log('✅ Created hamburger menu');
+    }
 }
 
 // ==================== CLICK HANDLERS ====================
