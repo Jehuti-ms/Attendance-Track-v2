@@ -829,7 +829,9 @@ aside {
 
 .toggleable-links a:hover,
 .toggleable-links .nav-link:hover {
-    background: rgba(255, 255, 255, 0.1) !important;
+    color: #283593 !important;  /* Darker blue on hover */
+    text-decoration: underline !important;
+    background: transparent !important;  /* No button background on hover */
 }
 
 /* When shown as mobile menu */
@@ -837,6 +839,8 @@ aside {
 .toggleable-links.links-visible .nav-link {
     padding: 10px 15px !important;
     text-align: center !important;
+    color: #1a237e !important;  /* Blue on mobile too */
+    background: rgba(255, 255, 255, 0.9) !important;  /* Light background for mobile */
 }
 
 /* Add to your CSS for better mobile menu appearance */
