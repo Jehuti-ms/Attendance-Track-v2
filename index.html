@@ -16,7 +16,7 @@
     <link rel="stylesheet" href="assets/css/components.css">
     
     <!-- Add logout/relogin page styling -->
-    <style>
+    <!-- <style>
         /* ===== LOGOUT/RELOGIN PAGE STYLES ===== */
         /* Full viewport centering */
         #app {
@@ -227,7 +227,239 @@
                 max-width: 280px;
             }
         }
-    </style>
+    </style> -->
+    <style>
+    /* ===== LOGOUT/RELOGIN PAGE STYLES ===== */
+    /* Full viewport centering */
+    #app {
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+        background: linear-gradient(135deg, #f5f7fa 0%, #e4edf5 100%);
+    }
+
+    /* No header on logout page */
+    #header-container {
+        display: none !important;
+    }
+
+    /* Center main container */
+    #app-container {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 40px 20px;
+        text-align: center;
+    }
+
+    /* Main content card - using #2c3e50 for borders/accents */
+    .logout-container {
+        max-width: 500px;
+        width: 100%;
+        padding: 50px 40px;
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 20px 50px rgba(44, 62, 80, 0.15);
+        border: 1px solid rgba(44, 62, 80, 0.1);
+        animation: fadeIn 0.5s ease;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Icon - using #2c3e50 */
+    .logout-icon {
+        font-size: 72px;
+        color: #2c3e50;
+        background: rgba(44, 62, 80, 0.08);
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 30px;
+        border: 4px solid rgba(44, 62, 80, 0.2);
+        animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); }
+    }
+
+    /* Title - using #2c3e50 */
+    .logout-title {
+        color: #2c3e50;
+        font-size: 2.5rem;
+        margin-bottom: 15px;
+        font-weight: 700;
+        line-height: 1.2;
+    }
+
+    /* Message */
+    .logout-message {
+        color: #666;
+        font-size: 1.2rem;
+        margin-bottom: 40px;
+        line-height: 1.6;
+        max-width: 400px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    /* Loading text - using #2c3e50 */
+    #loading-content div:last-child {
+        color: #2c3e50;
+        font-size: 1.3rem;
+        font-weight: 600;
+        margin-top: 20px;
+    }
+
+    /* Action buttons - using #2c3e50 */
+    .action-buttons {
+        display: flex;
+        gap: 15px;
+        justify-content: center;
+        flex-wrap: wrap;
+        margin-top: 30px;
+    }
+
+    .btn-action {
+        padding: 16px 36px;
+        border-radius: 12px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border: none;
+        min-width: 180px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+    }
+
+    .btn-login {
+        background: #2c3e50; /* Solid color to match header */
+        color: white;
+        box-shadow: 0 8px 20px rgba(44, 62, 80, 0.25);
+    }
+
+    .btn-login:hover {
+        background: #34495e; /* Slightly lighter on hover */
+        transform: translateY(-3px);
+        box-shadow: 0 12px 25px rgba(44, 62, 80, 0.35);
+    }
+
+    .btn-login i {
+        font-size: 1.2rem;
+    }
+
+    /* Status message - using #2c3e50 */
+    .status-message {
+        margin-top: 25px;
+        padding: 15px;
+        background: rgba(44, 62, 80, 0.05);
+        border-radius: 10px;
+        border-left: 4px solid #2c3e50;
+        color: #666;
+        font-size: 0.95rem;
+    }
+
+    .status-message i {
+        color: #2c3e50;
+        margin-right: 8px;
+    }
+
+    /* Loading spinner - using #2c3e50 */
+    .loading-spinner {
+        width: 70px;
+        height: 70px;
+        border: 6px solid rgba(44, 62, 80, 0.1);
+        border-top: 6px solid #2c3e50;
+        border-radius: 50%;
+        animation: spin 1.2s linear infinite;
+        margin: 30px auto;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    /* Footer - using #2c3e50 to match */
+    footer.main-footer {
+        background: #2c3e50 !important;
+        color: white;
+        padding: 25px 20px;
+        text-align: center;
+        border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+    }
+
+    footer.main-footer p {
+        margin: 0;
+        color: rgba(255, 255, 255, 0.9);
+        font-size: 0.9rem;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .logout-container {
+            padding: 40px 25px;
+            margin: 20px;
+        }
+        
+        .logout-icon {
+            font-size: 56px;
+            width: 100px;
+            height: 100px;
+        }
+        
+        .logout-title {
+            font-size: 2rem;
+        }
+        
+        .logout-message {
+            font-size: 1.1rem;
+        }
+        
+        .btn-action {
+            padding: 14px 28px;
+            min-width: 160px;
+            font-size: 1rem;
+        }
+        
+        .action-buttons {
+            flex-direction: column;
+            align-items: center;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .logout-container {
+            padding: 30px 20px;
+        }
+        
+        .logout-title {
+            font-size: 1.8rem;
+        }
+        
+        .logout-message {
+            font-size: 1rem;
+        }
+        
+        .btn-action {
+            width: 100%;
+            max-width: 280px;
+        }
+    }
+</style>
     
     <!-- PWA -->
     <link rel="manifest" href="manifest.json">
