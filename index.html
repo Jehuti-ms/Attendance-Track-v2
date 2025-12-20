@@ -447,6 +447,30 @@
                 }
             });
         });
-    </script>
+
+    function startDemoMode() {
+        const loadingContent = document.getElementById('loading-content');
+        const actionButtons = document.querySelector('.action-buttons');
+        
+        // Hide buttons, show loading
+        if (actionButtons) actionButtons.style.display = 'none';
+        if (loadingContent) {
+            loadingContent.style.display = 'block';
+            loadingContent.querySelector('div:last-child').textContent = 'Starting Demo Mode...';
+        }
+        
+        // Simulate demo mode start
+        setTimeout(() => {
+            // In real app, this would redirect to demo dashboard
+            alert('Demo mode would start here. Redirecting to demo dashboard...');
+            // window.location.href = 'dashboard.html?demo=true';
+            
+            // For now, show buttons again
+            if (actionButtons) actionButtons.style.display = 'flex';
+            if (loadingContent) loadingContent.style.display = 'none';
+        }, 1500);
+    }
+</script>
+
 </body>
 </html>
