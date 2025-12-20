@@ -664,4 +664,26 @@ body {
     position: relative !important;
 }
 
+/* Add to your main.css or theme.css */
+.sidebar-hidden {
+    display: none !important;
+}
+
+/* Ensure smooth transitions */
+.sidebar,
+.side-nav,
+nav[class*="side"],
+aside {
+    transition: all 0.3s ease !important;
+}
+
+/* Hamburger should indicate state */
+.hamburger-menu.active::before {
+    content: '✕';
+}
+
+.hamburger-menu:not(.active)::before {
+    content: '☰';
+}
+
 
