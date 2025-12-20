@@ -501,133 +501,100 @@ toggleNavigationLinks() {
         hamburger.innerHTML = '☰';
         hamburger.setAttribute('aria-expanded', 'false');
         console.log('✅ Navigation links hidden');
-    } else {
-        // Show navigation links as mobile menu
-        console.log('👁️‍🗨️ Showing navigation links as mobile menu...');
+    // In the SHOW section of toggleNavigationLinks():
+} else {
+    // Show navigation links as mobile menu
+    console.log('👁️‍🗨️ Showing navigation links as mobile menu...');
+    
+    // Calculate position - use LEFT instead of RIGHT for better control
+    const menuWidth = 280; // Slightly narrower
+    const leftPosition = Math.max(10, window.innerWidth - menuWidth - 10);
+    
+    // Show the menu with proper positioning
+    navLinks.style.cssText = `
+        /* Positioning */
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        pointer-events: all !important;
+        flex-direction: column !important;
+        position: fixed !important;
+        top: 80px !important;
+        left: ${leftPosition}px !important;  /* Use left instead of right */
         
-        // DEBUG: Log the current HTML of navLinks
-        console.log('📋 NavLinks HTML before showing:', navLinks.innerHTML);
+        /* Appearance */
+        background: rgba(20, 20, 30, 0.98) !important;
+        border-radius: 15px !important;
+        padding: 20px !important;
+        z-index: 99999 !important;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.6) !important;
+        border: 2px solid #3498db !important;
+        width: ${menuWidth}px !important;
+        max-width: 90vw !important;
+        gap: 12px !important;
         
-        // Make sure all child links are visible and styled
-        const links = navLinks.querySelectorAll('a, li, .nav-link');
-        links.forEach(link => {
-            console.log('🔗 Link found:', {
-                tagName: link.tagName,
-                className: link.className,
-                text: link.textContent?.trim(),
-                href: link.href || link.getAttribute('href')
-            });
-            
-            // Force style on links to make sure they're visible
-            Object.assign(link.style, {
-                color: '#ffffff !important',
-                fontSize: '16px !important',
-                padding: '12px 16px !important',
-                display: 'block !important',
-                textDecoration: 'none !important',
-                backgroundColor: 'rgba(255,255,255,0.1) !important',
-                borderRadius: '8px !important',
-                margin: '4px 0 !important',
-                textAlign: 'center !important'
-            });
+        /* Animation */
+        transform: translateY(0) !important;
+        transition: all 0.3s ease !important;
+        backdrop-filter: blur(15px) !important;
+        
+        /* Text */
+        color: white !important;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+        font-size: 16px !important;
+        font-weight: 500 !important;
+        
+        /* Ensure it's visible */
+        overflow: visible !important;
+    `;
+    
+    // Style the links inside
+    const links = navLinks.querySelectorAll('a, .nav-link');
+    links.forEach(link => {
+        Object.assign(link.style, {
+            color: '#ffffff',
+            fontSize: '16px',
+            padding: '12px 16px',
+            display: 'block',
+            textDecoration: 'none',
+            backgroundColor: 'rgba(255,255,255,0.1)',
+            borderRadius: '8px',
+            margin: '4px 0',
+            textAlign: 'left'
         });
-        
-        // Show the menu with VERY prominent styling
-        navLinks.style.cssText = `
-            /* Positioning */
-            display: flex !important;
-            visibility: visible !important;
-            opacity: 1 !important;
-            pointer-events: all !important;
-            flex-direction: column !important;
-            position: fixed !important;
-            top: 80px !important;
-            right: 10px !important;
-            
-            /* Appearance */
-            background: rgba(20, 20, 30, 0.98) !important;
-            border-radius: 15px !important;
-            padding: 25px !important;
-            z-index: 99999 !important;
-            box-shadow: 
-                0 10px 40px rgba(0,0,0,0.6),
-                0 0 0 4px #3498db !important;
-            border: 2px solid #3498db !important;
-            min-width: 250px !important;
-            max-width: 350px !important;
-            gap: 15px !important;
-            
-            /* Animation */
-            transform: translateY(0) !important;
-            transition: all 0.3s ease !important;
-            backdrop-filter: blur(15px) !important;
-            
-            /* Text */
-            color: white !important;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
-            font-size: 16px !important;
-            font-weight: 500 !important;
-            
-            /* Ensure it's visible */
-            overflow: visible !important;
-            clip-path: none !important;
-            -webkit-clip-path: none !important;
-        `;
-        
-        // Add a pulsing animation to make it obvious
-        navLinks.style.animation = 'pulse-border 2s infinite';
-        
-        // Create and append a style for the animation
-        if (!document.querySelector('#mobile-menu-animation')) {
-            const style = document.createElement('style');
-            style.id = 'mobile-menu-animation';
-            style.textContent = `
-                @keyframes pulse-border {
-                    0% { box-shadow: 0 10px 40px rgba(0,0,0,0.6), 0 0 0 4px #3498db; }
-                    50% { box-shadow: 0 10px 40px rgba(0,0,0,0.6), 0 0 0 8px #3498db; }
-                    100% { box-shadow: 0 10px 40px rgba(0,0,0,0.6), 0 0 0 4px #3498db; }
-                }
-                
-                @keyframes glow {
-                    0% { background: rgba(20, 20, 30, 0.98); }
-                    50% { background: rgba(30, 30, 50, 0.98); }
-                    100% { background: rgba(20, 20, 30, 0.98); }
-                }
-            `;
-            document.head.appendChild(style);
-        }
-        
-        navLinks.classList.add('links-visible');
-        navLinks.classList.remove('links-hidden');
-        hamburger.innerHTML = '✕';
-        hamburger.setAttribute('aria-expanded', 'true');
-        
-        // Force a reflow and log position
-        setTimeout(() => {
-            const rect = navLinks.getBoundingClientRect();
-            console.log('📍 Mobile menu bounding rect:', {
-                top: rect.top,
-                right: rect.right,
-                bottom: rect.bottom,
-                left: rect.left,
-                width: rect.width,
-                height: rect.height,
-                visible: rect.width > 0 && rect.height > 0
-            });
-            
-            console.log('👀 Menu should be visible at:', {
-                screenWidth: window.innerWidth,
-                screenHeight: window.innerHeight,
-                menuTop: rect.top,
-                menuRight: window.innerWidth - rect.right
-            });
-            
-            // Flash the menu to make it obvious
-            navLinks.style.animation = 'glow 1s 3';
-        }, 50);
-        
-        console.log('✅ Navigation links shown as mobile menu');
-    }
+    });
+    
+    // Style the list items
+    const listItems = navLinks.querySelectorAll('li');
+    listItems.forEach(li => {
+        Object.assign(li.style, {
+            listStyle: 'none',
+            margin: '0',
+            padding: '0'
+        });
+    });
+    
+    navLinks.classList.add('links-visible');
+    navLinks.classList.remove('links-hidden');
+    hamburger.innerHTML = '✕';
+    hamburger.setAttribute('aria-expanded', 'true');
+    
+    // Force a reflow and log position
+    setTimeout(() => {
+        const rect = navLinks.getBoundingClientRect();
+        console.log('📍 Mobile menu bounding rect FIXED:', {
+            top: rect.top,
+            right: rect.right,
+            bottom: rect.bottom,
+            left: rect.left,
+            width: rect.width,
+            height: rect.height,
+            visible: rect.width > 0 && rect.height > 0,
+            onScreen: rect.left >= 0 && rect.right <= window.innerWidth
+        });
+    }, 50);
+    
+    console.log('✅ Navigation links shown as mobile menu');
 }
     
 // ==================== CORRECTED TOGGLE LOGIC ====================
