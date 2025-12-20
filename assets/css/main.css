@@ -941,10 +941,10 @@ aside {
     }
 }
 
-/*------------------F ooter ------------------*/
+/*------------------ Footer ------------------*/
 /* ===== FOOTER CENTERING ===== */
 .main-footer {
-    background: #1a237e;
+    background: #162b5a /*#1a237e*/;
     color: white;
     padding: 25px 0;
     margin-top: auto; /* Pushes footer to bottom if using flex column layout */
