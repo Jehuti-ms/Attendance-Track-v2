@@ -795,10 +795,10 @@ aside {
     /* Style the nav links for desktop */
     .toggleable-links .nav-link {
         color: #1a237e !important;
-        background: rgba(26, 35, 126, 0.08) !important;
-        border: 1px solid rgba(26, 35, 126, 0.1) !important;
+        /*background: rgba(26, 35, 126, 0.08) !important;
+        border: 1px solid rgba(26, 35, 126, 0.1) !important;*/
         padding: 8px 16px !important;
-        border-radius: 8px !important;
+       /* border-radius: 8px !important;*/
     }
     
     .toggleable-links .nav-link:hover {
