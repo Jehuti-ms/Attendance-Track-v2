@@ -798,7 +798,7 @@ aside {
     }
 }
 
-/* Logout Button Styles */
+/* Logout Button Styles - FIXED VERSION */
 .logout-btn-styled {
     display: flex !important;
     align-items: center !important;
@@ -822,11 +822,12 @@ aside {
 .logout-btn-styled:hover {
     background: rgba(26, 35, 126, 0.25) !important;
     box-shadow: 0 4px 12px rgba(26, 35, 126, 0.2) !important;
+    transform: translateY(-2px) !important; /* Slight lift instead of rotation */
 }
 
-/* Rotation animation on hover */
+/* Arrow rotation on hover - ONLY THE ICON */
 .logout-hover {
-    transform: rotate(90deg) !important;
+    transform: translateY(-2px) !important; /* Keep the lift effect */
 }
 
 .logout-icon {
@@ -834,11 +835,11 @@ aside {
     font-size: 18px !important;
     transition: transform 0.3s ease !important;
     display: inline-block !important;
-    transform: rotate(0deg) !important;
+    transform: rotate(0deg) !important; /* Start: RIGHT arrow (→) */
 }
 
 .logout-hover .logout-icon {
-    transform: rotate(-90deg) !important;
+    transform: rotate(90deg) !important; /* Hover: DOWN arrow (↓) */
     color: #283593 !important;
 }
 
@@ -849,15 +850,34 @@ aside {
 
 @keyframes logoutClick {
     0% {
-        transform: scale(1) rotate(0deg);
+        transform: scale(1) translateY(-2px);
     }
     50% {
-        transform: scale(0.9) rotate(90deg);
+        transform: scale(0.9) translateY(-2px);
         background: rgba(26, 35, 126, 0.35) !important;
     }
     100% {
-        transform: scale(1) rotate(0deg);
+        transform: scale(1) translateY(-2px);
         background: rgba(26, 35, 126, 0.15) !important;
     }
 }
+
+/* Make icon bounce on click */
+.logout-click .logout-icon {
+    animation: iconBounce 0.2s ease !important;
+}
+
+@keyframes iconBounce {
+    0% {
+        transform: rotate(90deg) scale(1);
+    }
+    50% {
+        transform: rotate(90deg) scale(1.2);
+    }
+    100% {
+        transform: rotate(90deg) scale(1);
+    }
+}
+
+
 
