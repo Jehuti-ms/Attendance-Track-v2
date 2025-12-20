@@ -174,7 +174,7 @@ setupConnectionMonitoring(statusElement) {
     window.addEventListener('offline', () => updateStatus(false));
 }
 
-   // ==================== USER STATUS DESIGN FIX ====================
+  // ==================== USER STATUS DESIGN FIX ====================
 fixUserStatusDesign() {
     console.log('🎨 Applying dark design fixes...');
     
@@ -182,11 +182,11 @@ fixUserStatusDesign() {
         // 1. Fix container sizes
         this.fixContainerSizes();
         
-        // 2. ENHANCE logout button (preserve existing clicks)
-        this.enhanceLogoutButton();
+        // 2. Setup logout button WITH click handler
+        this.setupLogoutButton();
         
-        // 3. ENHANCE hamburger menu (preserve existing clicks)
-        this.enhanceHamburgerMenu();
+        // 3. Find and setup hamburger menu
+        this.findAndSetupHamburgerMenu();
         
         console.log('✅ Dark design fixes applied');
     }, 100);
@@ -202,7 +202,6 @@ fixContainerSizes() {
     ].filter(el => el && el.isConnected);
     
     allContainers.forEach((container, index) => {
-        // Check if nested
         let parent = container.parentElement;
         let isNested = false;
         
@@ -215,7 +214,6 @@ fixContainerSizes() {
         }
         
         if (isNested) {
-            // Nested container - transparent
             container.style.background = 'transparent';
             container.style.border = 'none';
             container.style.boxShadow = 'none';
@@ -223,7 +221,6 @@ fixContainerSizes() {
             container.style.margin = '0';
             container.style.height = 'auto';
         } else {
-            // Main container - dark design
             container.style.background = 'rgba(0, 0, 0, 0.85)';
             container.style.border = '1px solid rgba(255, 255, 255, 0.2)';
             container.style.borderRadius = '20px';
@@ -240,23 +237,16 @@ fixContainerSizes() {
     });
 }
 
-enhanceLogoutButton() {
+setupLogoutButton() {
     const logoutBtn = document.querySelector('.btn-logout');
     if (!logoutBtn) {
         console.log('ℹ️ No logout button found');
         return;
     }
     
-    console.log('🎯 Enhancing logout button (preserving existing click)...');
+    console.log('🔧 Setting up logout button...');
     
-    // DEBUG: Show what we're working with
-    console.log('Logout button current state:', {
-        hasOnclickProperty: !!logoutBtn.onclick,
-        hasOnclickAttribute: logoutBtn.getAttribute('onclick'),
-        hasClickListeners: this.getClickListeners(logoutBtn)
-    });
-    
-    // Apply ONLY visual enhancements - DO NOT touch click handlers
+    // Apply visual styles
     Object.assign(logoutBtn.style, {
         display: 'flex',
         alignItems: 'center',
@@ -285,49 +275,83 @@ enhanceLogoutButton() {
         });
     }
     
-    // Add rotation animation as ADDITIONAL behavior
-    const originalTransform = logoutBtn.style.transform;
-    const originalIconTransform = icon ? icon.style.transform : '';
-    
+    // Add rotation animation
     const rotateOnHover = () => {
         logoutBtn.style.transform = 'rotate(90deg)';
         if (icon) icon.style.transform = 'rotate(-90deg)';
     };
     
     const resetRotation = () => {
-        logoutBtn.style.transform = originalTransform || 'rotate(0deg)';
-        if (icon) icon.style.transform = originalIconTransform || 'rotate(0deg)';
+        logoutBtn.style.transform = 'rotate(0deg)';
+        if (icon) icon.style.transform = 'rotate(0deg)';
     };
     
-    // Remove any previous rotation listeners we added
-    logoutBtn.removeEventListener('mouseenter', rotateOnHover);
-    logoutBtn.removeEventListener('mouseleave', resetRotation);
-    
-    // Add new rotation listeners
     logoutBtn.addEventListener('mouseenter', rotateOnHover);
     logoutBtn.addEventListener('mouseleave', resetRotation);
     
-    console.log('✅ Logout button enhanced with rotation (click preserved)');
-}
-
-enhanceHamburgerMenu() {
-    const hamburger = document.querySelector('.hamburger-menu, .menu-toggle, .hamburger');
-    if (!hamburger) {
-        console.log('ℹ️ No hamburger menu found');
-        return;
-    }
-    
-    console.log('🎯 Enhancing hamburger menu (preserving existing click)...');
-    
-    // DEBUG
-    console.log('Hamburger current state:', {
-        hasOnclickProperty: !!hamburger.onclick,
-        hasOnclickAttribute: hamburger.getAttribute('onclick'),
-        hasClickListeners: this.getClickListeners(hamburger)
+    // ADD CLICK HANDLER since none exists
+    logoutBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('🚪 Logout button clicked!');
+        this.handleLogout();
     });
     
-    // Apply ONLY visual enhancements
-    Object.assign(hamburger.style, {
+    console.log('✅ Logout button setup complete with click handler');
+}
+
+findAndSetupHamburgerMenu() {
+    // Try different selectors for hamburger menu
+    const selectors = [
+        '.hamburger-menu',
+        '.menu-toggle', 
+        '.hamburger',
+        '.menu-btn',
+        '.nav-toggle',
+        '[data-menu-toggle]',
+        '.sidebar-toggle',
+        '.navbar-toggler'
+    ];
+    
+    let hamburger = null;
+    for (const selector of selectors) {
+        hamburger = document.querySelector(selector);
+        if (hamburger) {
+            console.log(`🍔 Found hamburger menu with selector: ${selector}`);
+            break;
+        }
+    }
+    
+    if (!hamburger) {
+        console.log('ℹ️ No hamburger menu found with any selector');
+        // Let's check if there's a menu button in the header
+        const header = document.querySelector('header, .header, .navbar');
+        if (header) {
+            const buttons = header.querySelectorAll('button, .btn, [class*="menu"], [class*="toggle"]');
+            console.log(`Found ${buttons.length} buttons in header, checking...`);
+            
+            buttons.forEach(btn => {
+                console.log('Button classes:', btn.className, 'Text:', btn.textContent.trim());
+                if (btn.textContent.includes('☰') || btn.textContent.includes('≡') || 
+                    btn.textContent.includes('Menu') || btn.className.includes('menu') ||
+                    btn.className.includes('toggle')) {
+                    hamburger = btn;
+                    console.log('🍔 Likely hamburger button found:', btn.className);
+                }
+            });
+        }
+    }
+    
+    if (hamburger) {
+        this.setupHamburgerMenu(hamburger);
+    }
+}
+
+setupHamburgerMenu(element) {
+    console.log('🔧 Setting up hamburger menu...');
+    
+    // Apply visual styles
+    Object.assign(element.style, {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -342,65 +366,174 @@ enhanceHamburgerMenu() {
         padding: '0'
     });
     
-    // Style menu lines
-    const menuLines = hamburger.querySelectorAll('.menu-line');
-    menuLines.forEach(line => {
-        Object.assign(line.style, {
-            background: '#1a237e',
-            height: '2px',
-            width: '20px',
-            borderRadius: '2px',
-            transition: 'background 0.3s ease'
+    // Check if it has menu lines or is just text/icon
+    const menuLines = element.querySelectorAll('.menu-line');
+    const isIcon = element.querySelector('i, svg, img');
+    const hasText = element.textContent.trim().length > 0;
+    
+    if (menuLines.length > 0) {
+        // Style menu lines
+        menuLines.forEach(line => {
+            Object.assign(line.style, {
+                background: '#1a237e',
+                height: '2px',
+                width: '20px',
+                borderRadius: '2px',
+                transition: 'background 0.3s ease'
+            });
         });
+        
+        // Add hover effect for menu lines
+        const hoverEnter = () => {
+            menuLines.forEach(line => {
+                line.style.background = '#3498db';
+            });
+        };
+        
+        const hoverLeave = () => {
+            menuLines.forEach(line => {
+                line.style.background = '#1a237e';
+            });
+        };
+        
+        element.addEventListener('mouseenter', hoverEnter);
+        element.addEventListener('mouseleave', hoverLeave);
+    } else if (isIcon || hasText) {
+        // It's an icon or text button
+        element.style.color = '#1a237e';
+        element.style.fontSize = '18px';
+        element.style.transition = 'all 0.3s ease';
+        
+        // Add hover effect
+        element.addEventListener('mouseenter', () => {
+            element.style.background = 'rgba(26, 35, 126, 0.2)';
+            element.style.color = '#3498db';
+        });
+        
+        element.addEventListener('mouseleave', () => {
+            element.style.background = 'rgba(26, 35, 126, 0.1)';
+            element.style.color = '#1a237e';
+        });
+    }
+    
+    // ADD CLICK HANDLER for hamburger menu
+    element.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('🍔 Hamburger menu clicked!');
+        this.toggleSidebar();
     });
     
-    // Add hover effect as ADDITIONAL behavior
-    const originalColors = Array.from(menuLines).map(line => line.style.background);
-    
-    const hoverEnter = () => {
-        menuLines.forEach(line => {
-            line.style.background = '#3498db';
-        });
-    };
-    
-    const hoverLeave = () => {
-        menuLines.forEach((line, index) => {
-            line.style.background = originalColors[index] || '#1a237e';
-        });
-    };
-    
-    // Remove any previous hover listeners we added
-    hamburger.removeEventListener('mouseenter', hoverEnter);
-    hamburger.removeEventListener('mouseleave', hoverLeave);
-    
-    // Add new hover listeners
-    hamburger.addEventListener('mouseenter', hoverEnter);
-    hamburger.addEventListener('mouseleave', hoverLeave);
-    
-    console.log('✅ Hamburger menu enhanced (click preserved)');
+    console.log('✅ Hamburger menu setup complete with click handler');
 }
 
-// Helper to check for click listeners (approximate)
-getClickListeners(element) {
-    const listeners = [];
+// ==================== CLICK HANDLERS ====================
+handleLogout() {
+    console.log('🚪 Handling logout...');
     
-    // Check onclick property
-    if (element.onclick) {
-        listeners.push('onclick property');
+    // Show confirmation
+    if (confirm('Are you sure you want to logout?')) {
+        // Clear user data
+        localStorage.removeItem('attendance_user');
+        this.user = null;
+        this.state.currentUser = null;
+        
+        // Show notification
+        this.showNotification('Successfully logged out!', 'success');
+        
+        // Redirect to login page
+        setTimeout(() => {
+            window.location.href = 'index.html';
+        }, 1000);
     }
+}
+
+toggleSidebar() {
+    console.log('📱 Toggling sidebar...');
     
-    // Check onclick attribute
-    if (element.getAttribute('onclick')) {
-        listeners.push('onclick attribute');
+    // Look for sidebar
+    const sidebar = document.querySelector('.sidebar, .side-nav, nav, aside');
+    const mainContent = document.querySelector('main, .main-content, .content');
+    
+    if (sidebar) {
+        const isHidden = sidebar.style.display === 'none' || 
+                        sidebar.classList.contains('hidden') ||
+                        sidebar.classList.contains('collapsed');
+        
+        if (isHidden) {
+            // Show sidebar
+            sidebar.style.display = 'flex';
+            sidebar.style.transform = 'translateX(0)';
+            sidebar.classList.remove('hidden', 'collapsed');
+            if (mainContent) {
+                mainContent.style.marginLeft = '250px';
+                mainContent.style.transition = 'margin-left 0.3s ease';
+            }
+            console.log('✅ Sidebar shown');
+        } else {
+            // Hide sidebar
+            sidebar.style.transform = 'translateX(-100%)';
+            sidebar.classList.add('collapsed');
+            if (mainContent) {
+                mainContent.style.marginLeft = '0';
+            }
+            setTimeout(() => {
+                sidebar.style.display = 'none';
+            }, 300);
+            console.log('✅ Sidebar hidden');
+        }
+    } else {
+        console.log('⚠️ No sidebar found');
+        // Fallback: toggle a menu
+        const menu = document.querySelector('.menu, .dropdown, .user-menu');
+        if (menu) {
+            menu.classList.toggle('show');
+            console.log('✅ Toggled menu visibility');
+        } else {
+            this.showNotification('Menu clicked!', 'info');
+        }
     }
+}
+
+// Add this notification helper if you don't have it
+showNotification(message, type = 'info') {
+    console.log(`📢 ${type.toUpperCase()}: ${message}`);
     
-    // Check for common event listener patterns
-    // Note: Can't directly access addEventListener list in JS
-    if (element._events) {
-        listeners.push('framework events object');
-    }
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.innerHTML = `
+        <div class="notification-content">
+            <span class="notification-icon">${type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️'}</span>
+            <span class="notification-text">${message}</span>
+        </div>
+    `;
     
-    return listeners.length > 0 ? listeners : 'No detectable click listeners';
+    // Add styles
+    Object.assign(notification.style, {
+        position: 'fixed',
+        top: '20px',
+        right: '20px',
+        background: type === 'success' ? '#2ecc71' : type === 'error' ? '#e74c3c' : '#3498db',
+        color: 'white',
+        padding: '15px 20px',
+        borderRadius: '8px',
+        boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+        zIndex: '9999',
+        animation: 'slideIn 0.3s ease'
+    });
+    
+    document.body.appendChild(notification);
+    
+    // Auto remove after 3 seconds
+    setTimeout(() => {
+        notification.style.animation = 'slideOut 0.3s ease';
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
+        }, 300);
+    }, 3000);
 }
     
     // ==================== INITIALIZATION ====================
