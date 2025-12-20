@@ -850,8 +850,12 @@ checkResponsiveView() {
             navLinks.classList.remove('links-visible');
             hamburger.innerHTML = '☰';
             hamburger.setAttribute('aria-expanded', 'false');
+        
         } else {
-            // If they were already toggled open, keep them visible
+            // If they were already toggled open, keep them visible (centered)
+            const menuWidth = 280;
+            const leftPosition = (window.innerWidth - menuWidth) / 2;
+            
             navLinks.style.cssText = `
                 display: flex !important;
                 visibility: visible !important;
@@ -859,23 +863,25 @@ checkResponsiveView() {
                 pointer-events: all !important;
                 flex-direction: column !important;
                 position: fixed !important;
-                top: 70px !important;
-                right: 20px !important;
-                background: rgba(0, 0, 0, 0.95) !important;
-                border-radius: 10px !important;
-                padding: 15px !important;
-                z-index: 9999 !important;
-                box-shadow: 0 5px 20px rgba(0,0,0,0.4) !important;
-                border: 1px solid rgba(255,255,255,0.1) !important;
-                min-width: 200px !important;
-                max-width: 300px !important;
-                gap: 10px !important;
+                top: 100px !important;
+                left: ${Math.max(10, leftPosition)}px !important;
+                background: linear-gradient(135deg, #1a237e, #283593) !important;
+                border-radius: 20px !important;
+                padding: 25px !important;
+                z-index: 100000 !important;
+                box-shadow: 0 20px 60px rgba(0,0,0,0.8), 0 0 0 4px #00ff00 !important;
+                border: 3px solid #ffffff !important;
+                width: ${menuWidth}px !important;
+                max-width: 90vw !important;
+                gap: 15px !important;
+                color: white !important;
+                font-size: 18px !important;
+                font-weight: 600 !important;
+                text-align: center !important;
             `;
             hamburger.innerHTML = '✕';
             hamburger.setAttribute('aria-expanded', 'true');
         }
-    }
-}
 
 // ==================== FIXUSERSTATUSDESIGN METHOD ====================
 fixUserStatusDesign() {
