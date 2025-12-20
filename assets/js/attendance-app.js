@@ -267,85 +267,46 @@ setupLogoutButton() {
     
     console.log('🔧 Setting up logout button...');
     
-    // IMPORTANT: Set transition FIRST, before other styles
-    logoutBtn.style.transition = 'all 0.3s ease';
+    // Add CSS classes
+    logoutBtn.classList.add('logout-btn-styled');
     
-    // Apply visual styles using direct assignment
-    logoutBtn.style.display = 'flex';
-    logoutBtn.style.alignItems = 'center';
-    logoutBtn.style.justifyContent = 'center';
-    logoutBtn.style.width = '40px';
-    logoutBtn.style.height = '40px';
-    logoutBtn.style.borderRadius = '50%';
-    logoutBtn.style.background = 'rgba(26, 35, 126, 0.15)';
-    logoutBtn.style.border = '1px solid rgba(26, 35, 126, 0.3)';
-    logoutBtn.style.color = '#1a237e';
-    logoutBtn.style.cursor = 'pointer';
-    logoutBtn.style.margin = '0';
-    logoutBtn.style.padding = '0';
-    logoutBtn.style.flexShrink = '0';
-    logoutBtn.style.position = 'relative';
-    logoutBtn.style.zIndex = '10';
-    logoutBtn.style.transform = 'rotate(0deg)'; // Initial state
-    
-    // Style icon
+    // Style icon if exists
     const icon = logoutBtn.querySelector('i');
     if (icon) {
-        icon.style.transition = 'transform 0.3s ease';
-        icon.style.color = '#1a237e';
-        icon.style.fontSize = '18px';
-        icon.style.display = 'inline-block';
-        icon.style.transform = 'rotate(0deg)'; // Initial state
+        icon.classList.add('logout-icon');
     }
     
-    // Add rotation animation
+    // Add event listeners
     logoutBtn.addEventListener('mouseenter', () => {
-        logoutBtn.style.transform = 'rotate(90deg)';
-        logoutBtn.style.background = 'rgba(26, 35, 126, 0.25)'; // Optional: change background on hover
-        logoutBtn.style.boxShadow = '0 4px 12px rgba(26, 35, 126, 0.2)'; // Optional: add shadow
-        
-        if (icon) {
-            icon.style.transform = 'rotate(-90deg)';
-            icon.style.color = '#283593'; // Optional: change icon color on hover
-        }
+        logoutBtn.classList.add('logout-hover');
     });
     
     logoutBtn.addEventListener('mouseleave', () => {
-        logoutBtn.style.transform = 'rotate(0deg)';
-        logoutBtn.style.background = 'rgba(26, 35, 126, 0.15)';
-        logoutBtn.style.boxShadow = 'none';
-        
-        if (icon) {
-            icon.style.transform = 'rotate(0deg)';
-            icon.style.color = '#1a237e';
-        }
+        logoutBtn.classList.remove('logout-hover');
     });
     
-    // Add click handler with click animation
     logoutBtn.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
         console.log('🚪 Logout button clicked!');
         
         // Add click animation
-        logoutBtn.style.transform = 'scale(0.9) rotate(90deg)';
-        logoutBtn.style.background = 'rgba(26, 35, 126, 0.35)';
+        logoutBtn.classList.add('logout-click');
         
-        // Reset after animation
+        // Remove click animation after it completes
         setTimeout(() => {
-            logoutBtn.style.transform = 'scale(1) rotate(0deg)';
-            logoutBtn.style.background = 'rgba(26, 35, 126, 0.15)';
+            logoutBtn.classList.remove('logout-click');
             
-            // Call logout after animation completes
+            // Call logout
             setTimeout(() => {
                 this.handleLogout();
             }, 100);
-        }, 150);
+        }, 200);
     });
     
     console.log('✅ Logout button setup complete');
 }
-    
+        
 // Update the setupResponsiveHamburgerMenu method to properly store references:
 // ==================== HAMBURGER & NAVBAR METHODS ====================
 
