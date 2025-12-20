@@ -642,3 +642,26 @@ body {
     flex-shrink: 0;
 }
 
+/* Ensure hamburger stays on top */
+.hamburger-menu,
+.menu-toggle,
+.hamburger,
+.dark-design-hamburger {
+    z-index: 100 !important;
+    position: relative !important;
+}
+
+/* Dark container should not overflow or hide children */
+#navUserStatus,
+.user-status,
+.status-content {
+    overflow: visible !important;
+}
+
+/* Make sure nothing inside gets clipped */
+.user-menu {
+    overflow: visible !important;
+    position: relative !important;
+}
+
+
