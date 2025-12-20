@@ -434,6 +434,7 @@ setupHamburgerButton(element) {
 
 // RENAME the toggle method to be clearer:
 // Update the SHOW navigation links section in toggleNavigationLinks():
+// Update the SHOW section to add more debugging and ensure visibility:
 toggleNavigationLinks() {
     console.log('🔄 Toggling navigation links visibility...');
     
@@ -444,7 +445,9 @@ toggleNavigationLinks() {
     
     console.log('Toggle elements check:', {
         navLinks: !!navLinks,
-        hamburger: !!hamburger
+        hamburger: !!hamburger,
+        navLinksElement: navLinks,
+        navLinksHTML: navLinks ? navLinks.outerHTML.substring(0, 200) + '...' : 'none'
     });
     
     if (!navLinks || !hamburger) {
@@ -472,6 +475,15 @@ toggleNavigationLinks() {
         navLinks.offsetHeight > 0;
     
     console.log(`Navigation links state: visible=${isCurrentlyVisible}`);
+    console.log('Current computed styles:', {
+        display: computedStyle.display,
+        visibility: computedStyle.visibility,
+        opacity: computedStyle.opacity,
+        width: navLinks.offsetWidth,
+        height: navLinks.offsetHeight,
+        top: computedStyle.top,
+        right: computedStyle.right
+    });
     
     if (isCurrentlyVisible) {
         // Hide navigation links
@@ -493,190 +505,131 @@ toggleNavigationLinks() {
         // Show navigation links as mobile menu
         console.log('👁️‍🗨️ Showing navigation links as mobile menu...');
         
-        // First, reset any positioning
+        // DEBUG: Log the current HTML of navLinks
+        console.log('📋 NavLinks HTML before showing:', navLinks.innerHTML);
+        
+        // Make sure all child links are visible and styled
+        const links = navLinks.querySelectorAll('a, li, .nav-link');
+        links.forEach(link => {
+            console.log('🔗 Link found:', {
+                tagName: link.tagName,
+                className: link.className,
+                text: link.textContent?.trim(),
+                href: link.href || link.getAttribute('href')
+            });
+            
+            // Force style on links to make sure they're visible
+            Object.assign(link.style, {
+                color: '#ffffff !important',
+                fontSize: '16px !important',
+                padding: '12px 16px !important',
+                display: 'block !important',
+                textDecoration: 'none !important',
+                backgroundColor: 'rgba(255,255,255,0.1) !important',
+                borderRadius: '8px !important',
+                margin: '4px 0 !important',
+                textAlign: 'center !important'
+            });
+        });
+        
+        // Show the menu with VERY prominent styling
         navLinks.style.cssText = `
+            /* Positioning */
             display: flex !important;
             visibility: visible !important;
             opacity: 1 !important;
             pointer-events: all !important;
             flex-direction: column !important;
             position: fixed !important;
-            top: 80px !important;  /* Increased from 70px */
-            right: 10px !important; /* Changed from 20px */
-            background: rgba(0, 0, 0, 0.95) !important;
-            border-radius: 12px !important;
-            padding: 20px !important;
-            z-index: 99999 !important; /* Higher z-index */
-            box-shadow: 0 8px 30px rgba(0,0,0,0.5) !important;
-            border: 2px solid rgba(255,255,255,0.15) !important;
-            min-width: 220px !important;
-            max-width: 320px !important;
-            gap: 12px !important;
+            top: 80px !important;
+            right: 10px !important;
+            
+            /* Appearance */
+            background: rgba(20, 20, 30, 0.98) !important;
+            border-radius: 15px !important;
+            padding: 25px !important;
+            z-index: 99999 !important;
+            box-shadow: 
+                0 10px 40px rgba(0,0,0,0.6),
+                0 0 0 4px #3498db !important;
+            border: 2px solid #3498db !important;
+            min-width: 250px !important;
+            max-width: 350px !important;
+            gap: 15px !important;
+            
+            /* Animation */
             transform: translateY(0) !important;
             transition: all 0.3s ease !important;
-            backdrop-filter: blur(10px) !important;
+            backdrop-filter: blur(15px) !important;
+            
+            /* Text */
+            color: white !important;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+            font-size: 16px !important;
+            font-weight: 500 !important;
+            
+            /* Ensure it's visible */
+            overflow: visible !important;
+            clip-path: none !important;
+            -webkit-clip-path: none !important;
         `;
         
-        // Make sure it's on top of everything
-        navLinks.style.zIndex = '99999';
+        // Add a pulsing animation to make it obvious
+        navLinks.style.animation = 'pulse-border 2s infinite';
+        
+        // Create and append a style for the animation
+        if (!document.querySelector('#mobile-menu-animation')) {
+            const style = document.createElement('style');
+            style.id = 'mobile-menu-animation';
+            style.textContent = `
+                @keyframes pulse-border {
+                    0% { box-shadow: 0 10px 40px rgba(0,0,0,0.6), 0 0 0 4px #3498db; }
+                    50% { box-shadow: 0 10px 40px rgba(0,0,0,0.6), 0 0 0 8px #3498db; }
+                    100% { box-shadow: 0 10px 40px rgba(0,0,0,0.6), 0 0 0 4px #3498db; }
+                }
+                
+                @keyframes glow {
+                    0% { background: rgba(20, 20, 30, 0.98); }
+                    50% { background: rgba(30, 30, 50, 0.98); }
+                    100% { background: rgba(20, 20, 30, 0.98); }
+                }
+            `;
+            document.head.appendChild(style);
+        }
         
         navLinks.classList.add('links-visible');
         navLinks.classList.remove('links-hidden');
         hamburger.innerHTML = '✕';
         hamburger.setAttribute('aria-expanded', 'true');
         
-        // Force a reflow to ensure styles are applied
-        navLinks.offsetHeight;
+        // Force a reflow and log position
+        setTimeout(() => {
+            const rect = navLinks.getBoundingClientRect();
+            console.log('📍 Mobile menu bounding rect:', {
+                top: rect.top,
+                right: rect.right,
+                bottom: rect.bottom,
+                left: rect.left,
+                width: rect.width,
+                height: rect.height,
+                visible: rect.width > 0 && rect.height > 0
+            });
+            
+            console.log('👀 Menu should be visible at:', {
+                screenWidth: window.innerWidth,
+                screenHeight: window.innerHeight,
+                menuTop: rect.top,
+                menuRight: window.innerWidth - rect.right
+            });
+            
+            // Flash the menu to make it obvious
+            navLinks.style.animation = 'glow 1s 3';
+        }, 50);
         
         console.log('✅ Navigation links shown as mobile menu');
-        
-        // Add a visual indicator that it's working
-        setTimeout(() => {
-            console.log('📍 Mobile menu position:', {
-                top: navLinks.style.top,
-                right: navLinks.style.right,
-                zIndex: navLinks.style.zIndex,
-                display: navLinks.style.display
-            });
-        }, 10);
     }
 }
-
-// Also update the checkResponsiveView() method for when links are already visible:
-checkResponsiveView() {
-    const hamburger = this.state.hamburgerElement || 
-                     document.querySelector('.hamburger-menu, .navbar-toggle');
-    const navLinks = this.state.navLinksElement;
     
-    if (!hamburger || !navLinks) {
-        console.log('ℹ️ No hamburger or navigation links for responsive check:', {
-            hasHamburger: !!hamburger,
-            hasNavLinks: !!navLinks
-        });
-        return;
-    }
-    
-    const screenWidth = window.innerWidth;
-    const isLargeScreen = screenWidth >= 768;
-    
-    console.log(`📱 Responsive check: ${screenWidth}px, Large: ${isLargeScreen}`);
-    
-    if (isLargeScreen) {
-        // LARGE SCREENS: Hide hamburger, SHOW navigation links
-        console.log('🖥️ LARGE SCREEN: Showing navigation links, hiding hamburger');
-        
-        // Hide hamburger completely
-        hamburger.style.cssText = `
-            display: none !important;
-            visibility: hidden !important;
-            opacity: 0 !important;
-            pointer-events: none !important;
-            position: absolute !important;
-            width: 0 !important;
-            height: 0 !important;
-            overflow: hidden !important;
-        `;
-        
-        // SHOW navigation links as normal desktop navigation
-        navLinks.style.cssText = `
-            display: flex !important;
-            visibility: visible !important;
-            opacity: 1 !important;
-            position: static !important;
-            flex-direction: row !important;
-            background: transparent !important;
-            box-shadow: none !important;
-            border: none !important;
-            padding: 0 !important;
-            min-width: auto !important;
-            max-width: none !important;
-            top: auto !important;
-            right: auto !important;
-            z-index: auto !important;
-            margin: 0 !important;
-            gap: 20px !important;
-            transform: none !important;
-            backdrop-filter: none !important;
-        `;
-        
-        // Remove all mobile classes
-        navLinks.classList.remove('links-hidden', 'links-visible');
-        hamburger.setAttribute('aria-expanded', 'false');
-        hamburger.innerHTML = '☰';
-        
-    } else {
-        // SMALL SCREENS: Show hamburger, HIDE navigation links initially
-        console.log('📱 SMALL SCREEN: Showing hamburger, hiding navigation links');
-        
-        // Show hamburger
-        hamburger.style.cssText = `
-            display: flex !important;
-            visibility: visible !important;
-            opacity: 1 !important;
-            pointer-events: all !important;
-            align-items: center !important;
-            justify-content: center !important;
-            width: 40px !important;
-            height: 40px !important;
-            border-radius: 50% !important;
-            background: rgba(26, 35, 126, 0.1) !important;
-            border: 1px solid rgba(26, 35, 126, 0.2) !important;
-            color: #1a237e !important;
-            cursor: pointer !important;
-            font-size: 20px !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            flex-shrink: 0 !important;
-            position: relative !important;
-            z-index: 100 !important;
-            transition: all 0.3s ease !important;
-        `;
-        
-        // HIDE navigation links by default on small screens
-        // Only show if they were toggled open
-        if (!navLinks.classList.contains('links-visible')) {
-            navLinks.style.cssText = `
-                display: none !important;
-                visibility: hidden !important;
-                opacity: 0 !important;
-                pointer-events: none !important;
-                transform: translateY(-20px) !important;
-                transition: all 0.3s ease !important;
-            `;
-            navLinks.classList.add('links-hidden');
-            navLinks.classList.remove('links-visible');
-            hamburger.innerHTML = '☰';
-            hamburger.setAttribute('aria-expanded', 'false');
-        } else {
-            // If they were already toggled open, keep them visible
-            navLinks.style.cssText = `
-                display: flex !important;
-                visibility: visible !important;
-                opacity: 1 !important;
-                pointer-events: all !important;
-                flex-direction: column !important;
-                position: fixed !important;
-                top: 80px !important;
-                right: 10px !important;
-                background: rgba(0, 0, 0, 0.95) !important;
-                border-radius: 12px !important;
-                padding: 20px !important;
-                z-index: 99999 !important;
-                box-shadow: 0 8px 30px rgba(0,0,0,0.5) !important;
-                border: 2px solid rgba(255,255,255,0.15) !important;
-                min-width: 220px !important;
-                max-width: 320px !important;
-                gap: 12px !important;
-                transform: translateY(0) !important;
-                transition: all 0.3s ease !important;
-                backdrop-filter: blur(10px) !important;
-            `;
-            hamburger.innerHTML = '✕';
-            hamburger.setAttribute('aria-expanded', 'true');
-        }
-    }
-}
-
 // ==================== CORRECTED TOGGLE LOGIC ====================
 
 setupNavbarToggling() {
