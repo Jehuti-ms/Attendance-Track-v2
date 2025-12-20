@@ -738,4 +738,40 @@ aside {
     }
 }
 
+/* Responsive navbar styles */
+@media (max-width: 767px) {
+    .toggleable-navbar.navbar-hidden {
+        display: none !important;
+    }
+    
+    .toggleable-navbar.navbar-visible {
+        display: flex !important;
+        flex-direction: column !important;
+        position: absolute !important;
+        top: 70px !important;
+        right: 20px !important;
+        background: rgba(0, 0, 0, 0.95) !important;
+        border-radius: 10px !important;
+        padding: 15px !important;
+        z-index: 99 !important;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.3) !important;
+        border: 1px solid rgba(255,255,255,0.1) !important;
+        min-width: 200px !important;
+    }
+    
+    .hamburger-menu.navbar-toggle {
+        display: flex !important;
+    }
+}
+
+@media (min-width: 768px) {
+    .hamburger-menu.navbar-toggle {
+        display: none !important;
+    }
+    
+    .toggleable-navbar {
+        display: flex !important;
+    }
+}
+
 
