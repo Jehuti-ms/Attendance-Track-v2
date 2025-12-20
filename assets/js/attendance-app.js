@@ -596,6 +596,7 @@ toggleNavigationLinks() {
     
     console.log('✅ Navigation links shown as mobile menu');
 }
+}
     
 // ==================== CORRECTED TOGGLE LOGIC ====================
 
