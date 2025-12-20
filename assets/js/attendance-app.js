@@ -431,120 +431,168 @@ setupHamburgerButton(element) {
     console.log('✅ Hamburger button styled and click handler added');
 }
 
+// ==================== CORRECTED TOGGLE LOGIC ====================
+
 setupNavbarToggling() {
     console.log('🔧 Setting up navbar toggling...');
     
-    // Find the main navbar to toggle
-    const navbarSelectors = [
-        'nav',
-        '.navbar',
+    // Find the navigation LINKS inside the navbar (not the whole navbar)
+    const linkSelectors = [
         '.nav-links',
-        '.navigation',
-        '.main-nav',
-        'header > nav',
-        '.header > nav',
-        '[role="navigation"]'
+        '.navigation-links',
+        '.navbar-links',
+        '.menu-links',
+        'nav > ul',
+        'nav > div', // if links are in a div
+        '.navbar > ul',
+        '.navbar > div'
     ];
     
-    let navbar = null;
-    for (const selector of navbarSelectors) {
+    let navLinks = null;
+    for (const selector of linkSelectors) {
         const element = document.querySelector(selector);
         if (element) {
-            // Check if it has navigation links
-            const hasLinks = element.querySelector('a, .nav-link, [href], button');
+            // Check if it contains actual links
+            const hasLinks = element.querySelector('a, .nav-link, [href], li');
             if (hasLinks) {
-                navbar = element;
-                console.log(`📍 Found main navbar with selector: ${selector}`);
-                console.log('Navbar details:', {
-                    className: navbar.className,
-                    tagName: navbar.tagName,
-                    linksCount: navbar.querySelectorAll('a, .nav-link').length
+                navLinks = element;
+                console.log(`📍 Found navigation links with selector: ${selector}`);
+                console.log('Links container:', {
+                    className: navLinks.className,
+                    tagName: navLinks.tagName,
+                    linksCount: navLinks.querySelectorAll('a, .nav-link').length
                 });
                 break;
             }
         }
     }
     
-    if (navbar) {
+    // If no specific links container found, look for links directly in nav
+    if (!navLinks) {
+        const navs = document.querySelectorAll('nav, .navbar');
+        for (const nav of navs) {
+            // Get direct children that aren't the hamburger or logo
+            const children = Array.from(nav.children);
+            for (const child of children) {
+                // Skip hamburger, logo, and user status containers
+                if (child.classList.contains('hamburger-menu') || 
+                    child.classList.contains('navbar-toggle') ||
+                    child.classList.contains('logo') ||
+                    child.id === 'navUserStatus' ||
+                    child.classList.contains('user-status')) {
+                    continue;
+                }
+                
+                // Check if this element contains links
+                const hasLinks = child.querySelector('a, .nav-link, [href]');
+                if (hasLinks && !navLinks) {
+                    navLinks = child;
+                    console.log('📍 Found links container in nav:', child.className);
+                    break;
+                }
+            }
+            if (navLinks) break;
+        }
+    }
+    
+    if (navLinks) {
         // Mark it as toggleable
-        navbar.classList.add('toggleable-navbar');
+        navLinks.classList.add('toggleable-links');
         // Store reference in app state
-        this.state.toggleableNavbar = navbar;
-        console.log('✅ Navbar stored for toggling');
+        this.state.navLinksElement = navLinks;
+        console.log('✅ Navigation links stored for toggling');
     } else {
-        console.log('⚠️ No main navbar found for toggling');
+        console.log('⚠️ No navigation links found for toggling');
     }
 }
 
 toggleNavbarVisibility() {
-    console.log('🔄 Toggling navbar visibility...');
+    console.log('🔄 Toggling navigation links visibility...');
     
     // Get stored references
-    const navbar = this.state.toggleableNavbar;
+    const navLinks = this.state.navLinksElement;
     const hamburger = this.state.hamburgerElement || 
                      document.querySelector('.hamburger-menu, .navbar-toggle');
     
-    console.log('Toggle elements check:', {
-        navbar: !!navbar,
-        hamburger: !!hamburger
-    });
-    
-    if (!navbar || !hamburger) {
+    if (!navLinks || !hamburger) {
         console.log('❌ Missing elements for toggling');
         return;
     }
     
+    // Check if we're on small screen - only toggle on mobile
+    const screenWidth = window.innerWidth;
+    const isLargeScreen = screenWidth >= 768;
+    
+    if (isLargeScreen) {
+        console.log('🖥️ On large screen - navigation links should always be visible');
+        return; // Don't toggle on large screens
+    }
+    
+    console.log('📱 On small screen - toggling navigation links');
+    
     // Check current state
-    const computedStyle = window.getComputedStyle(navbar);
+    const computedStyle = window.getComputedStyle(navLinks);
     const isCurrentlyVisible = 
         computedStyle.display !== 'none' && 
         computedStyle.visibility !== 'hidden' &&
-        navbar.offsetWidth > 0 && 
-        navbar.offsetHeight > 0;
+        navLinks.offsetWidth > 0 && 
+        navLinks.offsetHeight > 0;
     
-    console.log(`Navbar state: visible=${isCurrentlyVisible}`);
+    console.log(`Navigation links state: visible=${isCurrentlyVisible}`);
     
     if (isCurrentlyVisible) {
-        // Hide navbar
-        console.log('👁️‍🗨️ Hiding navbar...');
-        navbar.style.display = 'none';
-        navbar.classList.remove('navbar-visible');
-        navbar.classList.add('navbar-hidden');
+        // Hide navigation links (mobile menu)
+        console.log('👁️‍🗨️ Hiding navigation links...');
+        navLinks.style.cssText = `
+            display: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+        `;
+        navLinks.classList.remove('links-visible');
+        navLinks.classList.add('links-hidden');
         hamburger.innerHTML = '☰';
         hamburger.setAttribute('aria-expanded', 'false');
-        console.log('✅ Navbar hidden');
+        console.log('✅ Navigation links hidden');
     } else {
-        // Show navbar (mobile menu)
-        console.log('👁️‍🗨️ Showing navbar (mobile menu)...');
-        navbar.style.display = 'flex';
-        navbar.style.flexDirection = 'column';
-        navbar.style.position = 'fixed';
-        navbar.style.top = '70px';
-        navbar.style.right = '20px';
-        navbar.style.background = 'rgba(0, 0, 0, 0.95)';
-        navbar.style.borderRadius = '10px';
-        navbar.style.padding = '15px';
-        navbar.style.zIndex = '9999';
-        navbar.style.boxShadow = '0 5px 20px rgba(0,0,0,0.4)';
-        navbar.style.border = '1px solid rgba(255,255,255,0.1)';
-        navbar.style.minWidth = '200px';
-        navbar.classList.add('navbar-visible');
-        navbar.classList.remove('navbar-hidden');
+        // Show navigation links as mobile menu
+        console.log('👁️‍🗨️ Showing navigation links as mobile menu...');
+        navLinks.style.cssText = `
+            display: flex !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            pointer-events: all !important;
+            flex-direction: column !important;
+            position: fixed !important;
+            top: 70px !important;
+            right: 20px !important;
+            background: rgba(0, 0, 0, 0.95) !important;
+            border-radius: 10px !important;
+            padding: 15px !important;
+            z-index: 9999 !important;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.4) !important;
+            border: 1px solid rgba(255,255,255,0.1) !important;
+            min-width: 200px !important;
+            max-width: 300px !important;
+            gap: 10px !important;
+        `;
+        navLinks.classList.add('links-visible');
+        navLinks.classList.remove('links-hidden');
         hamburger.innerHTML = '✕';
         hamburger.setAttribute('aria-expanded', 'true');
-        console.log('✅ Navbar shown as mobile menu');
+        console.log('✅ Navigation links shown as mobile menu');
     }
 }
 
 checkResponsiveView() {
     const hamburger = this.state.hamburgerElement || 
                      document.querySelector('.hamburger-menu, .navbar-toggle');
-    const navbar = this.state.toggleableNavbar;
+    const navLinks = this.state.navLinksElement;
     
-    if (!hamburger || !navbar) {
-        console.log('ℹ️ No hamburger or navbar for responsive check:', {
+    if (!hamburger || !navLinks) {
+        console.log('ℹ️ No hamburger or navigation links for responsive check:', {
             hasHamburger: !!hamburger,
-            hasNavbar: !!navbar
+            hasNavLinks: !!navLinks
         });
         return;
     }
@@ -555,15 +603,23 @@ checkResponsiveView() {
     console.log(`📱 Responsive check: ${screenWidth}px, Large: ${isLargeScreen}`);
     
     if (isLargeScreen) {
-        // Large screens: hide hamburger, show navbar
+        // LARGE SCREENS: Hide hamburger, SHOW navigation links
+        console.log('🖥️ LARGE SCREEN: Showing navigation links, hiding hamburger');
+        
+        // Hide hamburger completely
         hamburger.style.cssText = `
             display: none !important;
             visibility: hidden !important;
             opacity: 0 !important;
             pointer-events: none !important;
+            position: absolute !important;
+            width: 0 !important;
+            height: 0 !important;
+            overflow: hidden !important;
         `;
         
-        navbar.style.cssText = `
+        // SHOW navigation links as normal desktop navigation
+        navLinks.style.cssText = `
             display: flex !important;
             visibility: visible !important;
             opacity: 1 !important;
@@ -574,15 +630,24 @@ checkResponsiveView() {
             border: none !important;
             padding: 0 !important;
             min-width: auto !important;
+            max-width: none !important;
             top: auto !important;
             right: auto !important;
             z-index: auto !important;
+            margin: 0 !important;
+            gap: 20px !important;
         `;
         
-        navbar.classList.remove('navbar-hidden', 'navbar-visible');
-        console.log('🖥️ Large screen: Navbar visible, hamburger hidden');
+        // Remove all mobile classes
+        navLinks.classList.remove('links-hidden', 'links-visible', 'mobile-menu');
+        hamburger.setAttribute('aria-expanded', 'false');
+        hamburger.innerHTML = '☰';
+        
     } else {
-        // Small screens: show hamburger
+        // SMALL SCREENS: Show hamburger, HIDE navigation links initially
+        console.log('📱 SMALL SCREEN: Showing hamburger, hiding navigation links');
+        
+        // Show hamburger
         hamburger.style.cssText = `
             display: flex !important;
             visibility: visible !important;
@@ -606,19 +671,43 @@ checkResponsiveView() {
             transition: all 0.3s ease !important;
         `;
         
-        // Only hide navbar if it's not already toggled open
-        if (!navbar.classList.contains('navbar-visible')) {
-            navbar.style.display = 'none';
-            navbar.classList.add('navbar-hidden');
-            navbar.classList.remove('navbar-visible');
+        // HIDE navigation links by default on small screens
+        // Only show if they were toggled open
+        if (!navLinks.classList.contains('links-visible')) {
+            navLinks.style.cssText = `
+                display: none !important;
+                visibility: hidden !important;
+                opacity: 0 !important;
+                pointer-events: none !important;
+            `;
+            navLinks.classList.add('links-hidden');
+            navLinks.classList.remove('links-visible');
             hamburger.innerHTML = '☰';
             hamburger.setAttribute('aria-expanded', 'false');
         } else {
+            // If they were already toggled open, keep them visible
+            navLinks.style.cssText = `
+                display: flex !important;
+                visibility: visible !important;
+                opacity: 1 !important;
+                pointer-events: all !important;
+                flex-direction: column !important;
+                position: fixed !important;
+                top: 70px !important;
+                right: 20px !important;
+                background: rgba(0, 0, 0, 0.95) !important;
+                border-radius: 10px !important;
+                padding: 15px !important;
+                z-index: 9999 !important;
+                box-shadow: 0 5px 20px rgba(0,0,0,0.4) !important;
+                border: 1px solid rgba(255,255,255,0.1) !important;
+                min-width: 200px !important;
+                max-width: 300px !important;
+                gap: 10px !important;
+            `;
             hamburger.innerHTML = '✕';
             hamburger.setAttribute('aria-expanded', 'true');
         }
-        
-        console.log('📱 Small screen: Hamburger visible, navbar togglable');
     }
 }
 
