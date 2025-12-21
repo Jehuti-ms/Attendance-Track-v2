@@ -3753,12 +3753,20 @@ async initializeAttendancePage() {
         this.loadDataStats();
     }
 
-    clearClassForm() {
-        ['className', 'classCode', 'yearGroup', 'subject'].forEach(id => {
-            const element = document.getElementById(id);
-            if (element) element.value = '';
-        });
+   clearClassForm() {
+    document.getElementById('yearGroup').value = '';
+    document.getElementById('classCode').value = '';
+    document.getElementById('maleCount').value = '0';
+    document.getElementById('femaleCount').value = '0';
+    document.getElementById('totalStudents').textContent = '0';
+    document.getElementById('editClassId').value = '';
+    
+    // Reset button text
+    const saveBtn = document.getElementById('save-class');
+    if (saveBtn) {
+        saveBtn.innerHTML = '<i class="fas fa-save"></i> Save Class';
     }
+}
 
     loadClassesList() {
         const classesList = document.getElementById('classes-list');
@@ -3841,6 +3849,26 @@ async initializeAttendancePage() {
         this.loadDataStats();
     }
 
+    setupTotalCalculation() {
+    const maleInput = document.getElementById('maleCount');
+    const femaleInput = document.getElementById('femaleCount');
+    const totalDisplay = document.getElementById('totalStudents');
+    
+    if (maleInput && femaleInput && totalDisplay) {
+        const calculateTotal = () => {
+            const males = parseInt(maleInput.value) || 0;
+            const females = parseInt(femaleInput.value) || 0;
+            totalDisplay.textContent = males + females;
+        };
+        
+        maleInput.addEventListener('input', calculateTotal);
+        femaleInput.addEventListener('input', calculateTotal);
+        
+        // Initial calculation
+        calculateTotal();
+    }
+}
+    
     saveStudent() {
         const firstName = document.getElementById('firstName')?.value;
         const lastName = document.getElementById('lastName')?.value;
@@ -4187,6 +4215,9 @@ async initializeAttendancePage() {
 initializeSetupPage() {
     // Initialize auto-save
     this.initAutoSave();
+
+     // Setup total calculation
+    this.setupTotalCalculation();
     
     // Tab switching
     const tabBtns = document.querySelectorAll('.tab-btn');
@@ -4345,13 +4376,17 @@ initAutoSave() {
 }
 
 setupClassAutoSave() {
-    const inputIds = ['className', 'classCode', 'yearGroup', 'subject'];
+    const inputIds = ['yearGroup', 'classCode', 'maleCount', 'femaleCount'];
     
     inputIds.forEach(id => {
         const input = document.getElementById(id);
         if (input) {
             input.addEventListener('input', () => {
                 this.queueAutoSave('class');
+                // Also update total when male/female counts change
+                if (id === 'maleCount' || id === 'femaleCount') {
+                    this.updateTotalDisplay();
+                }
             });
             input.addEventListener('blur', () => {
                 this.autoSaveClassForm();
@@ -4360,51 +4395,35 @@ setupClassAutoSave() {
     });
 }
 
-setupStudentAutoSave() {
-    const inputIds = ['firstName', 'lastName', 'studentId', 'gender', 'studentClass'];
+updateTotalDisplay() {
+    const maleInput = document.getElementById('maleCount');
+    const femaleInput = document.getElementById('femaleCount');
+    const totalDisplay = document.getElementById('totalStudents');
     
-    inputIds.forEach(id => {
-        const input = document.getElementById(id);
-        if (input) {
-            input.addEventListener('input', () => {
-                this.queueAutoSave('student');
-            });
-            input.addEventListener('blur', () => {
-                this.autoSaveStudentForm();
-            });
-        }
-    });
-}
-
-queueAutoSave(type) {
-    clearTimeout(this.autoSaveTimeouts?.[type]);
-    
-    if (!this.autoSaveTimeouts) this.autoSaveTimeouts = {};
-    
-    this.autoSaveTimeouts[type] = setTimeout(() => {
-        if (type === 'class') {
-            this.autoSaveClassForm();
-        } else if (type === 'student') {
-            this.autoSaveStudentForm();
-        }
-    }, 1500); // 1.5 second delay
+    if (maleInput && femaleInput && totalDisplay) {
+        const males = parseInt(maleInput.value) || 0;
+        const females = parseInt(femaleInput.value) || 0;
+        totalDisplay.textContent = males + females;
+    }
 }
 
 async autoSaveClassForm() {
-    const className = document.getElementById('className')?.value;
-    const classCode = document.getElementById('classCode')?.value;
     const yearGroup = document.getElementById('yearGroup')?.value;
-    const subject = document.getElementById('subject')?.value;
+    const classCode = document.getElementById('classCode')?.value?.trim();
+    const maleCount = parseInt(document.getElementById('maleCount')?.value) || 0;
+    const femaleCount = parseInt(document.getElementById('femaleCount')?.value) || 0;
     
     // Don't auto-save if required fields are empty
-    if (!className || !classCode) return;
+    if (!yearGroup || !classCode) return;
     
     const classData = {
         id: `draft_class_${Date.now()}`,
-        name: className,
+        yearGroup: yearGroup,
         code: classCode,
-        yearGroup: yearGroup || null,
-        subject: subject || null,
+        males: maleCount,
+        females: femaleCount,
+        total: maleCount + femaleCount,
+        name: `${yearGroup} - ${classCode}`,
         isDraft: true,
         lastAutoSave: new Date().toISOString()
     };
@@ -4412,7 +4431,7 @@ async autoSaveClassForm() {
     // Save draft to localStorage
     const drafts = Storage.get('classDrafts') || [];
     const existingIndex = drafts.findIndex(d => 
-        d.name === className && d.code === classCode
+        d.yearGroup === yearGroup && d.code === classCode
     );
     
     if (existingIndex >= 0) {
@@ -4593,46 +4612,69 @@ updateAutoSaveIndicator() {
 
 // ==================== ENHANCED CLASS METHODS ====================
 async saveClass() {
-    const className = document.getElementById('className')?.value;
-    const classCode = document.getElementById('classCode')?.value;
+    const yearGroup = document.getElementById('yearGroup')?.value;
+    const classCode = document.getElementById('classCode')?.value?.trim();
+    const maleCount = parseInt(document.getElementById('maleCount')?.value) || 0;
+    const femaleCount = parseInt(document.getElementById('femaleCount')?.value) || 0;
+    const editClassId = document.getElementById('editClassId')?.value;
     
-    if (!className || !classCode) {
-        this.showToast('Please fill in all required fields', 'error');
+    // Validation - only require Year Group and Class Code
+    if (!yearGroup || !classCode) {
+        this.showToast('Please fill in Year Group and Class Code', 'error');
         return;
     }
     
     const classes = Storage.get('classes') || [];
     
-    // Check for duplicate class code
-    if (classes.some(c => c.code === classCode)) {
+    // Check for duplicate class code (but allow editing)
+    if (!editClassId && classes.some(c => c.code === classCode)) {
         this.showToast('Class code already exists', 'error');
         return;
     }
     
-    const newClass = {
-        id: `class_${Date.now()}`,
-        name: className,
+    // Calculate total
+    const totalStudents = maleCount + femaleCount;
+    
+    const classData = {
+        id: editClassId || `class_${Date.now()}`,
+        yearGroup: yearGroup,
         code: classCode,
-        yearGroup: document.getElementById('yearGroup')?.value || null,
-        subject: document.getElementById('subject')?.value || null,
+        males: maleCount,
+        females: femaleCount,
+        total: totalStudents,
+        name: `${yearGroup} - ${classCode}`, // For backward compatibility
         createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
         teacherId: this.user?.id
     };
     
+    if (editClassId) {
+        // Update existing class
+        const index = classes.findIndex(c => c.id === editClassId);
+        if (index !== -1) {
+            classes[index] = classData;
+        }
+    } else {
+        // Add new class
+        classes.push(classData);
+    }
+    
     // 1. Save to localStorage immediately
-    classes.push(newClass);
     Storage.set('classes', classes);
     
     // 2. Try to save to Firebase if authenticated
     if (window.auth?.currentUser) {
         try {
             const schoolId = getSchoolId();
-            const result = await Firestore.saveClass(schoolId, newClass);
+            const result = await Firestore.saveClass(schoolId, classData);
             
             if (result.success) {
                 // Update local copy with Firebase ID
-                newClass.firebaseId = result.id;
-                Storage.set('classes', classes); // Re-save with Firebase ID
+                classData.firebaseId = result.id;
+                const updatedClasses = classes.map(c => 
+                    c.id === classData.id ? { ...c, firebaseId: result.id } : c
+                );
+                Storage.set('classes', updatedClasses);
                 
                 this.showToast('Class saved to cloud!', 'success');
             } else {
@@ -4649,7 +4691,7 @@ async saveClass() {
     // 3. Clear any drafts for this class
     const drafts = Storage.get('classDrafts') || [];
     const filteredDrafts = drafts.filter(d => 
-        !(d.name === className && d.code === classCode)
+        !(d.yearGroup === yearGroup && d.code === classCode)
     );
     Storage.set('classDrafts', filteredDrafts);
     
@@ -4658,7 +4700,7 @@ async saveClass() {
     this.populateClassDropdown();
     this.loadDataStats();
 }
-
+    
 async deleteClass(classId) {
     if (!confirm('Delete this class? This will also unassign students from this class.')) {
         return;
@@ -4969,28 +5011,39 @@ loadClassesList() {
         const cloudIndicator = cls.firebaseId ? 
             `<span class="cloud-indicator" title="Synced to cloud"><i class="fas fa-check-circle"></i></span>` : '';
         
+        // Calculate totals from males/females if available
+        const maleCount = cls.males || 0;
+        const femaleCount = cls.females || 0;
+        const total = cls.total || (maleCount + femaleCount);
+        
         return `
             <div class="class-card">
                 <div class="class-header">
-                    <div class="class-title">${cls.name} ${cloudIndicator}</div>
-                    <div class="class-code">${cls.code}</div>
+                    <div class="class-title">${cls.yearGroup || cls.name} - ${cls.code} ${cloudIndicator}</div>
                     ${syncStatus}
                 </div>
                 <div class="class-info">
                     <div class="info-item">
-                        <span class="info-label">Year Group:</span>
-                        <span class="info-value">${cls.yearGroup || 'Not set'}</span>
+                        <span class="info-label">Class Code:</span>
+                        <span class="info-value">${cls.code}</span>
                     </div>
                     <div class="info-item">
-                        <span class="info-label">Subject:</span>
-                        <span class="info-value">${cls.subject || 'Not set'}</span>
+                        <span class="info-label">Males:</span>
+                        <span class="info-value">${maleCount}</span>
                     </div>
                     <div class="info-item">
-                        <span class="info-label">Students:</span>
-                        <span class="info-value">${studentCount}</span>
+                        <span class="info-label">Females:</span>
+                        <span class="info-value">${femaleCount}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Total:</span>
+                        <span class="info-value">${total}</span>
                     </div>
                 </div>
                 <div class="class-actions">
+                    <button class="action-btn edit-btn" onclick="window.app.editClass('${cls.id}')">
+                        <i class="fas fa-edit"></i> Edit
+                    </button>
                     <button class="action-btn delete-btn" onclick="window.app.deleteClass('${cls.id}')">
                         <i class="fas fa-trash"></i> Delete
                     </button>
@@ -4998,6 +5051,32 @@ loadClassesList() {
             </div>
         `;
     }).join('');
+}
+
+    editClass(classId) {
+    const classes = Storage.get('classes') || [];
+    const cls = classes.find(c => c.id === classId);
+    
+    if (cls) {
+        document.getElementById('yearGroup').value = cls.yearGroup || '';
+        document.getElementById('classCode').value = cls.code || '';
+        document.getElementById('maleCount').value = cls.males || 0;
+        document.getElementById('femaleCount').value = cls.females || 0;
+        document.getElementById('editClassId').value = cls.id;
+        
+        // Update total display
+        const total = (parseInt(cls.males) || 0) + (parseInt(cls.females) || 0);
+        document.getElementById('totalStudents').textContent = total;
+        
+        // Update button text
+        const saveBtn = document.getElementById('save-class');
+        if (saveBtn) {
+            saveBtn.innerHTML = '<i class="fas fa-save"></i> Update Class';
+        }
+        
+        // Scroll to form
+        document.getElementById('classes-tab').scrollIntoView({ behavior: 'smooth' });
+    }
 }
     
     // ==================== SETTINGS PAGE METHODS ====================
