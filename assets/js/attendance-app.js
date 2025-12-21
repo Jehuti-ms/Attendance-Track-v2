@@ -2184,331 +2184,348 @@ async init() {
 
     // ==================== SETUP PAGE ====================
     loadSetupContent(container) {
-        if (!this.user) {
-            container.innerHTML = `<div class="error">No user found. Please login again.</div>`;
-            return;
-        }
-        
-        container.innerHTML = `
-            <div class="setup-page">
-                <div class="setup-container">
-                    <div class="setup-header">
-                        <h1>System Setup & Configuration</h1>
-                        <p class="setup-subtitle">Configure all system settings, user preferences, and manage data</p>
+    if (!this.user) {
+        container.innerHTML = `<div class="error">No user found. Please login again.</div>`;
+        return;
+    }
+    
+    container.innerHTML = `
+        <div class="setup-page">
+            <div class="setup-container">
+                <div class="setup-header">
+                    <h1>System Setup & Configuration</h1>
+                    <p class="setup-subtitle">Configure all system settings, user preferences, and manage data</p>
+                </div>
+                
+                <section class="setup-section">
+                    <div class="setup-tabs">
+                        <button class="tab-btn active" data-tab="classes">
+                            <i class="fas fa-chalkboard-teacher"></i> Classes
+                        </button>
+                        <button class="tab-btn" data-tab="students">
+                            <i class="fas fa-users"></i> Students
+                        </button>
+                        <button class="tab-btn" data-tab="import">
+                            <i class="fas fa-file-import"></i> Import
+                        </button>
+                        <button class="tab-btn" data-tab="system">
+                            <i class="fas fa-cog"></i> System Settings
+                        </button>
+                        <button class="tab-btn" data-tab="data">
+                            <i class="fas fa-database"></i> Data Management
+                        </button>
                     </div>
                     
-                    <section class="setup-section">
-                        <div class="setup-tabs">
-                            <button class="tab-btn active" data-tab="classes">
-                                <i class="fas fa-chalkboard-teacher"></i> Classes
-                            </button>
-                            <button class="tab-btn" data-tab="students">
-                                <i class="fas fa-users"></i> Students
-                            </button>
-                            <button class="tab-btn" data-tab="import">
-                                <i class="fas fa-file-import"></i> Import
-                            </button>
-                            <button class="tab-btn" data-tab="system">
-                                <i class="fas fa-cog"></i> System Settings
-                            </button>
-                            <button class="tab-btn" data-tab="data">
-                                <i class="fas fa-database"></i> Data Management
-                            </button>
-                        </div>
-                        
-                        <!-- Classes Tab -->
-                        <div class="tab-content active" id="classes-tab">
-                            <div class="section-title">Class Management</div>
-                            <div class="setup-form">
-                                <div class="form-row">
-                                    <div class="form-group">
-                                        <label class="form-label">Class Name</label>
-                                        <input type="text" id="className" class="form-input" placeholder="e.g., Grade 10 Mathematics">
-                                    </div>
-                                    <div class="form-group">
-                                        <label class="form-label">Class Code</label>
-                                        <input type="text" id="classCode" class="form-input" placeholder="e.g., 10MATHS">
-                                    </div>
+                    <!-- Classes Tab -->
+                    <div class="tab-content active" id="classes-tab">
+                        <div class="section-title">Class Management</div>
+                        <div class="setup-form">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label">Year Group</label>
+                                    <select id="yearGroup" class="form-input">
+                                        <option value="">Select Year Group</option>
+                                        <option value="1st Years">1st Years</option>
+                                        <option value="2nd Years">2nd Years</option>
+                                        <option value="3rd Years">3rd Years</option>
+                                        <option value="4th Years">4th Years</option>
+                                        <option value="5th Years">5th Years</option>
+                                        <option value="U5">Upper 5th</option>
+                                        <option value="L6">Lower 6th</option>
+                                        <option value="U6">Upper 6th</option>
+                                    </select>
                                 </div>
-                                
-                                <div class="form-row">
-                                    <div class="form-group">
-                                        <label class="form-label">Year Group</label>
-                                        <input type="text" id="yearGroup" class="form-input" placeholder="e.g., 10">
-                                    </div>
-                                    <div class="form-group">
-                                        <label class="form-label">Subject</label>
-                                        <input type="text" id="subject" class="form-input" placeholder="e.g., Mathematics">
-                                    </div>
-                                </div>
-                                
-                                <div class="actions-container">
-                                    <button class="action-btn save-btn" id="save-class">
-                                        <i class="fas fa-save"></i> Save Class
-                                    </button>
-                                    <button class="action-btn cancel-btn" id="clear-class">
-                                        <i class="fas fa-undo"></i> Clear Form
-                                    </button>
+                                <div class="form-group">
+                                    <label class="form-label">Class Code</label>
+                                    <input type="text" id="classCode" class="form-input" placeholder="e.g., 1LEY, U5Mascoll, 10RAN">
                                 </div>
                             </div>
                             
-                            <div class="section-title">Existing Classes</div>
-                            <div class="classes-list" id="classes-list">
-                                <!-- Classes will be loaded here -->
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label">Number of Males</label>
+                                    <input type="number" id="maleCount" class="form-input" placeholder="0" min="0">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Number of Females</label>
+                                    <input type="number" id="femaleCount" class="form-input" placeholder="0" min="0">
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Total Students</label>
+                                <div id="totalStudents" class="total-display">0</div>
+                            </div>
+                            
+                            <input type="hidden" id="editClassId" value="">
+                            
+                            <div class="actions-container">
+                                <button class="action-btn save-btn" id="save-class">
+                                    <i class="fas fa-save"></i> Save Class
+                                </button>
+                                <button class="action-btn cancel-btn" id="clear-class">
+                                    <i class="fas fa-undo"></i> Clear Form
+                                </button>
                             </div>
                         </div>
                         
-                        <!-- Students Tab -->
-                        <div class="tab-content" id="students-tab">
-                            <div class="section-title">Student Management</div>
-                            <div class="setup-form">
-                                <div class="form-row">
-                                    <div class="form-group">
-                                        <label class="form-label">First Name</label>
-                                        <input type="text" id="firstName" class="form-input" placeholder="John">
-                                    </div>
-                                    <div class="form-group">
-                                        <label class="form-label">Last Name</label>
-                                        <input type="text" id="lastName" class="form-input" placeholder="Doe">
-                                    </div>
-                                </div>
-                                
-                                <div class="form-row">
-                                    <div class="form-group">
-                                        <label class="form-label">Student ID</label>
-                                        <input type="text" id="studentId" class="form-input" placeholder="STU001">
-                                    </div>
-                                    <div class="form-group">
-                                        <label class="form-label">Gender</label>
-                                        <select id="gender" class="form-input">
-                                            <option value="">Select Gender</option>
-                                            <option value="male">Male</option>
-                                            <option value="female">Female</option>
-                                            <option value="other">Other</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                
+                        <div class="section-title">Existing Classes</div>
+                        <div class="classes-list" id="classes-list">
+                            <!-- Classes will be loaded here -->
+                        </div>
+                    </div>
+                    
+                    <!-- Students Tab (Remains the same) -->
+                    <div class="tab-content" id="students-tab">
+                        <div class="section-title">Student Management</div>
+                        <div class="setup-form">
+                            <div class="form-row">
                                 <div class="form-group">
-                                    <label class="form-label">Class</label>
-                                    <select id="studentClass" class="form-input">
-                                        <option value="">Select Class</option>
-                                        <!-- Classes will be populated here -->
+                                    <label class="form-label">First Name</label>
+                                    <input type="text" id="firstName" class="form-input" placeholder="John">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Last Name</label>
+                                    <input type="text" id="lastName" class="form-input" placeholder="Doe">
+                                </div>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label">Student ID</label>
+                                    <input type="text" id="studentId" class="form-input" placeholder="STU001">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Gender</label>
+                                    <select id="gender" class="form-input">
+                                        <option value="">Select Gender</option>
+                                        <option value="male">Male</option>
+                                        <option value="female">Female</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Class</label>
+                                <select id="studentClass" class="form-input">
+                                    <option value="">Select Class</option>
+                                    <!-- Classes will be populated here -->
+                                </select>
+                            </div>
+                            
+                            <div class="actions-container">
+                                <button class="action-btn save-btn" id="save-student">
+                                    <i class="fas fa-save"></i> Save Student
+                                </button>
+                                <button class="action-btn cancel-btn" id="clear-student">
+                                    <i class="fas fa-undo"></i> Clear Form
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="section-title">Existing Students</div>
+                        <div class="students-list" id="students-list">
+                            <!-- Students will be loaded here -->
+                        </div>
+                    </div>
+                    
+                    <!-- Import Tab (Remains the same) -->
+                    <div class="tab-content" id="import-tab">
+                        <div class="section-title">Data Import</div>
+                        <div class="import-container">
+                            <div class="import-zone" id="import-zone">
+                                <i class="fas fa-cloud-upload-alt"></i>
+                                <p>Drag & drop CSV file here</p>
+                                <p>or click to browse</p>
+                                <input type="file" id="import-file" accept=".csv" style="display: none;">
+                            </div>
+                            
+                            <div class="import-options">
+                                <div class="form-group">
+                                    <label class="form-label">Import Type</label>
+                                    <select id="import-type" class="form-input">
+                                        <option value="students">Students</option>
+                                        <option value="classes">Classes</option>
+                                        <option value="attendance">Attendance</option>
                                     </select>
                                 </div>
                                 
-                                <div class="actions-container">
-                                    <button class="action-btn save-btn" id="save-student">
-                                        <i class="fas fa-save"></i> Save Student
-                                    </button>
-                                    <button class="action-btn cancel-btn" id="clear-student">
-                                        <i class="fas fa-undo"></i> Clear Form
-                                    </button>
-                                </div>
-                            </div>
-                            
-                            <div class="section-title">Existing Students</div>
-                            <div class="students-list" id="students-list">
-                                <!-- Students will be loaded here -->
-                            </div>
-                        </div>
-                        
-                        <!-- Import Tab -->
-                        <div class="tab-content" id="import-tab">
-                            <div class="section-title">Data Import</div>
-                            <div class="import-container">
-                                <div class="import-zone" id="import-zone">
-                                    <i class="fas fa-cloud-upload-alt"></i>
-                                    <p>Drag & drop CSV file here</p>
-                                    <p>or click to browse</p>
-                                    <input type="file" id="import-file" accept=".csv" style="display: none;">
-                                </div>
-                                
-                                <div class="import-options">
-                                    <div class="form-group">
-                                        <label class="form-label">Import Type</label>
-                                        <select id="import-type" class="form-input">
-                                            <option value="students">Students</option>
-                                            <option value="classes">Classes</option>
-                                            <option value="attendance">Attendance</option>
-                                        </select>
-                                    </div>
-                                    
-                                    <div class="checkbox-group">
-                                        <label class="checkbox-label">
-                                            <input type="checkbox" id="overwrite-data">
-                                            <span>Overwrite existing data</span>
-                                        </label>
-                                        <label class="checkbox-label">
-                                            <input type="checkbox" id="create-missing" checked>
-                                            <span>Create missing classes/students</span>
-                                        </label>
-                                    </div>
-                                    
-                                    <div class="actions-container">
-                                        <button class="action-btn save-btn" id="process-import">
-                                            <i class="fas fa-file-import"></i> Process Import
-                                        </button>
-                                        <button class="action-btn secondary-btn" id="download-template">
-                                            <i class="fas fa-download"></i> Download Template
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="import-instructions">
-                                <h4>Import Instructions:</h4>
-                                <ul>
-                                    <li>Download the template for your import type</li>
-                                    <li>Fill in the data following the template format</li>
-                                    <li>Save as CSV file</li>
-                                    <li>Drag and drop or browse to import</li>
-                                </ul>
-                            </div>
-                        </div>
-                        
-                        <!-- System Settings Tab -->
-                        <div class="tab-content" id="system-tab">
-                            <div class="section-title">System Configuration</div>
-                            
-                            <div class="setup-form">
-                                <div class="form-group">
-                                    <label class="form-label">School Name</label>
-                                    <input type="text" id="schoolName" class="form-input" placeholder="Enter school name">
-                                </div>
-                                
-                                <div class="form-row">
-                                    <div class="form-group">
-                                        <label class="form-label">Current Term</label>
-                                        <select id="currentTerm" class="form-input">
-                                            <option value="1">Term 1</option>
-                                            <option value="2">Term 2</option>
-                                            <option value="3">Term 3</option>
-                                            <option value="4">Term 4</option>
-                                        </select>
-                                    </div>
-                                    <div class="form-group">
-                                        <label class="form-label">Academic Year</label>
-                                        <input type="text" id="academicYear" class="form-input" placeholder="e.g., 2023-2024">
-                                    </div>
-                                </div>
-                                
-                                <div class="form-group">
-                                    <label class="form-label">Attendance Sessions</label>
-                                    <div class="checkbox-group">
-                                        <label class="checkbox-label">
-                                            <input type="checkbox" id="am-session" checked>
-                                            <span>Morning Session (AM)</span>
-                                        </label>
-                                        <label class="checkbox-label">
-                                            <input type="checkbox" id="pm-session" checked>
-                                            <span>Afternoon Session (PM)</span>
-                                        </label>
-                                    </div>
+                                <div class="checkbox-group">
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" id="overwrite-data">
+                                        <span>Overwrite existing data</span>
+                                    </label>
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" id="create-missing" checked>
+                                        <span>Create missing classes/students</span>
+                                    </label>
                                 </div>
                                 
                                 <div class="actions-container">
-                                    <button class="action-btn save-btn" id="save-system-settings">
-                                        <i class="fas fa-save"></i> Save System Settings
+                                    <button class="action-btn save-btn" id="process-import">
+                                        <i class="fas fa-file-import"></i> Process Import
                                     </button>
-                                    <button class="action-btn cancel-btn" id="reset-system-settings">
-                                        <i class="fas fa-undo"></i> Reset to Defaults
+                                    <button class="action-btn secondary-btn" id="download-template">
+                                        <i class="fas fa-download"></i> Download Template
                                     </button>
                                 </div>
                             </div>
                         </div>
                         
-                        <!-- Data Management Tab -->
-                        <div class="tab-content" id="data-tab">
-                            <div class="section-title">Data Management</div>
+                        <div class="import-instructions">
+                            <h4>Import Instructions:</h4>
+                            <ul>
+                                <li>Download the template for your import type</li>
+                                <li>Fill in the data following the template format</li>
+                                <li>Save as CSV file</li>
+                                <li>Drag and drop or browse to import</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <!-- System Settings Tab (Remains the same) -->
+                    <div class="tab-content" id="system-tab">
+                        <div class="section-title">System Configuration</div>
+                        
+                        <div class="setup-form">
+                            <div class="form-group">
+                                <label class="form-label">School Name</label>
+                                <input type="text" id="schoolName" class="form-input" placeholder="Enter school name">
+                            </div>
                             
-                            <div class="data-stats">
-                                <div class="stat-card">
-                                    <div class="stat-icon"><i class="fas fa-chalkboard-teacher"></i></div>
-                                    <div class="stat-info">
-                                        <span class="stat-value" id="stat-classes">0</span>
-                                        <span class="stat-label">Classes</span>
-                                    </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label">Current Term</label>
+                                    <select id="currentTerm" class="form-input">
+                                        <option value="1">Term 1</option>
+                                        <option value="2">Term 2</option>
+                                        <option value="3">Term 3</option>
+                                        <option value="4">Term 4</option>
+                                    </select>
                                 </div>
-                                <div class="stat-card">
-                                    <div class="stat-icon"><i class="fas fa-users"></i></div>
-                                    <div class="stat-info">
-                                        <span class="stat-value" id="stat-students">0</span>
-                                        <span class="stat-label">Students</span>
-                                    </div>
-                                </div>
-                                <div class="stat-card">
-                                    <div class="stat-icon"><i class="fas fa-clipboard-check"></i></div>
-                                    <div class="stat-info">
-                                        <span class="stat-value" id="stat-attendance">0</span>
-                                        <span class="stat-label">Attendance Records</span>
-                                    </div>
+                                <div class="form-group">
+                                    <label class="form-label">Academic Year</label>
+                                    <input type="text" id="academicYear" class="form-input" placeholder="e.g., 2023-2024">
                                 </div>
                             </div>
                             
-                            <div class="section-title">Backup & Restore</div>
-                            
-                            <div class="setup-form">
-                                <div class="form-group">
-                                    <label class="form-label">Create Backup</label>
-                                    <p class="form-hint">Export all your data to a JSON file</p>
-                                    <button class="action-btn save-btn" id="backup-data">
-                                        <i class="fas fa-download"></i> Create Backup
-                                    </button>
-                                </div>
-                                
-                                <div class="form-group">
-                                    <label class="form-label">Restore Backup</label>
-                                    <p class="form-hint">Import data from a previous backup</p>
-                                    <button class="action-btn cancel-btn" id="restore-data">
-                                        <i class="fas fa-upload"></i> Restore Backup
-                                    </button>
-                                </div>
-                                
-                                <div class="form-group">
-                                    <label class="form-label">Export Formats</label>
-                                    <div class="button-group">
-                                        <button class="action-btn secondary-btn" id="export-csv">
-                                            <i class="fas fa-file-csv"></i> Export CSV
-                                        </button>
-                                        <button class="action-btn secondary-btn" id="export-excel">
-                                            <i class="fas fa-file-excel"></i> Export Excel
-                                        </button>
-                                    </div>
+                            <div class="form-group">
+                                <label class="form-label">Attendance Sessions</label>
+                                <div class="checkbox-group">
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" id="am-session" checked>
+                                        <span>Morning Session (AM)</span>
+                                    </label>
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" id="pm-session" checked>
+                                        <span>Afternoon Session (PM)</span>
+                                    </label>
                                 </div>
                             </div>
                             
-                            <div class="section-title">Data Maintenance</div>
-                            
-                            <div class="setup-form warning-form">
-                                <div class="form-group">
-                                    <label class="form-label">Clear Cache</label>
-                                    <p class="form-hint">Clear temporary files and cache data</p>
-                                    <button class="action-btn cancel-btn" id="clear-cache">
-                                        <i class="fas fa-broom"></i> Clear Cache
-                                    </button>
+                            <div class="actions-container">
+                                <button class="action-btn save-btn" id="save-system-settings">
+                                    <i class="fas fa-save"></i> Save System Settings
+                                </button>
+                                <button class="action-btn cancel-btn" id="reset-system-settings">
+                                    <i class="fas fa-undo"></i> Reset to Defaults
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Data Management Tab (Remains the same) -->
+                    <div class="tab-content" id="data-tab">
+                        <div class="section-title">Data Management</div>
+                        
+                        <div class="data-stats">
+                            <div class="stat-card">
+                                <div class="stat-icon"><i class="fas fa-chalkboard-teacher"></i></div>
+                                <div class="stat-info">
+                                    <span class="stat-value" id="stat-classes">0</span>
+                                    <span class="stat-label">Classes</span>
                                 </div>
-                                
-                                <div class="form-group">
-                                    <label class="form-label">Reset All Data</label>
-                                    <p class="form-hint warning-text">
-                                        <i class="fas fa-exclamation-triangle"></i> 
-                                        This will delete ALL data including classes, students, and attendance records
-                                    </p>
-                                    <button class="action-btn delete-btn" id="clear-all-data">
-                                        <i class="fas fa-trash-alt"></i> Reset All Data
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-icon"><i class="fas fa-users"></i></div>
+                                <div class="stat-info">
+                                    <span class="stat-value" id="stat-students">0</span>
+                                    <span class="stat-label">Students</span>
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-icon"><i class="fas fa-clipboard-check"></i></div>
+                                <div class="stat-info">
+                                    <span class="stat-value" id="stat-attendance">0</span>
+                                    <span class="stat-label">Attendance Records</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="section-title">Backup & Restore</div>
+                        
+                        <div class="setup-form">
+                            <div class="form-group">
+                                <label class="form-label">Create Backup</label>
+                                <p class="form-hint">Export all your data to a JSON file</p>
+                                <button class="action-btn save-btn" id="backup-data">
+                                    <i class="fas fa-download"></i> Create Backup
+                                </button>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Restore Backup</label>
+                                <p class="form-hint">Import data from a previous backup</p>
+                                <button class="action-btn cancel-btn" id="restore-data">
+                                    <i class="fas fa-upload"></i> Restore Backup
+                                </button>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Export Formats</label>
+                                <div class="button-group">
+                                    <button class="action-btn secondary-btn" id="export-csv">
+                                        <i class="fas fa-file-csv"></i> Export CSV
+                                    </button>
+                                    <button class="action-btn secondary-btn" id="export-excel">
+                                        <i class="fas fa-file-excel"></i> Export Excel
                                     </button>
                                 </div>
                             </div>
                         </div>
-                    </section>
-                </div>
+                        
+                        <div class="section-title">Data Maintenance</div>
+                        
+                        <div class="setup-form warning-form">
+                            <div class="form-group">
+                                <label class="form-label">Clear Cache</label>
+                                <p class="form-hint">Clear temporary files and cache data</p>
+                                <button class="action-btn cancel-btn" id="clear-cache">
+                                    <i class="fas fa-broom"></i> Clear Cache
+                                </button>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Reset All Data</label>
+                                <p class="form-hint warning-text">
+                                    <i class="fas fa-exclamation-triangle"></i> 
+                                    This will delete ALL data including classes, students, and attendance records
+                                </p>
+                                <button class="action-btn delete-btn" id="clear-all-data">
+                                    <i class="fas fa-trash-alt"></i> Reset All Data
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
             </div>
-        `;
-        
-        // Initialize setup page
-        this.initializeSetupPage();
-    }
+        </div>
+    `;
+    
+    // Initialize setup page
+    this.initializeSetupPage();
+}
 
     // ==================== SETTINGS PAGE ====================
     loadSettingsContent(container) {
