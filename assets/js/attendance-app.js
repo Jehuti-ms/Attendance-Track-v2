@@ -1396,6 +1396,363 @@ showNotification(message, type = 'info') {
         }, 300);
     }, 3000);
 }
+    // ==================== AUTO-SAVE SETUP METHODS ====================
+
+initAutoSave() {
+    console.log('🔄 Initializing auto-save system...');
+    this.autoSaveTimeouts = {};
+    this.autoSaveQueue = [];
+    
+    // Process auto-save queue every 5 seconds if online
+    setInterval(() => {
+        if (this.autoSaveQueue.length > 0 && navigator.onLine) {
+            this.processAutoSaveQueue();
+        }
+    }, 5000);
+    
+    // Initialize auto-save for forms
+    this.setupClassAutoSave();
+    this.setupStudentAutoSave();
+}
+
+setupClassAutoSave() {
+    console.log('📝 Setting up class auto-save...');
+    const inputIds = ['yearGroup', 'classCode', 'maleCount', 'femaleCount'];
+    
+    inputIds.forEach(id => {
+        const input = document.getElementById(id);
+        if (input) {
+            // Remove any existing listeners first
+            input.removeEventListener('input', this.handleClassInput);
+            input.removeEventListener('blur', this.handleClassBlur);
+            
+            // Add new listeners
+            input.addEventListener('input', () => this.handleClassInput());
+            input.addEventListener('blur', () => this.handleClassBlur());
+        }
+    });
+    
+    // Setup total calculation
+    this.setupTotalCalculation();
+}
+
+setupStudentAutoSave() {
+    console.log('📝 Setting up student auto-save...');
+    const inputIds = ['firstName', 'lastName', 'studentId', 'gender', 'studentClass'];
+    
+    inputIds.forEach(id => {
+        const input = document.getElementById(id);
+        if (input) {
+            // Remove any existing listeners first
+            input.removeEventListener('input', this.handleStudentInput);
+            input.removeEventListener('blur', this.handleStudentBlur);
+            
+            // Add new listeners
+            input.addEventListener('input', () => this.handleStudentInput());
+            input.addEventListener('blur', () => this.handleStudentBlur());
+        }
+    });
+}
+
+handleClassInput() {
+    this.queueAutoSave('class');
+    // Update total display when male/female counts change
+    if (event.target.id === 'maleCount' || event.target.id === 'femaleCount') {
+        this.updateTotalDisplay();
+    }
+}
+
+handleClassBlur() {
+    this.autoSaveClassForm();
+}
+
+handleStudentInput() {
+    this.queueAutoSave('student');
+}
+
+handleStudentBlur() {
+    this.autoSaveStudentForm();
+}
+
+queueAutoSave(type) {
+    clearTimeout(this.autoSaveTimeouts?.[type]);
+    
+    if (!this.autoSaveTimeouts) this.autoSaveTimeouts = {};
+    
+    this.autoSaveTimeouts[type] = setTimeout(() => {
+        if (type === 'class') {
+            this.autoSaveClassForm();
+        } else if (type === 'student') {
+            this.autoSaveStudentForm();
+        }
+    }, 1500); // 1.5 second delay
+}
+
+setupTotalCalculation() {
+    console.log('🧮 Setting up total calculation...');
+    const maleInput = document.getElementById('maleCount');
+    const femaleInput = document.getElementById('femaleCount');
+    const totalDisplay = document.getElementById('totalStudents');
+    
+    if (maleInput && femaleInput && totalDisplay) {
+        const calculateTotal = () => {
+            const males = parseInt(maleInput.value) || 0;
+            const females = parseInt(femaleInput.value) || 0;
+            totalDisplay.textContent = males + females;
+        };
+        
+        // Remove existing listeners first
+        maleInput.removeEventListener('input', calculateTotal);
+        femaleInput.removeEventListener('input', calculateTotal);
+        
+        // Add new listeners
+        maleInput.addEventListener('input', calculateTotal);
+        femaleInput.addEventListener('input', calculateTotal);
+        
+        // Initial calculation
+        calculateTotal();
+    }
+}
+
+updateTotalDisplay() {
+    const maleInput = document.getElementById('maleCount');
+    const femaleInput = document.getElementById('femaleCount');
+    const totalDisplay = document.getElementById('totalStudents');
+    
+    if (maleInput && femaleInput && totalDisplay) {
+        const males = parseInt(maleInput.value) || 0;
+        const females = parseInt(femaleInput.value) || 0;
+        totalDisplay.textContent = males + females;
+    }
+}
+
+async autoSaveClassForm() {
+    const yearGroup = document.getElementById('yearGroup')?.value;
+    const classCode = document.getElementById('classCode')?.value?.trim();
+    const maleCount = parseInt(document.getElementById('maleCount')?.value) || 0;
+    const femaleCount = parseInt(document.getElementById('femaleCount')?.value) || 0;
+    
+    // Don't auto-save if required fields are empty
+    if (!yearGroup || !classCode) return;
+    
+    const classData = {
+        id: `draft_class_${Date.now()}`,
+        yearGroup: yearGroup,
+        code: classCode,
+        males: maleCount,
+        females: femaleCount,
+        total: maleCount + femaleCount,
+        name: `${yearGroup} - ${classCode}`,
+        isDraft: true,
+        lastAutoSave: new Date().toISOString()
+    };
+    
+    // Save draft to localStorage
+    const drafts = Storage.get('classDrafts') || [];
+    const existingIndex = drafts.findIndex(d => 
+        d.yearGroup === yearGroup && d.code === classCode
+    );
+    
+    if (existingIndex >= 0) {
+        drafts[existingIndex] = classData;
+    } else {
+        drafts.push(classData);
+    }
+    
+    Storage.set('classDrafts', drafts);
+    
+    // Queue for Firebase sync
+    this.addToAutoSaveQueue('classes', classData, 'save');
+    
+    this.showAutoSaveStatus('class', 'Draft autosaved');
+}
+
+async autoSaveStudentForm() {
+    const firstName = document.getElementById('firstName')?.value;
+    const lastName = document.getElementById('lastName')?.value;
+    const studentId = document.getElementById('studentId')?.value;
+    const gender = document.getElementById('gender')?.value;
+    const studentClass = document.getElementById('studentClass')?.value;
+    
+    if (!firstName && !lastName) return;
+    
+    const studentData = {
+        id: `draft_student_${Date.now()}`,
+        firstName: firstName,
+        lastName: lastName,
+        fullName: `${firstName} ${lastName}`.trim(),
+        studentId: studentId || `STU${Date.now().toString().slice(-6)}`,
+        gender: gender || null,
+        classId: studentClass || null,
+        isDraft: true,
+        lastAutoSave: new Date().toISOString()
+    };
+    
+    const drafts = Storage.get('studentDrafts') || [];
+    const existingIndex = drafts.findIndex(d => 
+        d.firstName === firstName && d.lastName === lastName
+    );
+    
+    if (existingIndex >= 0) {
+        drafts[existingIndex] = studentData;
+    } else {
+        drafts.push(studentData);
+    }
+    
+    Storage.set('studentDrafts', drafts);
+    
+    // Queue for Firebase sync
+    this.addToAutoSaveQueue('students', studentData, 'save');
+    
+    this.showAutoSaveStatus('student', 'Draft autosaved');
+}
+
+addToAutoSaveQueue(collection, data, action) {
+    if (!this.autoSaveQueue) this.autoSaveQueue = [];
+    
+    this.autoSaveQueue.push({
+        collection,
+        data,
+        action,
+        timestamp: Date.now(),
+        attempts: 0
+    });
+    
+    // Limit queue size
+    if (this.autoSaveQueue.length > 100) {
+        this.autoSaveQueue = this.autoSaveQueue.slice(-100);
+    }
+    
+    // Update UI indicator
+    this.updateAutoSaveIndicator();
+}
+
+async processAutoSaveQueue() {
+    // Only process if we're online and have Firebase
+    if (!navigator.onLine || !window.auth?.currentUser || !this.autoSaveQueue?.length) return;
+    
+    console.log('🔄 Processing auto-save queue...', this.autoSaveQueue.length);
+    
+    let processedCount = 0;
+    const failedItems = [];
+    
+    for (let i = 0; i < this.autoSaveQueue.length; i++) {
+        const item = this.autoSaveQueue[i];
+        
+        try {
+            if (item.action === 'save') {
+                const schoolId = getSchoolId();
+                
+                if (item.collection === 'classes') {
+                    // Remove draft flag before saving to Firebase
+                    const { isDraft, lastAutoSave, ...cleanData } = item.data;
+                    const result = await Firestore.saveClass(schoolId, cleanData);
+                    
+                    if (result.success) {
+                        console.log('✅ Auto-saved class to Firebase:', cleanData.code);
+                        processedCount++;
+                    } else {
+                        throw new Error('Firestore save failed');
+                    }
+                } else if (item.collection === 'students') {
+                    // For now, just mark as processed
+                    processedCount++;
+                }
+            }
+            
+            // Remove successfully processed item
+            this.autoSaveQueue.splice(i, 1);
+            i--; // Adjust index after removal
+            
+        } catch (error) {
+            console.error('❌ Auto-save failed:', error);
+            item.attempts++;
+            
+            if (item.attempts >= 3) {
+                // Too many attempts, remove from queue
+                console.log('🗑️ Removing from queue after 3 attempts:', item);
+                this.autoSaveQueue.splice(i, 1);
+                i--;
+            }
+        }
+    }
+    
+    this.updateAutoSaveIndicator();
+    
+    if (processedCount > 0) {
+        console.log(`✅ Processed ${processedCount} items from auto-save queue`);
+    }
+}
+
+updateAutoSaveIndicator() {
+    if (!this.autoSaveQueue) this.autoSaveQueue = [];
+    const count = this.autoSaveQueue.length;
+    let indicator = document.getElementById('global-autosave-indicator');
+    
+    if (count > 0) {
+        if (!indicator) {
+            indicator = document.createElement('div');
+            indicator.id = 'global-autosave-indicator';
+            indicator.style.cssText = `
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                background: #f39c12;
+                color: white;
+                padding: 8px 16px;
+                border-radius: 20px;
+                font-size: 12px;
+                font-weight: bold;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                z-index: 1000;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            `;
+            document.body.appendChild(indicator);
+        }
+        
+        indicator.innerHTML = `
+            <i class="fas fa-sync-alt fa-spin"></i>
+            ${count} pending
+        `;
+    } else if (indicator) {
+        indicator.remove();
+    }
+}
+
+showAutoSaveStatus(context, message) {
+    let indicator = document.getElementById(`${context}-autosave-status`);
+    if (!indicator) {
+        indicator = document.createElement('div');
+        indicator.id = `${context}-autosave-status`;
+        indicator.style.cssText = `
+            position: absolute;
+            bottom: -25px;
+            right: 10px;
+            font-size: 12px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            background: #27ae60;
+            color: white;
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 10;
+        `;
+        const form = document.querySelector(`#${context}s-tab .setup-form`);
+        if (form) {
+            form.style.position = 'relative';
+            form.appendChild(indicator);
+        }
+    }
+    
+    indicator.textContent = `✓ ${message}`;
+    indicator.style.opacity = '1';
+    
+    setTimeout(() => {
+        indicator.style.opacity = '0';
+    }, 3000);
+}
     
     // ==================== INITIALIZATION ====================
 async init() {
@@ -3582,140 +3939,151 @@ async initializeAttendancePage() {
 
     // ==================== SETUP PAGE METHODS ====================
     initializeSetupPage() {
-        // Tab switching
-        const tabBtns = document.querySelectorAll('.tab-btn');
-        const tabContents = document.querySelectorAll('.tab-content');
-        
-        tabBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
-                const tabId = btn.getAttribute('data-tab');
-                
-                // Update active tab button
-                tabBtns.forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                
-                // Show active tab content
-                tabContents.forEach(content => {
-                    content.classList.remove('active');
-                    if (content.id === `${tabId}-tab`) {
-                        content.classList.add('active');
-                    }
-                });
-                
-                // Load data for active tab
-                if (tabId === 'classes') {
-                    this.loadClassesList();
-                } else if (tabId === 'students') {
-                    this.loadStudentsList();
-                    this.populateClassDropdown();
-                } else if (tabId === 'system') {
-                    this.loadSystemSettings();
-                } else if (tabId === 'data') {
-                    this.loadDataStats();
-                }
-            });
-        });
-        
-        // Class management
-        const saveClassBtn = document.getElementById('save-class');
-        const clearClassBtn = document.getElementById('clear-class');
-        
-        if (saveClassBtn) {
-            saveClassBtn.addEventListener('click', () => this.saveClass());
-        }
-        
-        if (clearClassBtn) {
-            clearClassBtn.addEventListener('click', () => this.clearClassForm());
-        }
-        
-        // Student management
-        const saveStudentBtn = document.getElementById('save-student');
-        const clearStudentBtn = document.getElementById('clear-student');
-        
-        if (saveStudentBtn) {
-            saveStudentBtn.addEventListener('click', () => this.saveStudent());
-        }
-        
-        if (clearStudentBtn) {
-            clearStudentBtn.addEventListener('click', () => this.clearStudentForm());
-        }
-        
-        // Import functionality
-        const importZone = document.getElementById('import-zone');
-        const importFile = document.getElementById('import-file');
-        const processImportBtn = document.getElementById('process-import');
-        const downloadTemplateBtn = document.getElementById('download-template');
-        
-        if (importZone && importFile) {
-            importZone.addEventListener('click', () => importFile.click());
-            importZone.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                importZone.style.borderColor = '#3498db';
-                importZone.style.background = '#f0f7ff';
-            });
-            importZone.addEventListener('dragleave', () => {
-                importZone.style.borderColor = '#ddd';
-                importZone.style.background = '#f8f9fa';
-            });
-            importZone.addEventListener('drop', (e) => {
-                e.preventDefault();
-                importZone.style.borderColor = '#ddd';
-                importZone.style.background = '#f8f9fa';
-                if (e.dataTransfer.files.length > 0) {
-                    this.handleFileImport(e.dataTransfer.files[0]);
+    console.log('🚀 Initializing setup page...');
+    
+    // Initialize auto-save system
+    this.initAutoSave();
+    
+    // Setup total calculation
+    this.setupTotalCalculation();
+    
+    // Tab switching
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    const tabContents = document.querySelectorAll('.tab-content');
+    
+    tabBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const tabId = btn.getAttribute('data-tab');
+            
+            // Update active tab button
+            tabBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            
+            // Show active tab content
+            tabContents.forEach(content => {
+                content.classList.remove('active');
+                if (content.id === `${tabId}-tab`) {
+                    content.classList.add('active');
                 }
             });
             
-            importFile.addEventListener('change', (e) => {
-                if (e.target.files.length > 0) {
-                    this.handleFileImport(e.target.files[0]);
-                }
-            });
-        }
-        
-        if (processImportBtn) {
-            processImportBtn.addEventListener('click', () => this.processImport());
-        }
-        
-        if (downloadTemplateBtn) {
-            downloadTemplateBtn.addEventListener('click', () => this.downloadTemplate());
-        }
-        
-        // System settings
-        const saveSettingsBtn = document.getElementById('save-system-settings');
-        const resetSettingsBtn = document.getElementById('reset-system-settings');
-        
-        if (saveSettingsBtn) {
-            saveSettingsBtn.addEventListener('click', () => this.saveSystemSettings());
-        }
-        
-        if (resetSettingsBtn) {
-            resetSettingsBtn.addEventListener('click', () => this.resetSystemSettings());
-        }
-        
-        // Data management
-        const backupDataBtn = document.getElementById('backup-data');
-        const restoreDataBtn = document.getElementById('restore-data');
-        const exportCsvBtn = document.getElementById('export-csv');
-        const exportExcelBtn = document.getElementById('export-excel');
-        const clearCacheBtn = document.getElementById('clear-cache');
-        const clearAllDataBtn = document.getElementById('clear-all-data');
-        
-        if (backupDataBtn) backupDataBtn.addEventListener('click', () => this.backupData());
-        if (restoreDataBtn) restoreDataBtn.addEventListener('click', () => this.restoreData());
-        if (exportCsvBtn) exportCsvBtn.addEventListener('click', () => this.exportData('csv'));
-        if (exportExcelBtn) exportExcelBtn.addEventListener('click', () => this.exportData('excel'));
-        if (clearCacheBtn) clearCacheBtn.addEventListener('click', () => this.clearCache());
-        if (clearAllDataBtn) clearAllDataBtn.addEventListener('click', () => this.clearAllData());
-        
-        // Load initial data
-        this.loadClassesList();
-        this.loadStudentsList();
-        this.populateClassDropdown();
-        this.loadSystemSettings();
-        this.loadDataStats();
+            // Load data for active tab
+            if (tabId === 'classes') {
+                this.loadClassesList();
+            } else if (tabId === 'students') {
+                this.loadStudentsList();
+                this.populateClassDropdown();
+            } else if (tabId === 'system') {
+                this.loadSystemSettings();
+            } else if (tabId === 'data') {
+                this.loadDataStats();
+            }
+        });
+    });
+    
+    // Class management
+    const saveClassBtn = document.getElementById('save-class');
+    const clearClassBtn = document.getElementById('clear-class');
+    
+    if (saveClassBtn) {
+        saveClassBtn.addEventListener('click', () => this.saveClass());
     }
-
+    
+    if (clearClassBtn) {
+        clearClassBtn.addEventListener('click', () => this.clearClassForm());
+    }
+    
+    // Student management
+    const saveStudentBtn = document.getElementById('save-student');
+    const clearStudentBtn = document.getElementById('clear-student');
+    
+    if (saveStudentBtn) {
+        saveStudentBtn.addEventListener('click', () => this.saveStudent());
+    }
+    
+    if (clearStudentBtn) {
+        clearStudentBtn.addEventListener('click', () => this.clearStudentForm());
+    }
+    
+    // Import functionality
+    const importZone = document.getElementById('import-zone');
+    const importFile = document.getElementById('import-file');
+    const processImportBtn = document.getElementById('process-import');
+    const downloadTemplateBtn = document.getElementById('download-template');
+    
+    if (importZone && importFile) {
+        importZone.addEventListener('click', () => importFile.click());
+        importZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            importZone.style.borderColor = '#3498db';
+            importZone.style.background = '#f0f7ff';
+        });
+        importZone.addEventListener('dragleave', () => {
+            importZone.style.borderColor = '#ddd';
+            importZone.style.background = '#f8f9fa';
+        });
+        importZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            importZone.style.borderColor = '#ddd';
+            importZone.style.background = '#f8f9fa';
+            if (e.dataTransfer.files.length > 0) {
+                this.handleFileImport(e.dataTransfer.files[0]);
+            }
+        });
+        
+        importFile.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                this.handleFileImport(e.target.files[0]);
+            }
+        });
+    }
+    
+    if (processImportBtn) {
+        processImportBtn.addEventListener('click', () => this.processImport());
+    }
+    
+    if (downloadTemplateBtn) {
+        downloadTemplateBtn.addEventListener('click', () => this.downloadTemplate());
+    }
+    
+    // System settings
+    const saveSettingsBtn = document.getElementById('save-system-settings');
+    const resetSettingsBtn = document.getElementById('reset-system-settings');
+    
+    if (saveSettingsBtn) {
+        saveSettingsBtn.addEventListener('click', () => this.saveSystemSettings());
+    }
+    
+    if (resetSettingsBtn) {
+        resetSettingsBtn.addEventListener('click', () => this.resetSystemSettings());
+    }
+    
+    // Data management
+    const backupDataBtn = document.getElementById('backup-data');
+    const restoreDataBtn = document.getElementById('restore-data');
+    const exportCsvBtn = document.getElementById('export-csv');
+    const exportExcelBtn = document.getElementById('export-excel');
+    const clearCacheBtn = document.getElementById('clear-cache');
+    const clearAllDataBtn = document.getElementById('clear-all-data');
+    
+    if (backupDataBtn) backupDataBtn.addEventListener('click', () => this.backupData());
+    if (restoreDataBtn) restoreDataBtn.addEventListener('click', () => this.restoreData());
+    if (exportCsvBtn) exportCsvBtn.addEventListener('click', () => this.exportData('csv'));
+    if (exportExcelBtn) exportExcelBtn.addEventListener('click', () => this.exportData('excel'));
+    if (clearCacheBtn) clearCacheBtn.addEventListener('click', () => this.clearCache());
+    if (clearAllDataBtn) clearAllDataBtn.addEventListener('click', () => this.clearAllData());
+    
+    // Load initial data
+    this.loadClassesList();
+    this.loadStudentsList();
+    this.populateClassDropdown();
+    this.loadSystemSettings();
+    this.loadDataStats();
+    
+    // Try to sync with Firebase
+    this.syncWithFirebase();
+}
+    
     saveClass() {
         const className = document.getElementById('className')?.value;
         const classCode = document.getElementById('classCode')?.value;
@@ -3753,13 +4121,20 @@ async initializeAttendancePage() {
         this.loadDataStats();
     }
 
-   clearClassForm() {
-    document.getElementById('yearGroup').value = '';
-    document.getElementById('classCode').value = '';
-    document.getElementById('maleCount').value = '0';
-    document.getElementById('femaleCount').value = '0';
-    document.getElementById('totalStudents').textContent = '0';
-    document.getElementById('editClassId').value = '';
+  clearClassForm() {
+    const yearGroup = document.getElementById('yearGroup');
+    const classCode = document.getElementById('classCode');
+    const maleCount = document.getElementById('maleCount');
+    const femaleCount = document.getElementById('femaleCount');
+    const totalDisplay = document.getElementById('totalStudents');
+    const editClassId = document.getElementById('editClassId');
+    
+    if (yearGroup) yearGroup.value = '';
+    if (classCode) classCode.value = '';
+    if (maleCount) maleCount.value = '0';
+    if (femaleCount) femaleCount.value = '0';
+    if (totalDisplay) totalDisplay.textContent = '0';
+    if (editClassId) editClassId.value = '';
     
     // Reset button text
     const saveBtn = document.getElementById('save-class');
@@ -3821,34 +4196,52 @@ async initializeAttendancePage() {
     }
 
     deleteClass(classId) {
-        if (!confirm('Delete this class? This will also unassign students from this class.')) {
-            return;
-        }
-        
-        const classes = Storage.get('classes') || [];
-        const students = Storage.get('students') || [];
-        
-        // Remove class
-        const updatedClasses = classes.filter(c => c.id !== classId);
-        
-        // Unassign students from this class
-        const updatedStudents = students.map(student => {
-            if (student.classId === classId) {
-                return { ...student, classId: null };
-            }
-            return student;
-        });
-        
-        Storage.set('classes', updatedClasses);
-        Storage.set('students', updatedStudents);
-        
-        this.showToast('Class deleted successfully', 'info');
-        this.loadClassesList();
-        this.loadStudentsList();
-        this.populateClassDropdown();
-        this.loadDataStats();
+    if (!confirm('Delete this class? This will also unassign students from this class.')) {
+        return;
     }
-
+    
+    const classes = Storage.get('classes') || [];
+    const students = Storage.get('students') || [];
+    
+    // Find the class to get Firebase ID
+    const classToDelete = classes.find(c => c.id === classId);
+    
+    // Remove class from localStorage
+    const updatedClasses = classes.filter(c => c.id !== classId);
+    
+    // Unassign students from this class
+    const updatedStudents = students.map(student => {
+        if (student.classId === classId) {
+            return { ...student, classId: null };
+        }
+        return student;
+    });
+    
+    Storage.set('classes', updatedClasses);
+    Storage.set('students', updatedStudents);
+    
+    // Try to delete from Firebase
+    if (window.auth?.currentUser && classToDelete?.firebaseId) {
+        try {
+            // Use the deleteDoc function from your firebase.js
+            const classRef = doc(db, 'classes', classToDelete.firebaseId);
+            deleteDoc(classRef).then(() => {
+                console.log('🗑️ Deleted from Firebase:', classToDelete.firebaseId);
+            }).catch(error => {
+                console.error('❌ Firebase delete error:', error);
+            });
+        } catch (error) {
+            console.error('❌ Firebase delete error:', error);
+        }
+    }
+    
+    this.showToast('Class deleted successfully', 'info');
+    this.loadClassesList();
+    this.loadStudentsList();
+    this.populateClassDropdown();
+    this.loadDataStats();
+}
+    
     setupTotalCalculation() {
     const maleInput = document.getElementById('maleCount');
     const femaleInput = document.getElementById('femaleCount');
@@ -4744,6 +5137,28 @@ async deleteClass(classId) {
     this.loadDataStats();
 }
 
+    clearClassForm() {
+    const yearGroup = document.getElementById('yearGroup');
+    const classCode = document.getElementById('classCode');
+    const maleCount = document.getElementById('maleCount');
+    const femaleCount = document.getElementById('femaleCount');
+    const totalDisplay = document.getElementById('totalStudents');
+    const editClassId = document.getElementById('editClassId');
+    
+    if (yearGroup) yearGroup.value = '';
+    if (classCode) classCode.value = '';
+    if (maleCount) maleCount.value = '0';
+    if (femaleCount) femaleCount.value = '0';
+    if (totalDisplay) totalDisplay.textContent = '0';
+    if (editClassId) editClassId.value = '';
+    
+    // Reset button text
+    const saveBtn = document.getElementById('save-class');
+    if (saveBtn) {
+        saveBtn.innerHTML = '<i class="fas fa-save"></i> Save Class';
+    }
+}
+    
 // ==================== ENHANCED STUDENT METHODS ====================
 async saveStudent() {
     const firstName = document.getElementById('firstName')?.value;
@@ -4981,6 +5396,152 @@ mergeData(localData, cloudData) {
     return merged;
 }
 
+    initializeSetupPage() {
+    console.log('🚀 Initializing setup page...');
+    
+    // Initialize auto-save system
+    this.initAutoSave();
+    
+    // Setup total calculation
+    this.setupTotalCalculation();
+    
+    // Tab switching
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    const tabContents = document.querySelectorAll('.tab-content');
+    
+    tabBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const tabId = btn.getAttribute('data-tab');
+            
+            // Update active tab button
+            tabBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            
+            // Show active tab content
+            tabContents.forEach(content => {
+                content.classList.remove('active');
+                if (content.id === `${tabId}-tab`) {
+                    content.classList.add('active');
+                }
+            });
+            
+            // Load data for active tab
+            if (tabId === 'classes') {
+                this.loadClassesList();
+            } else if (tabId === 'students') {
+                this.loadStudentsList();
+                this.populateClassDropdown();
+            } else if (tabId === 'system') {
+                this.loadSystemSettings();
+            } else if (tabId === 'data') {
+                this.loadDataStats();
+            }
+        });
+    });
+    
+    // Class management
+    const saveClassBtn = document.getElementById('save-class');
+    const clearClassBtn = document.getElementById('clear-class');
+    
+    if (saveClassBtn) {
+        saveClassBtn.addEventListener('click', () => this.saveClass());
+    }
+    
+    if (clearClassBtn) {
+        clearClassBtn.addEventListener('click', () => this.clearClassForm());
+    }
+    
+    // Student management
+    const saveStudentBtn = document.getElementById('save-student');
+    const clearStudentBtn = document.getElementById('clear-student');
+    
+    if (saveStudentBtn) {
+        saveStudentBtn.addEventListener('click', () => this.saveStudent());
+    }
+    
+    if (clearStudentBtn) {
+        clearStudentBtn.addEventListener('click', () => this.clearStudentForm());
+    }
+    
+    // Import functionality
+    const importZone = document.getElementById('import-zone');
+    const importFile = document.getElementById('import-file');
+    const processImportBtn = document.getElementById('process-import');
+    const downloadTemplateBtn = document.getElementById('download-template');
+    
+    if (importZone && importFile) {
+        importZone.addEventListener('click', () => importFile.click());
+        importZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            importZone.style.borderColor = '#3498db';
+            importZone.style.background = '#f0f7ff';
+        });
+        importZone.addEventListener('dragleave', () => {
+            importZone.style.borderColor = '#ddd';
+            importZone.style.background = '#f8f9fa';
+        });
+        importZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            importZone.style.borderColor = '#ddd';
+            importZone.style.background = '#f8f9fa';
+            if (e.dataTransfer.files.length > 0) {
+                this.handleFileImport(e.dataTransfer.files[0]);
+            }
+        });
+        
+        importFile.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                this.handleFileImport(e.target.files[0]);
+            }
+        });
+    }
+    
+    if (processImportBtn) {
+        processImportBtn.addEventListener('click', () => this.processImport());
+    }
+    
+    if (downloadTemplateBtn) {
+        downloadTemplateBtn.addEventListener('click', () => this.downloadTemplate());
+    }
+    
+    // System settings
+    const saveSettingsBtn = document.getElementById('save-system-settings');
+    const resetSettingsBtn = document.getElementById('reset-system-settings');
+    
+    if (saveSettingsBtn) {
+        saveSettingsBtn.addEventListener('click', () => this.saveSystemSettings());
+    }
+    
+    if (resetSettingsBtn) {
+        resetSettingsBtn.addEventListener('click', () => this.resetSystemSettings());
+    }
+    
+    // Data management
+    const backupDataBtn = document.getElementById('backup-data');
+    const restoreDataBtn = document.getElementById('restore-data');
+    const exportCsvBtn = document.getElementById('export-csv');
+    const exportExcelBtn = document.getElementById('export-excel');
+    const clearCacheBtn = document.getElementById('clear-cache');
+    const clearAllDataBtn = document.getElementById('clear-all-data');
+    
+    if (backupDataBtn) backupDataBtn.addEventListener('click', () => this.backupData());
+    if (restoreDataBtn) restoreDataBtn.addEventListener('click', () => this.restoreData());
+    if (exportCsvBtn) exportCsvBtn.addEventListener('click', () => this.exportData('csv'));
+    if (exportExcelBtn) exportExcelBtn.addEventListener('click', () => this.exportData('excel'));
+    if (clearCacheBtn) clearCacheBtn.addEventListener('click', () => this.clearCache());
+    if (clearAllDataBtn) clearAllDataBtn.addEventListener('click', () => this.clearAllData());
+    
+    // Load initial data
+    this.loadClassesList();
+    this.loadStudentsList();
+    this.populateClassDropdown();
+    this.loadSystemSettings();
+    this.loadDataStats();
+    
+    // Try to sync with Firebase
+    this.syncWithFirebase();
+}
+    
 // ==================== ENHANCED LOAD METHODS ====================
 loadClassesList() {
     const classesList = document.getElementById('classes-list');
