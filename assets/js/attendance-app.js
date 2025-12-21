@@ -2594,7 +2594,7 @@ async init() {
                                 </div>
                                 <div class="form-group">
                                     <label class="form-label">Class Code</label>
-                                    <input type="text" id="classCode" class="form-input" placeholder="e.g., 1LEY, U5Mascoll, 10RAN">
+                                    <input type="text" id="classCode" class="form-input uppercase-input" placeholder="e.g., 1LEY, U5MASCOLL, 10RAN" required>
                                 </div>
                             </div>
                             
@@ -3946,6 +3946,9 @@ async initializeAttendancePage() {
     
     // Setup total calculation
     this.setupTotalCalculation();
+
+    // Setup uppercase conversion for class code
+    this.setupUppercaseConversion();
     
     // Tab switching
     const tabBtns = document.querySelectorAll('.tab-btn');
@@ -4121,21 +4124,33 @@ async initializeAttendancePage() {
         this.loadDataStats();
     }
 
-  clearClassForm() {
-    const yearGroup = document.getElementById('yearGroup');
-    const classCode = document.getElementById('classCode');
-    const maleCount = document.getElementById('maleCount');
-    const femaleCount = document.getElementById('femaleCount');
-    const totalDisplay = document.getElementById('totalStudents');
-    const editClassId = document.getElementById('editClassId');
+clearClassForm() {
+    console.log('🧹 Clearing class form...');
     
-    if (yearGroup) yearGroup.value = '';
-    if (classCode) classCode.value = '';
-    if (maleCount) maleCount.value = '0';
-    if (femaleCount) femaleCount.value = '0';
-    if (totalDisplay) totalDisplay.textContent = '0';
-    if (editClassId) editClassId.value = '';
+    const elements = {
+        yearGroup: document.getElementById('yearGroup'),
+        classCode: document.getElementById('classCode'),
+        maleCount: document.getElementById('maleCount'),
+        femaleCount: document.getElementById('femaleCount'),
+        totalStudents: document.getElementById('totalStudents'),
+        editClassId: document.getElementById('editClassId')
+    };
     
+    if (elements.yearGroup) {
+        elements.yearGroup.value = '';
+        elements.yearGroup.style.borderColor = '';
+    }
+    
+    if (elements.classCode) {
+        elements.classCode.value = '';
+        elements.classCode.style.borderColor = '';
+        // Remove uppercase styling temporarily when empty
+        elements.classCode.classList.remove('uppercase-input');
+        setTimeout(() => {
+            if (elements.classCode) elements.classCode.classList.add('uppercase-input');
+        }, 100);
+    }
+       
     // Reset button text
     const saveBtn = document.getElementById('save-class');
     if (saveBtn) {
@@ -5004,95 +5019,7 @@ updateAutoSaveIndicator() {
 }
 
 // ==================== ENHANCED CLASS METHODS ====================
-async saveClass() {
-    const yearGroup = document.getElementById('yearGroup')?.value;
-    const classCode = document.getElementById('classCode')?.value?.trim();
-    const maleCount = parseInt(document.getElementById('maleCount')?.value) || 0;
-    const femaleCount = parseInt(document.getElementById('femaleCount')?.value) || 0;
-    const editClassId = document.getElementById('editClassId')?.value;
-    
-    // Validation - only require Year Group and Class Code
-    if (!yearGroup || !classCode) {
-        this.showToast('Please fill in Year Group and Class Code', 'error');
-        return;
-    }
-    
-    const classes = Storage.get('classes') || [];
-    
-    // Check for duplicate class code (but allow editing)
-    if (!editClassId && classes.some(c => c.code === classCode)) {
-        this.showToast('Class code already exists', 'error');
-        return;
-    }
-    
-    // Calculate total
-    const totalStudents = maleCount + femaleCount;
-    
-    const classData = {
-        id: editClassId || `class_${Date.now()}`,
-        yearGroup: yearGroup,
-        code: classCode,
-        males: maleCount,
-        females: femaleCount,
-        total: totalStudents,
-        name: `${yearGroup} - ${classCode}`, // For backward compatibility
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        teacherId: this.user?.id
-    };
-    
-    if (editClassId) {
-        // Update existing class
-        const index = classes.findIndex(c => c.id === editClassId);
-        if (index !== -1) {
-            classes[index] = classData;
-        }
-    } else {
-        // Add new class
-        classes.push(classData);
-    }
-    
-    // 1. Save to localStorage immediately
-    Storage.set('classes', classes);
-    
-    // 2. Try to save to Firebase if authenticated
-    if (window.auth?.currentUser) {
-        try {
-            const schoolId = getSchoolId();
-            const result = await Firestore.saveClass(schoolId, classData);
-            
-            if (result.success) {
-                // Update local copy with Firebase ID
-                classData.firebaseId = result.id;
-                const updatedClasses = classes.map(c => 
-                    c.id === classData.id ? { ...c, firebaseId: result.id } : c
-                );
-                Storage.set('classes', updatedClasses);
-                
-                this.showToast('Class saved to cloud!', 'success');
-            } else {
-                this.showToast('Saved locally (cloud sync failed)', 'warning');
-            }
-        } catch (error) {
-            console.error('Firebase save error:', error);
-            this.showToast('Saved locally (cloud sync failed)', 'warning');
-        }
-    } else {
-        this.showToast('Class saved locally', 'success');
-    }
-    
-    // 3. Clear any drafts for this class
-    const drafts = Storage.get('classDrafts') || [];
-    const filteredDrafts = drafts.filter(d => 
-        !(d.yearGroup === yearGroup && d.code === classCode)
-    );
-    Storage.set('classDrafts', filteredDrafts);
-    
-    this.clearClassForm();
-    this.loadClassesList();
-    this.populateClassDropdown();
-    this.loadDataStats();
-}
+async saveClass()
     
 async deleteClass(classId) {
     if (!confirm('Delete this class? This will also unassign students from this class.')) {
@@ -5157,6 +5084,57 @@ async deleteClass(classId) {
     if (saveBtn) {
         saveBtn.innerHTML = '<i class="fas fa-save"></i> Save Class';
     }
+}
+
+    setupUppercaseConversion() {
+    console.log('🔤 Setting up uppercase conversion...');
+    
+    const classCodeInput = document.getElementById('classCode');
+    if (!classCodeInput) {
+        console.log('⚠️ classCode input not found');
+        return;
+    }
+    
+    // Remove any existing listeners to avoid duplicates
+    classCodeInput.removeEventListener('input', this.handleUppercaseConversion);
+    classCodeInput.removeEventListener('blur', this.handleUppercaseBlur);
+    
+    // Add new listeners with proper binding
+    classCodeInput.addEventListener('input', (e) => this.handleUppercaseConversion(e));
+    classCodeInput.addEventListener('blur', (e) => this.handleUppercaseBlur(e));
+    
+    console.log('✅ Uppercase conversion setup complete');
+}
+
+handleUppercaseConversion(event) {
+    const input = event.target;
+    const cursorPosition = input.selectionStart;
+    
+    // Convert to uppercase
+    const originalValue = input.value;
+    const uppercaseValue = originalValue.toUpperCase();
+    
+    // Only update if changed to prevent cursor jumping
+    if (originalValue !== uppercaseValue) {
+        input.value = uppercaseValue;
+        
+        // Restore cursor position
+        input.setSelectionRange(cursorPosition, cursorPosition);
+        
+        // Trigger auto-save
+        this.queueAutoSave('class');
+    }
+}
+
+handleUppercaseBlur(event) {
+    const input = event.target;
+    input.value = input.value.toUpperCase().trim();
+    
+    // Remove extra spaces and special characters (optional)
+    input.value = input.value.replace(/\s+/g, '');
+    
+    // Trigger auto-save
+    this.autoSaveClassForm();
 }
     
 // ==================== ENHANCED STUDENT METHODS ====================
@@ -5614,13 +5592,19 @@ loadClassesList() {
     }).join('');
 }
 
-    editClass(classId) {
+   editClass(classId) {
+    console.log('✏️ Editing class:', classId);
     const classes = Storage.get('classes') || [];
     const cls = classes.find(c => c.id === classId);
     
     if (cls) {
         document.getElementById('yearGroup').value = cls.yearGroup || '';
-        document.getElementById('classCode').value = cls.code || '';
+        
+        const classCodeInput = document.getElementById('classCode');
+        if (classCodeInput) {
+            classCodeInput.value = (cls.code || '').toUpperCase();
+        }
+        
         document.getElementById('maleCount').value = cls.males || 0;
         document.getElementById('femaleCount').value = cls.females || 0;
         document.getElementById('editClassId').value = cls.id;
@@ -5637,6 +5621,10 @@ loadClassesList() {
         
         // Scroll to form
         document.getElementById('classes-tab').scrollIntoView({ behavior: 'smooth' });
+        
+        this.showToast('Ready to edit class', 'info');
+    } else {
+        this.showToast('Class not found', 'error');
     }
 }
     
