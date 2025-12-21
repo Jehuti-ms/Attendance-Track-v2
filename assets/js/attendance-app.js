@@ -5019,7 +5019,183 @@ updateAutoSaveIndicator() {
 }
 
 // ==================== ENHANCED CLASS METHODS ====================
-async saveClass()
+async saveClass() {
+    const yearGroup = document.getElementById('yearGroup')?.value;
+    const classCode = document.getElementById('classCode')?.value?.trim();
+    const maleCount = parseInt(document.getElementById('maleCount')?.value) || 0;
+    const femaleCount = parseInt(document.getElementById('femaleCount')?.value) || 0;
+    const editClassId = document.getElementById('editClassId')?.value;
+    
+    // Validation - only require Year Group and Class Code
+    if (!yearGroup || !classCode) {
+        this.showToast('Please fill in Year Group and Class Code', 'error');
+        return;
+    }
+    
+    const classes = Storage.get('classes') || [];
+    
+    // Check for duplicate class code (but allow editing)
+    if (!editClassId && classes.some(c => c.code === classCode)) {
+        this.showToast('Class code already exists', 'error');
+        return;
+    }
+    
+    // Calculate total
+    const totalStudents = maleCount + femaleCount;
+    
+    const classData = {
+        id: editClassId || `class_${Date.now()}`,
+        yearGroup: yearGroup,
+        code: classCode,
+        males: maleCount,
+        females: femaleCount,
+        total: totalStudents,
+        name: `${yearGroup} - ${classCode}`, // For backward compatibility
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        teacherId: this.user?.id
+    };
+    
+    if (editClassId) {
+        // Update existing class
+        const index = classes.findIndex(c => c.id === editClassId);
+        if (index !== -1) {
+            classes[index] = classData;
+        }
+    } else {
+        // Add new class
+        classes.push(classData);
+    }
+    
+    // 1. Save to localStorage immediately
+    Storage.set('classes', classes);
+    
+    // 2. Try to save to Firebase if authenticated
+    if (window.auth?.currentUser) {
+        try {
+            const schoolId = getSchoolId();
+            const result = await Firestore.saveClass(schoolId, classData);
+            
+            if (result.success) {
+                // Update local copy with Firebase ID
+                classData.firebaseId = result.id;
+                const updatedClasses = classes.map(c => 
+                    c.id === classData.id ? { ...c, firebaseId: result.id } : c
+                );
+                Storage.set('classes', updatedClasses);
+                
+                this.showToast('Class saved to cloud!', 'success');
+            } else {
+                this.showToast('Saved locally (cloud sync failed)', 'warning');
+            }
+        } catch (error) {
+            console.error('Firebase save error:', error);
+            this.showToast('Saved locally (cloud sync failed)', 'warning');
+        }
+    } else {
+        this.showToast('Class saved locally', 'success');
+    }
+    
+    // 3. Clear any drafts for this class
+    const drafts = Storage.get('classDrafts') || [];
+    const filteredDrafts = drafts.filter(d => 
+        !(d.yearGroup === yearGroup && d.code === classCode)
+    );
+    Storage.set('classDrafts', filteredDrafts);
+    
+    this.clearClassForm();
+    this.loadClassesList();
+    this.populateClassDropdown();
+    this.loadDataStats();
+}async saveClass() {
+    const yearGroup = document.getElementById('yearGroup')?.value;
+    const classCode = document.getElementById('classCode')?.value?.trim();
+    const maleCount = parseInt(document.getElementById('maleCount')?.value) || 0;
+    const femaleCount = parseInt(document.getElementById('femaleCount')?.value) || 0;
+    const editClassId = document.getElementById('editClassId')?.value;
+    
+    // Validation - only require Year Group and Class Code
+    if (!yearGroup || !classCode) {
+        this.showToast('Please fill in Year Group and Class Code', 'error');
+        return;
+    }
+    
+    const classes = Storage.get('classes') || [];
+    
+    // Check for duplicate class code (but allow editing)
+    if (!editClassId && classes.some(c => c.code === classCode)) {
+        this.showToast('Class code already exists', 'error');
+        return;
+    }
+    
+    // Calculate total
+    const totalStudents = maleCount + femaleCount;
+    
+    const classData = {
+        id: editClassId || `class_${Date.now()}`,
+        yearGroup: yearGroup,
+        code: classCode,
+        males: maleCount,
+        females: femaleCount,
+        total: totalStudents,
+        name: `${yearGroup} - ${classCode}`, // For backward compatibility
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        teacherId: this.user?.id
+    };
+    
+    if (editClassId) {
+        // Update existing class
+        const index = classes.findIndex(c => c.id === editClassId);
+        if (index !== -1) {
+            classes[index] = classData;
+        }
+    } else {
+        // Add new class
+        classes.push(classData);
+    }
+    
+    // 1. Save to localStorage immediately
+    Storage.set('classes', classes);
+    
+    // 2. Try to save to Firebase if authenticated
+    if (window.auth?.currentUser) {
+        try {
+            const schoolId = getSchoolId();
+            const result = await Firestore.saveClass(schoolId, classData);
+            
+            if (result.success) {
+                // Update local copy with Firebase ID
+                classData.firebaseId = result.id;
+                const updatedClasses = classes.map(c => 
+                    c.id === classData.id ? { ...c, firebaseId: result.id } : c
+                );
+                Storage.set('classes', updatedClasses);
+                
+                this.showToast('Class saved to cloud!', 'success');
+            } else {
+                this.showToast('Saved locally (cloud sync failed)', 'warning');
+            }
+        } catch (error) {
+            console.error('Firebase save error:', error);
+            this.showToast('Saved locally (cloud sync failed)', 'warning');
+        }
+    } else {
+        this.showToast('Class saved locally', 'success');
+    }
+    
+    // 3. Clear any drafts for this class
+    const drafts = Storage.get('classDrafts') || [];
+    const filteredDrafts = drafts.filter(d => 
+        !(d.yearGroup === yearGroup && d.code === classCode)
+    );
+    Storage.set('classDrafts', filteredDrafts);
+    
+    this.clearClassForm();
+    this.loadClassesList();
+    this.populateClassDropdown();
+    this.loadDataStats();
+}
     
 async deleteClass(classId) {
     if (!confirm('Delete this class? This will also unassign students from this class.')) {
