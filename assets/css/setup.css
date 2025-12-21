@@ -496,3 +496,57 @@
     font-weight: 500;
 }
 */
+
+/* =========== Form input error ============= */
+/*.form-input.error {
+    border-color: #e74c3c !important;
+    box-shadow: 0 0 0 2px rgba(231, 76, 60, 0.2) !important;
+}
+
+.form-input:required:invalid {
+    border-color: #e74c3c;
+}
+
+.form-input:required:valid {
+    border-color: #27ae60;
+}
+
+.form-group.required label::after {
+    content: ' *';
+    color: #e74c3c;
+    margin-left: 4px;
+} */
+
+/* Enhanced uppercase input styling */
+.uppercase-input {
+    text-transform: uppercase;
+    font-family: 'Courier New', monospace;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+.uppercase-input:focus {
+    border-color: #3498db;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+}
+
+.uppercase-input::placeholder {
+    text-transform: none;
+    font-family: inherit;
+    font-weight: normal;
+    letter-spacing: normal;
+    color: #95a5a6;
+    font-style: italic;
+}
+
+/* Animation for uppercase conversion */
+@keyframes uppercasePulse {
+    0% { background-color: transparent; }
+    50% { background-color: rgba(52, 152, 219, 0.1); }
+    100% { background-color: transparent; }
+}
+
+.uppercase-input.converting {
+    animation: uppercasePulse 0.5s ease;
+}
+    
