@@ -2467,6 +2467,7 @@ async init() {
                                         <option value="weekly">Weekly Report</option>
                                         <option value="monthly">Monthly Report</option>
                                         <option value="term">Term Report</option>
+                                        <option value="comparison">Class Comparison</option>
                                         <option value="custom">Custom Range</option>
                                     </select>
                                 </div>
@@ -4427,23 +4428,36 @@ async initializeAttendancePage() {
         }
     }
 
-    setupReportsEventListeners() {
-        // Generate report button
-        const generateBtn = document.getElementById('generate-report');
-        if (generateBtn) {
-            generateBtn.addEventListener('click', () => this.generateReport());
-        }
-        
-        // Export buttons
-        const exportPdfBtn = document.getElementById('export-pdf');
-        const exportExcelBtn = document.getElementById('export-excel');
-        const printBtn = document.getElementById('print-report');
-        
-        if (exportPdfBtn) exportPdfBtn.addEventListener('click', () => this.exportReport('pdf'));
-        if (exportExcelBtn) exportExcelBtn.addEventListener('click', () => this.exportReport('excel'));
-        if (printBtn) printBtn.addEventListener('click', () => this.printReport());
+   setupReportsEventListeners() {
+    // Generate report button
+    const generateBtn = document.getElementById('generate-report');
+    if (generateBtn) {
+        generateBtn.addEventListener('click', () => this.generateReport());
     }
+    
+    // Export buttons
+    const exportPdfBtn = document.getElementById('export-pdf');
+    const exportExcelBtn = document.getElementById('export-excel');
+    const printBtn = document.getElementById('print-report');
+    
+    if (exportPdfBtn) exportPdfBtn.addEventListener('click', () => this.exportReport('pdf'));
+    if (exportExcelBtn) exportExcelBtn.addEventListener('click', () => this.exportReport('excel'));
+    if (printBtn) printBtn.addEventListener('click', () => this.printReport());
+    
+    // Show/hide comparison-specific controls
+    const reportTypeSelect = document.getElementById('report-type');
+    if (reportTypeSelect) {
+        reportTypeSelect.addEventListener('change', (e) => {
+            this.updateReportFiltersUI(e.target.value);
+        });
+    }
+}
 
+    updateReportFiltersUI(reportType) {
+    // For now, just log - we'll add specific UI changes if needed
+    console.log('Report type changed to:', reportType);
+}
+    
     generateReport() {
         console.log('📊 Generating report...');
         
@@ -4503,15 +4517,20 @@ async initializeAttendancePage() {
     }
 
     generateReportContent(attendance, classes, students, options) {
-        if (attendance.length === 0) {
-            return `
-                <div class="no-data-report">
-                    <i class="fas fa-chart-bar"></i>
-                    <h3>No Data Available</h3>
-                    <p>No attendance records found for the selected criteria.</p>
-                </div>
-            `;
-        }
+    if (attendance.length === 0) {
+        return `
+            <div class="no-data-report">
+                <i class="fas fa-chart-bar"></i>
+                <h3>No Data Available</h3>
+                <p>No attendance records found for the selected criteria.</p>
+            </div>
+        `;
+    }
+    
+    // Handle different report types
+    if (options.type === 'comparison') {
+        return this.generateComparisonReport(attendance, classes, students, options);
+    }
         
         // Group by class
         const attendanceByClass = {};
@@ -4609,6 +4628,322 @@ async initializeAttendancePage() {
         window.print();
     }
 
+    // ==================== COMPARISON REPORT GENERATOR ====================
+
+generateComparisonReport(attendance, classes, students, options) {
+    console.log('📊 Generating comparison report...');
+    
+    // Group attendance by class
+    const attendanceByClass = {};
+    attendance.forEach(record => {
+        if (!attendanceByClass[record.classId]) {
+            attendanceByClass[record.classId] = [];
+        }
+        attendanceByClass[record.classId].push(record);
+    });
+    
+    // Calculate statistics for each class
+    const classStats = [];
+    
+    Object.entries(attendanceByClass).forEach(([classId, classAttendance]) => {
+        const cls = classes.find(c => c.id === classId);
+        if (!cls) return;
+        
+        // Get students in this class
+        const classStudents = students.filter(s => s.classId === classId);
+        const totalMale = classStudents.filter(s => s.gender?.toLowerCase() === 'male').length;
+        const totalFemale = classStudents.filter(s => s.gender?.toLowerCase() === 'female').length;
+        const totalStudents = classStudents.length;
+        
+        // Calculate averages from attendance records
+        let totalMaleAM = 0, totalMalePM = 0, totalFemaleAM = 0, totalFemalePM = 0;
+        let totalDays = 0;
+        
+        classAttendance.forEach(record => {
+            totalMaleAM += record.malePresentAM || 0;
+            totalMalePM += record.malePresentPM || 0;
+            totalFemaleAM += record.femalePresentAM || 0;
+            totalFemalePM += record.femalePresentPM || 0;
+            totalDays++;
+        });
+        
+        // Calculate averages
+        const avgMaleAM = totalDays > 0 ? Math.round((totalMaleAM / totalDays) / totalMale * 100) : 0;
+        const avgMalePM = totalDays > 0 ? Math.round((totalMalePM / totalDays) / totalMale * 100) : 0;
+        const avgFemaleAM = totalDays > 0 ? Math.round((totalFemaleAM / totalDays) / totalFemale * 100) : 0;
+        const avgFemalePM = totalDays > 0 ? Math.round((totalFemalePM / totalDays) / totalFemale * 100) : 0;
+        
+        // Overall average
+        const overallAvg = Math.round((avgMaleAM + avgMalePM + avgFemaleAM + avgFemalePM) / 4);
+        
+        // Calculate consistency (standard deviation simplified)
+        const dailyRates = classAttendance.map(record => {
+            const maleRate = totalMale > 0 ? Math.round(((record.malePresentAM || 0) + (record.malePresentPM || 0)) / (totalMale * 2) * 100) : 0;
+            const femaleRate = totalFemale > 0 ? Math.round(((record.femalePresentAM || 0) + (record.femalePresentPM || 0)) / (totalFemale * 2) * 100) : 0;
+            return Math.round((maleRate + femaleRate) / 2);
+        });
+        
+        const avgRate = dailyRates.length > 0 ? 
+            Math.round(dailyRates.reduce((a, b) => a + b, 0) / dailyRates.length) : 0;
+            
+        const consistency = dailyRates.length > 1 ? 
+            100 - Math.round(Math.sqrt(
+                dailyRates.reduce((sum, rate) => sum + Math.pow(rate - avgRate, 2), 0) / dailyRates.length
+            )) : 100;
+        
+        classStats.push({
+            classId,
+            className: cls.name,
+            classCode: cls.code,
+            yearGroup: cls.yearGroup,
+            totalStudents,
+            avgMaleAM,
+            avgMalePM,
+            avgFemaleAM,
+            avgFemalePM,
+            overallAvg,
+            consistency,
+            totalDays,
+            rank: 0 // Will be calculated later
+        });
+    });
+    
+    // Calculate ranks
+    classStats.sort((a, b) => b.overallAvg - a.overallAvg);
+    classStats.forEach((stat, index) => {
+        stat.rank = index + 1;
+        stat.percentile = Math.round((index / classStats.length) * 100);
+    });
+    
+    // Calculate school average
+    const schoolAvg = classStats.length > 0 ? 
+        Math.round(classStats.reduce((sum, stat) => sum + stat.overallAvg, 0) / classStats.length) : 0;
+    
+    // Generate HTML
+    let html = `
+        <div class="comparison-report">
+            <div class="report-header">
+                <h3><i class="fas fa-balance-scale"></i> Class Comparison Report</h3>
+                <p class="report-period">${options.startDate} to ${options.endDate}</p>
+            </div>
+            
+            <div class="comparison-summary">
+                <div class="summary-card">
+                    <div class="summary-icon">
+                        <i class="fas fa-chalkboard-teacher"></i>
+                    </div>
+                    <div class="summary-info">
+                        <span class="summary-value">${classStats.length}</span>
+                        <span class="summary-label">Classes Compared</span>
+                    </div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-icon">
+                        <i class="fas fa-percentage"></i>
+                    </div>
+                    <div class="summary-info">
+                        <span class="summary-value">${schoolAvg}%</span>
+                        <span class="summary-label">School Average</span>
+                    </div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-icon">
+                        <i class="fas fa-calendar-alt"></i>
+                    </div>
+                    <div class="summary-info">
+                        <span class="summary-value">${classStats[0]?.totalDays || 0}</span>
+                        <span class="summary-label">Days Analyzed</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="comparison-table-container">
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Class</th>
+                            <th>Year Group</th>
+                            <th>Students</th>
+                            <th>Male AM</th>
+                            <th>Male PM</th>
+                            <th>Female AM</th>
+                            <th>Female PM</th>
+                            <th>Overall</th>
+                            <th>Consistency</th>
+                            <th>vs Avg</th>
+                            <th>Percentile</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+    `;
+    
+    classStats.forEach(stat => {
+        const vsAvg = stat.overallAvg - schoolAvg;
+        const vsAvgClass = vsAvg > 0 ? 'positive' : vsAvg < 0 ? 'negative' : 'neutral';
+        const vsAvgText = vsAvg > 0 ? `+${vsAvg}%` : `${vsAvg}%`;
+        
+        html += `
+            <tr class="class-comparison-row ${stat.rank <= 3 ? 'top-performer' : ''}">
+                <td class="rank-cell rank-${stat.rank}">
+                    ${stat.rank}
+                    ${stat.rank === 1 ? '<i class="fas fa-trophy"></i>' : ''}
+                    ${stat.rank === 2 ? '<i class="fas fa-medal"></i>' : ''}
+                    ${stat.rank === 3 ? '<i class="fas fa-award"></i>' : ''}
+                </td>
+                <td class="class-cell">
+                    <strong>${stat.classCode}</strong><br>
+                    <small>${stat.className}</small>
+                </td>
+                <td class="year-cell">${stat.yearGroup}</td>
+                <td class="students-cell">${stat.totalStudents}</td>
+                <td class="rate-cell ${this.getRateClass(stat.avgMaleAM)}">${stat.avgMaleAM}%</td>
+                <td class="rate-cell ${this.getRateClass(stat.avgMalePM)}">${stat.avgMalePM}%</td>
+                <td class="rate-cell ${this.getRateClass(stat.avgFemaleAM)}">${stat.avgFemaleAM}%</td>
+                <td class="rate-cell ${this.getRateClass(stat.avgFemalePM)}">${stat.avgFemalePM}%</td>
+                <td class="overall-cell ${this.getRateClass(stat.overallAvg)}">
+                    <strong>${stat.overallAvg}%</strong>
+                </td>
+                <td class="consistency-cell ${this.getConsistencyClass(stat.consistency)}">
+                    ${stat.consistency}%
+                </td>
+                <td class="vs-avg-cell ${vsAvgClass}">
+                    ${vsAvgText}
+                    ${vsAvg > 0 ? '<i class="fas fa-arrow-up"></i>' : 
+                     vsAvg < 0 ? '<i class="fas fa-arrow-down"></i>' : 
+                     '<i class="fas fa-equal"></i>'}
+                </td>
+                <td class="percentile-cell">
+                    <div class="percentile-bar">
+                        <div class="percentile-fill" style="width: ${stat.percentile}%"></div>
+                        <span class="percentile-text">${stat.percentile}%</span>
+                    </div>
+                </td>
+            </tr>
+        `;
+    });
+    
+    html += `
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="comparison-insights">
+                <h4><i class="fas fa-lightbulb"></i> Key Insights</h4>
+                <div class="insights-grid">
+                    ${this.generateComparisonInsights(classStats, schoolAvg)}
+                </div>
+            </div>
+            
+            <div class="export-actions">
+                <button class="btn btn-primary" onclick="app.exportComparisonAsPDF()">
+                    <i class="fas fa-file-pdf"></i> Export as PDF
+                </button>
+                <button class="btn btn-success" onclick="app.exportComparisonAsExcel()">
+                    <i class="fas fa-file-excel"></i> Export as Excel
+                </button>
+                <button class="btn btn-secondary" onclick="window.print()">
+                    <i class="fas fa-print"></i> Print Report
+                </button>
+            </div>
+        </div>
+    `;
+    
+    return html;
+}
+
+// Helper method to determine rate class for styling
+getRateClass(rate) {
+    if (rate >= 90) return 'excellent';
+    if (rate >= 80) return 'good';
+    if (rate >= 70) return 'average';
+    return 'poor';
+}
+
+// Helper method for consistency class
+getConsistencyClass(consistency) {
+    if (consistency >= 90) return 'high';
+    if (consistency >= 80) return 'medium';
+    return 'low';
+}
+
+// Generate insights based on comparison data
+generateComparisonInsights(classStats, schoolAvg) {
+    let insights = '';
+    
+    // Top performer
+    const topClass = classStats[0];
+    if (topClass) {
+        insights += `
+            <div class="insight-card">
+                <div class="insight-icon top">
+                    <i class="fas fa-trophy"></i>
+                </div>
+                <div class="insight-content">
+                    <h5>Top Performer</h5>
+                    <p><strong>${topClass.classCode}</strong> leads with ${topClass.overallAvg}% attendance, 
+                    ${topClass.overallAvg - schoolAvg}% above school average.</p>
+                </div>
+            </div>
+        `;
+    }
+    
+    // Most consistent
+    const mostConsistent = [...classStats].sort((a, b) => b.consistency - a.consistency)[0];
+    if (mostConsistent && mostConsistent.consistency >= 85) {
+        insights += `
+            <div class="insight-card">
+                <div class="insight-icon consistent">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <div class="insight-content">
+                    <h5>Most Consistent</h5>
+                    <p><strong>${mostConsistent.classCode}</strong> shows ${mostConsistent.consistency}% 
+                    consistency in attendance patterns.</p>
+                </div>
+            </div>
+        `;
+    }
+    
+    // Gender performance
+    const maleAvg = Math.round(classStats.reduce((sum, stat) => sum + (stat.avgMaleAM + stat.avgMalePM) / 2, 0) / classStats.length);
+    const femaleAvg = Math.round(classStats.reduce((sum, stat) => sum + (stat.avgFemaleAM + stat.avgFemalePM) / 2, 0) / classStats.length);
+    
+    insights += `
+        <div class="insight-card">
+            <div class="insight-icon gender">
+                <i class="fas fa-venus-mars"></i>
+            </div>
+            <div class="insight-content">
+                <h5>Gender Performance</h5>
+                <p>Male: ${maleAvg}% | Female: ${femaleAvg}% | 
+                ${maleAvg > femaleAvg ? 'Males lead by ' + (maleAvg - femaleAvg) + '%' : 
+                 femaleAvg > maleAvg ? 'Females lead by ' + (femaleAvg - maleAvg) + '%' : 'Equal performance'}</p>
+            </div>
+        </div>
+    `;
+    
+    // Session comparison
+    const amAvg = Math.round(classStats.reduce((sum, stat) => sum + (stat.avgMaleAM + stat.avgFemaleAM) / 2, 0) / classStats.length);
+    const pmAvg = Math.round(classStats.reduce((sum, stat) => sum + (stat.avgMalePM + stat.avgFemalePM) / 2, 0) / classStats.length);
+    
+    insights += `
+        <div class="insight-card">
+            <div class="insight-icon session">
+                <i class="fas fa-clock"></i>
+            </div>
+            <div class="insight-content">
+                <h5>Session Analysis</h5>
+                <p>AM: ${amAvg}% | PM: ${pmAvg}% | 
+                ${amAvg > pmAvg ? 'Morning attendance is stronger' : 
+                 pmAvg > amAvg ? 'Afternoon attendance is stronger' : 'Both sessions equal'}</p>
+            </div>
+        </div>
+    `;
+    
+    return insights;
+}
+    
     // ==================== SETUP PAGE METHODS ====================
     initializeSetupPage() {
     console.log('🚀 Initializing setup page...');
