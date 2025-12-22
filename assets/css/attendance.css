@@ -1308,3 +1308,144 @@
      transform: translateY(0);
      opacity: 1;
  }
+
+/* ======== Progress Bar & Animations ========*/
+/* Save Progress Indicator */
+.save-progress {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    width: 400px;
+    max-width: 90%;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    z-index: 10000;
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -40%);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, -50%);
+    }
+}
+
+.progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.progress-header h4 {
+    margin: 0;
+    color: #2c3e50;
+    font-size: 18px;
+}
+
+.progress-stats {
+    background: #3498db;
+    color: white;
+    padding: 5px 12px;
+    border-radius: 15px;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.progress-bar {
+    height: 10px;
+    background: #ecf0f1;
+    border-radius: 5px;
+    overflow: hidden;
+    margin-bottom: 15px;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #27ae60, #2ecc71);
+    border-radius: 5px;
+    transition: width 0.3s ease;
+}
+
+.progress-details {
+    max-height: 200px;
+    overflow-y: auto;
+    font-size: 13px;
+}
+
+.progress-success {
+    color: #27ae60;
+    padding: 5px 0;
+    border-bottom: 1px solid #ecf0f1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.progress-error {
+    color: #e74c3c;
+    padding: 5px 0;
+    border-bottom: 1px solid #ecf0f1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Updated row animation */
+tr.updated {
+    animation: highlightRow 1s ease;
+}
+
+@keyframes highlightRow {
+    0% { background-color: #fff3cd; }
+    50% { background-color: #fff3cd; }
+    100% { background-color: transparent; }
+}
+
+/* Save All button states */
+#save-all-attendance:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+#save-all-attendance .fa-spin {
+    margin-right: 8px;
+}
+
+/* Take Attendance button */
+#take-attendance:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+/* Input focus states */
+.attendance-input:focus {
+    border-color: #3498db;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .save-progress {
+        width: 90%;
+        padding: 15px;
+    }
+    
+    .progress-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+    
+    .progress-stats {
+        align-self: flex-end;
+    }
+}
+
