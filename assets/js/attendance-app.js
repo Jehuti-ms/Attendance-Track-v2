@@ -2345,6 +2345,18 @@ async init() {
                         <option value="3">Term 3</option>
                     </select>
                 </div>
+
+                <div class="control-group">
+                    <button class="btn btn-success save-all-btn" id="save-all-attendance">
+                        <i class="fas fa-save"></i> Save All Changes
+                    </button>
+                </div>
+                
+                <div class="control-group">
+                    <button class="btn btn-primary take-attendance-btn" id="take-attendance">
+                        <i class="fas fa-user-check"></i> Take Attendance
+                    </button>
+                </div>
                 
                 <div class="auto-save-indicator">
                     <i class="fas fa-save"></i> Auto-save enabled
@@ -2374,7 +2386,7 @@ async init() {
             
             <div class="table-container">
                 <table class="attendance-table sticky-header">
-                    <thead>
+                   <thead>
                         <tr>
                             <th rowspan="2">Year Group</th>
                             <th rowspan="2">Class</th>
@@ -2384,14 +2396,13 @@ async init() {
                             <th rowspan="2">AM Rate</th>
                             <th rowspan="2">PM Rate</th>
                             <th rowspan="2">Daily Rate</th>
-                            <th rowspan="2">Cumulative</th>
-                            <th rowspan="2">vs Avg</th>
+                            <th rowspan="2">Actions</th>
                         </tr>
                         <tr>
-                            <th>AM</th>
-                            <th>PM</th>
-                            <th>AM</th>
-                            <th>PM</th>
+                            <th>AM <span class="input-label">(Input)</span></th>
+                            <th>PM <span class="input-label">(Input)</span></th>
+                            <th>AM <span class="input-label">(Input)</span></th>
+                            <th>PM <span class="input-label">(Input)</span></th>
                         </tr>
                     </thead>
                     <tbody id="attendance-table-body">
@@ -3377,20 +3388,95 @@ async init() {
             const vsAvg = classAttendance.length > 0 ? '0.0%' : '-100.0%';
             
             // Summary row
-            const summaryRow = document.createElement('tr');
-            summaryRow.innerHTML = `
-                <td>${classItem.yearGroup || 'All Years'}</td>
-                <td><strong>${classItem.code || classItem.name}</strong></td>
-                <td>${totalStudents}</td>
-                <td>${malePresentAM}</td>
-                <td>${malePresentPM}</td>
-                <td>${femalePresentAM}</td>
-                <td>${femalePresentPM}</td>
-                <td>${amRate}%</td>
-                <td>${pmRate}%</td>
-                <td>${dailyRate}%</td>
-                <td>${cumulative}</td>
-                <td>${vsAvg}</td>
+            // Summary row with INPUT FIELDS
+const summaryRow = document.createElement('tr');
+summaryRow.className = 'attendance-data-row';
+summaryRow.setAttribute('data-class-id', classItem.id);
+
+summaryRow.innerHTML = `
+    <td class="year-group-cell">${classItem.yearGroup || 'All Years'}</td>
+    <td class="class-code-cell"><strong>${classItem.code || classItem.name}</strong></td>
+    <td class="total-students-cell">${totalStudents}</td>
+    
+    <!-- MALE AM Input -->
+    <td class="input-cell">
+        <input type="number" 
+               class="attendance-input male-am-input" 
+               value="${malePresentAM}" 
+               min="0" 
+               max="${totalMale}"
+               data-class-id="${classItem.id}"
+               data-gender="male"
+               data-session="am"
+               data-original="${malePresentAM}"
+               onchange="app.updateAttendanceCalculations('${classItem.id}')">
+    </td>
+    
+    <!-- MALE PM Input -->
+    <td class="input-cell">
+        <input type="number" 
+               class="attendance-input male-pm-input" 
+               value="${malePresentPM}" 
+               min="0" 
+               max="${totalMale}"
+               data-class-id="${classItem.id}"
+               data-gender="male"
+               data-session="pm"
+               data-original="${malePresentPM}"
+               onchange="app.updateAttendanceCalculations('${classItem.id}')">
+    </td>
+    
+    <!-- FEMALE AM Input -->
+    <td class="input-cell">
+        <input type="number" 
+               class="attendance-input female-am-input" 
+               value="${femalePresentAM}" 
+               min="0" 
+               max="${totalFemale}"
+               data-class-id="${classItem.id}"
+               data-gender="female"
+               data-session="am"
+               data-original="${femalePresentAM}"
+               onchange="app.updateAttendanceCalculations('${classItem.id}')">
+                </td>
+                
+                <!-- FEMALE PM Input -->
+                <td class="input-cell">
+                    <input type="number" 
+                           class="attendance-input female-pm-input" 
+                           value="${femalePresentPM}" 
+                           min="0" 
+                           max="${totalFemale}"
+                           data-class-id="${classItem.id}"
+                           data-gender="female"
+                           data-session="pm"
+                           data-original="${femalePresentPM}"
+                           onchange="app.updateAttendanceCalculations('${classItem.id}')">
+                </td>
+                
+                <!-- Calculated Rates -->
+                <td class="am-rate-cell ${amRate >= 90 ? 'high' : amRate >= 75 ? 'medium' : 'low'}" 
+                    data-class-id="${classItem.id}">${amRate}%</td>
+                
+                <td class="pm-rate-cell ${pmRate >= 90 ? 'high' : pmRate >= 75 ? 'medium' : 'low'}" 
+                    data-class-id="${classItem.id}">${pmRate}%</td>
+                
+                <td class="daily-rate-cell ${dailyRate >= 90 ? 'high' : dailyRate >= 75 ? 'medium' : 'low'}" 
+                    data-class-id="${classItem.id}">${dailyRate}%</td>
+                
+                <!-- Actions -->
+                <td class="actions-cell">
+                    <button class="btn btn-sm btn-success save-attendance-btn" 
+                            onclick="app.saveClassAttendance('${classItem.id}')"
+                            data-class-id="${classItem.id}">
+                        <i class="fas fa-save"></i> Save
+                    </button>
+                    <button class="btn btn-sm btn-secondary reset-btn" 
+                            onclick="app.resetClassAttendance('${classItem.id}')"
+                            data-class-id="${classItem.id}">
+                        <i class="fas fa-undo"></i> Reset
+                    </button>
+                </td>
             `;
             summaryTable.appendChild(summaryRow);
             
@@ -3474,7 +3560,590 @@ async init() {
         this.showToast('Error loading attendance data', 'error');
     }
 }
+
+// ==================== ATTENDANCE INPUT METHODS ====================
+// Update calculations when inputs change
+updateAttendanceCalculations(classId) {
+    console.log('🔄 Updating calculations for class:', classId);
     
+    const row = document.querySelector(`tr[data-class-id="${classId}"]`);
+    if (!row) return;
+    
+    // Get input values
+    const maleAmInput = row.querySelector('.male-am-input');
+    const malePmInput = row.querySelector('.male-pm-input');
+    const femaleAmInput = row.querySelector('.female-am-input');
+    const femalePmInput = row.querySelector('.female-pm-input');
+    const totalStudentsCell = row.querySelector('.total-students-cell');
+    
+    // Get max values (from total male/female counts)
+    const classes = Storage.get('classes') || [];
+    const classItem = classes.find(c => c.id === classId);
+    const students = Storage.get('students') || [];
+    
+    if (!classItem) return;
+    
+    const classStudents = students.filter(s => s.classId === classId);
+    const totalMale = classStudents.filter(s => s.gender?.toLowerCase() === 'male').length;
+    const totalFemale = classStudents.filter(s => s.gender?.toLowerCase() === 'female').length;
+    
+    // Validate inputs
+    const maleAm = Math.min(Math.max(parseInt(maleAmInput.value) || 0, 0), totalMale);
+    const malePm = Math.min(Math.max(parseInt(malePmInput.value) || 0, 0), totalMale);
+    const femaleAm = Math.min(Math.max(parseInt(femaleAmInput.value) || 0, 0), totalFemale);
+    const femalePm = Math.min(Math.max(parseInt(femalePmInput.value) || 0, 0), totalFemale);
+    
+    // Update input values
+    maleAmInput.value = maleAm;
+    malePmInput.value = malePm;
+    femaleAmInput.value = femaleAm;
+    femalePmInput.value = femalePm;
+    
+    // Calculate rates
+    const amRate = totalMale > 0 ? Math.round((maleAm / totalMale) * 100) : 0;
+    const pmRate = totalMale > 0 ? Math.round((malePm / totalMale) * 100) : 0;
+    const dailyRate = classStudents.length > 0 ? 
+        Math.round(((maleAm + malePm + femaleAm + femalePm) / (classStudents.length * 2)) * 100) : 0;
+    
+    // Update rate cells
+    const amRateCell = row.querySelector('.am-rate-cell');
+    const pmRateCell = row.querySelector('.pm-rate-cell');
+    const dailyRateCell = row.querySelector('.daily-rate-cell');
+    
+    amRateCell.textContent = `${amRate}%`;
+    pmRateCell.textContent = `${pmRate}%`;
+    dailyRateCell.textContent = `${dailyRate}%`;
+    
+    // Update colors
+    amRateCell.className = `am-rate-cell ${amRate >= 90 ? 'high' : amRate >= 75 ? 'medium' : 'low'}`;
+    pmRateCell.className = `pm-rate-cell ${pmRate >= 90 ? 'high' : pmRate >= 75 ? 'medium' : 'low'}`;
+    dailyRateCell.className = `daily-rate-cell ${dailyRate >= 90 ? 'high' : dailyRate >= 75 ? 'medium' : 'low'}`;
+    
+    // Highlight save button if changed
+    const saveBtn = row.querySelector('.save-attendance-btn');
+    const originalMaleAm = parseInt(maleAmInput.getAttribute('data-original')) || 0;
+    const originalMalePm = parseInt(malePmInput.getAttribute('data-original')) || 0;
+    const originalFemaleAm = parseInt(femaleAmInput.getAttribute('data-original')) || 0;
+    const originalFemalePm = parseInt(femalePmInput.getAttribute('data-original')) || 0;
+    
+    const hasChanges = maleAm !== originalMaleAm || 
+                       malePm !== originalMalePm || 
+                       femaleAm !== originalFemaleAm || 
+                       femalePm !== originalFemalePm;
+    
+    if (hasChanges) {
+        saveBtn.classList.add('has-changes');
+        saveBtn.innerHTML = '<i class="fas fa-exclamation-circle"></i> Save Changes';
+    } else {
+        saveBtn.classList.remove('has-changes');
+        saveBtn.innerHTML = '<i class="fas fa-save"></i> Save';
+    }
+}
+
+// Save attendance for a specific class
+async saveClassAttendance(classId) {
+    console.log('💾 Saving attendance for class:', classId);
+    
+    const row = document.querySelector(`tr[data-class-id="${classId}"]`);
+    if (!row) return;
+    
+    // Get input values
+    const maleAmInput = row.querySelector('.male-am-input');
+    const malePmInput = row.querySelector('.male-pm-input');
+    const femaleAmInput = row.querySelector('.female-am-input');
+    const femalePmInput = row.querySelector('.female-pm-input');
+    
+    const maleAm = parseInt(maleAmInput.value) || 0;
+    const malePm = parseInt(malePmInput.value) || 0;
+    const femaleAm = parseInt(femaleAmInput.value) || 0;
+    const femalePm = parseInt(femalePmInput.value) || 0;
+    
+    // Get class info
+    const classes = Storage.get('classes') || [];
+    const classItem = classes.find(c => c.id === classId);
+    
+    if (!classItem) {
+        this.showToast('Class not found', 'error');
+        return;
+    }
+    
+    // Get selected filters
+    const selectedDate = document.getElementById('date-picker')?.value;
+    const selectedSession = document.querySelector('.session-option.active')?.dataset.session || 'both';
+    
+    // Prepare attendance record
+    const attendanceRecord = {
+        id: `attendance_${Date.now()}`,
+        classId: classId,
+        classCode: classItem.code,
+        classYear: classItem.yearGroup,
+        date: selectedDate,
+        session: selectedSession,
+        malePresentAM: maleAm,
+        malePresentPM: malePm,
+        femalePresentAM: femaleAm,
+        femalePresentPM: femalePm,
+        recordedBy: this.user?.email || this.user?.name || 'Unknown',
+        recordedAt: new Date().toISOString(),
+        // For backward compatibility
+        total: (maleAm + malePm + femaleAm + femalePm),
+        present: (maleAm + malePm + femaleAm + femalePm)
+    };
+    
+    // Save to localStorage
+    let attendanceRecords = Storage.get('attendance') || [];
+    
+    // Remove existing record for same class, date, and session
+    attendanceRecords = attendanceRecords.filter(record => 
+        !(record.classId === classId && 
+          record.date === selectedDate && 
+          record.session === selectedSession)
+    );
+    
+    // Add new record
+    attendanceRecords.push(attendanceRecord);
+    Storage.set('attendance', attendanceRecords);
+    
+    // Update original values
+    maleAmInput.setAttribute('data-original', maleAm);
+    malePmInput.setAttribute('data-original', malePm);
+    femaleAmInput.setAttribute('data-original', femaleAm);
+    femalePmInput.setAttribute('data-original', femalePm);
+    
+    // Update save button
+    const saveBtn = row.querySelector('.save-attendance-btn');
+    saveBtn.classList.remove('has-changes');
+    saveBtn.innerHTML = '<i class="fas fa-check"></i> Saved';
+    saveBtn.classList.add('saved');
+    
+    setTimeout(() => {
+        saveBtn.innerHTML = '<i class="fas fa-save"></i> Save';
+        saveBtn.classList.remove('saved');
+    }, 2000);
+    
+    // Try to save to Firebase
+    if (window.auth?.currentUser) {
+        try {
+            const schoolId = getSchoolId();
+            const firebaseRecord = {
+                ...attendanceRecord,
+                schoolId: schoolId
+            };
+            
+            const result = await Firestore.saveAttendance(schoolId, firebaseRecord);
+            
+            if (result.success) {
+                attendanceRecord.firebaseId = result.id;
+                // Update local record with Firebase ID
+                const updatedRecords = attendanceRecords.map(record => 
+                    record.id === attendanceRecord.id ? { ...record, firebaseId: result.id } : record
+                );
+                Storage.set('attendance', updatedRecords);
+                console.log('✅ Saved to Firebase');
+            }
+        } catch (error) {
+            console.error('Firebase save error:', error);
+            this.showToast('Saved locally (cloud sync failed)', 'warning');
+        }
+    }
+    
+    this.showToast(`Attendance saved for ${classItem.code}`, 'success');
+}
+
+            // Add this near your Firestore calls
+async saveToFirebase(collection, data) {
+    if (!window.auth?.currentUser) return { success: false };
+    
+    try {
+        const schoolId = getSchoolId();
+        
+        // Check if Firestore.saveAttendance exists
+        if (typeof Firestore === 'object' && typeof Firestore.saveAttendance === 'function') {
+            return await Firestore.saveAttendance(schoolId, data);
+        }
+        
+        // Fallback to direct Firebase if available
+        if (typeof firestore !== 'undefined') {
+            const docRef = firestore.collection('schools')
+                .doc(schoolId)
+                .collection('attendance')
+                .doc();
+            
+            await docRef.set({
+                ...data,
+                schoolId: schoolId,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            
+            return { success: true, id: docRef.id };
+        }
+        
+        return { success: false, error: 'Firestore not available' };
+    } catch (error) {
+        console.error('Firebase save error:', error);
+        return { success: false, error: error.message };
+    }
+}
+            
+// Reset attendance for a class
+resetClassAttendance(classId) {
+    const row = document.querySelector(`tr[data-class-id="${classId}"]`);
+    if (!row) return;
+    
+    // Get original values
+    const maleAmInput = row.querySelector('.male-am-input');
+    const malePmInput = row.querySelector('.male-pm-input');
+    const femaleAmInput = row.querySelector('.female-am-input');
+    const femalePmInput = row.querySelector('.female-pm-input');
+    
+    const originalMaleAm = parseInt(maleAmInput.getAttribute('data-original')) || 0;
+    const originalMalePm = parseInt(malePmInput.getAttribute('data-original')) || 0;
+    const originalFemaleAm = parseInt(femaleAmInput.getAttribute('data-original')) || 0;
+    const originalFemalePm = parseInt(femalePmInput.getAttribute('data-original')) || 0;
+    
+    // Reset inputs
+    maleAmInput.value = originalMaleAm;
+    malePmInput.value = originalMalePm;
+    femaleAmInput.value = originalFemaleAm;
+    femalePmInput.value = originalFemalePm;
+    
+    // Update calculations
+    this.updateAttendanceCalculations(classId);
+    
+    // Reset save button
+    const saveBtn = row.querySelector('.save-attendance-btn');
+    saveBtn.classList.remove('has-changes');
+    saveBtn.innerHTML = '<i class="fas fa-save"></i> Save';
+    
+    this.showToast('Attendance reset', 'info');
+}
+
+// ==================== SAVE ALL ATTENDANCE ====================
+
+async saveAllAttendance() {
+    console.log('💾 Saving all attendance data...');
+    
+    // Get all attendance rows
+    const attendanceRows = document.querySelectorAll('.attendance-data-row');
+    if (attendanceRows.length === 0) {
+        this.showToast('No attendance data found', 'warning');
+        return;
+    }
+    
+    let savedCount = 0;
+    let failedCount = 0;
+    let totalChanges = 0;
+    
+    // Show saving indicator
+    const saveBtn = document.getElementById('save-all-attendance');
+    if (saveBtn) {
+        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+        saveBtn.disabled = true;
+    }
+    
+    // First, count total changes
+    attendanceRows.forEach(row => {
+        const saveRowBtn = row.querySelector('.save-attendance-btn');
+        if (saveRowBtn && saveRowBtn.classList.contains('has-changes')) {
+            totalChanges++;
+        }
+    });
+    
+    if (totalChanges === 0) {
+        this.showToast('No changes to save', 'info');
+        if (saveBtn) {
+            saveBtn.innerHTML = '<i class="fas fa-save"></i> Save All Changes';
+            saveBtn.disabled = false;
+        }
+        return;
+    }
+    
+    // Create progress indicator
+    const progressDiv = document.createElement('div');
+    progressDiv.className = 'save-progress';
+    progressDiv.innerHTML = `
+        <div class="progress-header">
+            <h4><i class="fas fa-save"></i> Saving Attendance</h4>
+            <div class="progress-stats">0/${totalChanges}</div>
+        </div>
+        <div class="progress-bar">
+            <div class="progress-fill" style="width: 0%"></div>
+        </div>
+        <div class="progress-details"></div>
+    `;
+    document.body.appendChild(progressDiv);
+    
+    try {
+        // Save each row with changes
+        for (const row of attendanceRows) {
+            const saveRowBtn = row.querySelector('.save-attendance-btn');
+            if (saveRowBtn && saveRowBtn.classList.contains('has-changes')) {
+                const classId = row.getAttribute('data-class-id');
+                
+                try {
+                    await this.saveClassAttendance(classId);
+                    savedCount++;
+                    
+                    // Update progress
+                    const percent = Math.round((savedCount / totalChanges) * 100);
+                    const progressFill = progressDiv.querySelector('.progress-fill');
+                    const progressStats = progressDiv.querySelector('.progress-stats');
+                    const progressDetails = progressDiv.querySelector('.progress-details');
+                    
+                    if (progressFill) progressFill.style.width = `${percent}%`;
+                    if (progressStats) progressStats.textContent = `${savedCount}/${totalChanges}`;
+                    
+                    // Add success message
+                    const classes = Storage.get('classes') || [];
+                    const classItem = classes.find(c => c.id === classId);
+                    if (classItem && progressDetails) {
+                        const successMsg = document.createElement('div');
+                        successMsg.className = 'progress-success';
+                        successMsg.innerHTML = `<i class="fas fa-check-circle"></i> Saved ${classItem.code}`;
+                        progressDetails.appendChild(successMsg);
+                    }
+                    
+                } catch (error) {
+                    console.error(`Failed to save class ${classId}:`, error);
+                    failedCount++;
+                    
+                    // Add error message
+                    const progressDetails = progressDiv.querySelector('.progress-details');
+                    if (progressDetails) {
+                        const errorMsg = document.createElement('div');
+                        errorMsg.className = 'progress-error';
+                        errorMsg.innerHTML = `<i class="fas fa-exclamation-circle"></i> Failed to save`;
+                        progressDetails.appendChild(errorMsg);
+                    }
+                }
+            }
+        }
+        
+        // Show completion message
+        if (savedCount > 0) {
+            this.showToast(`Successfully saved ${savedCount} classes${failedCount > 0 ? ` (${failedCount} failed)` : ''}`, 'success');
+        }
+        
+        if (failedCount > 0) {
+            this.showToast(`${failedCount} classes failed to save`, 'error');
+        }
+        
+    } catch (error) {
+        console.error('Error in saveAllAttendance:', error);
+        this.showToast('Error saving attendance data', 'error');
+    } finally {
+        // Restore save button
+        if (saveBtn) {
+            saveBtn.innerHTML = '<i class="fas fa-save"></i> Save All Changes';
+            saveBtn.disabled = false;
+        }
+        
+        // Remove progress indicator after delay
+        setTimeout(() => {
+            if (progressDiv.parentNode) {
+                progressDiv.parentNode.removeChild(progressDiv);
+            }
+        }, 3000);
+    }
+} // <-- This is the CORRECT closing brace for the method
+
+// ==================== EVENT LISTENERS ====================
+
+setupAttendanceEventListeners() {
+    const saveAllBtn = document.getElementById('save-all-attendance');
+    if (saveAllBtn) {
+        saveAllBtn.addEventListener('click', () => this.saveAllAttendance());
+    }
+    
+    // Add this to your existing initialization
+    const takeAttendanceBtn = document.getElementById('take-attendance');
+    if (takeAttendanceBtn) {
+        takeAttendanceBtn.addEventListener('click', () => this.takeAttendanceForAll());
+    }
+}
+
+            // ==================== TAKE ATTENDANCE FOR ALL ====================
+
+async takeAttendanceForAll() {
+    console.log('📝 Taking attendance for all classes...');
+    
+    // Get all classes
+    const classes = Storage.get('classes') || [];
+    if (classes.length === 0) {
+        this.showToast('No classes found. Please add classes first.', 'error');
+        return;
+    }
+    
+    // Get selected date and session
+    const selectedDate = document.getElementById('date-picker')?.value;
+    const selectedSession = document.querySelector('.session-option.active')?.dataset.session || 'both';
+    
+    if (!selectedDate) {
+        this.showToast('Please select a date first', 'error');
+        return;
+    }
+    
+    // Show confirmation
+    if (!confirm(`Take attendance for ${classes.length} classes on ${selectedDate}?`)) {
+        return;
+    }
+    
+    // Show progress
+    const takeBtn = document.getElementById('take-attendance');
+    if (takeBtn) {
+        takeBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+        takeBtn.disabled = true;
+    }
+    
+    try {
+        let processedCount = 0;
+        
+        // Process each class
+        for (const classItem of classes) {
+            try {
+                await this.takeAttendanceForClass(classItem.id);
+                processedCount++;
+                
+                // Update UI gradually
+                this.updateAttendanceRowUI(classItem.id);
+                
+            } catch (error) {
+                console.error(`Failed to process class ${classItem.code}:`, error);
+            }
+        }
+        
+        this.showToast(`Attendance taken for ${processedCount} classes`, 'success');
+        
+    } catch (error) {
+        console.error('Error in takeAttendanceForAll:', error);
+        this.showToast('Error taking attendance', 'error');
+    } finally {
+        // Restore button
+        if (takeBtn) {
+            takeBtn.innerHTML = '<i class="fas fa-user-check"></i> Take Attendance';
+            takeBtn.disabled = false;
+        }
+    }
+}
+
+async takeAttendanceForClass(classId) {
+    console.log(`📝 Taking attendance for class: ${classId}`);
+    
+    // Get class info
+    const classes = Storage.get('classes') || [];
+    const classItem = classes.find(c => c.id === classId);
+    
+    if (!classItem) {
+        throw new Error('Class not found');
+    }
+    
+    // Get students in this class
+    const students = Storage.get('students') || [];
+    const classStudents = students.filter(s => s.classId === classId);
+    
+    if (classStudents.length === 0) {
+        console.log(`No students in class ${classItem.code}`);
+        return;
+    }
+    
+    // Get selected date and session
+    const selectedDate = document.getElementById('date-picker')?.value;
+    const selectedSession = document.querySelector('.session-option.active')?.dataset.session || 'both';
+    
+    // Calculate counts based on session
+    let maleCount = classStudents.filter(s => s.gender?.toLowerCase() === 'male').length;
+    let femaleCount = classStudents.filter(s => s.gender?.toLowerCase() === 'female').length;
+    
+    // Default to full attendance for demo (you can adjust this logic)
+    const malePresentAM = selectedSession === 'pm' ? 0 : maleCount;
+    const malePresentPM = selectedSession === 'am' ? 0 : maleCount;
+    const femalePresentAM = selectedSession === 'pm' ? 0 : femaleCount;
+    const femalePresentPM = selectedSession === 'am' ? 0 : femaleCount;
+    
+    // Update the input fields
+    const row = document.querySelector(`tr[data-class-id="${classId}"]`);
+    if (row) {
+        const maleAmInput = row.querySelector('.male-am-input');
+        const malePmInput = row.querySelector('.male-pm-input');
+        const femaleAmInput = row.querySelector('.female-am-input');
+        const femalePmInput = row.querySelector('.female-pm-input');
+        
+        if (maleAmInput) maleAmInput.value = malePresentAM;
+        if (malePmInput) malePmInput.value = malePresentPM;
+        if (femaleAmInput) femaleAmInput.value = femalePresentAM;
+        if (femalePmInput) femalePmInput.value = femalePresentPM;
+        
+        // Trigger calculations
+        this.updateAttendanceCalculations(classId);
+    }
+    
+    // Create attendance record
+    const attendanceRecord = {
+        id: `attendance_${Date.now()}_${classId}`,
+        classId: classId,
+        classCode: classItem.code,
+        classYear: classItem.yearGroup,
+        date: selectedDate,
+        session: selectedSession,
+        malePresentAM: malePresentAM,
+        malePresentPM: malePresentPM,
+        femalePresentAM: femalePresentAM,
+        femalePresentPM: femalePresentPM,
+        recordedBy: this.user?.email || this.user?.name || 'Unknown',
+        recordedAt: new Date().toISOString(),
+        autoGenerated: true
+    };
+    
+    // Save to localStorage
+    let attendanceRecords = Storage.get('attendance') || [];
+    
+    // Remove existing record
+    attendanceRecords = attendanceRecords.filter(record => 
+        !(record.classId === classId && 
+          record.date === selectedDate && 
+          record.session === selectedSession)
+    );
+    
+    attendanceRecords.push(attendanceRecord);
+    Storage.set('attendance', attendanceRecords);
+    
+    // Save to Firebase if available
+    if (window.auth?.currentUser) {
+        try {
+            const schoolId = getSchoolId();
+            const firebaseRecord = {
+                ...attendanceRecord,
+                schoolId: schoolId
+            };
+            
+            await Firestore.saveAttendance(schoolId, firebaseRecord);
+            console.log(`✅ Saved to Firebase: ${classItem.code}`);
+        } catch (error) {
+            console.error(`Firebase save error for ${classItem.code}:`, error);
+        }
+    }
+    
+    return attendanceRecord;
+}
+
+updateAttendanceRowUI(classId) {
+    const row = document.querySelector(`tr[data-class-id="${classId}"]`);
+    if (!row) return;
+    
+    // Update save button to show changes
+    const saveBtn = row.querySelector('.save-attendance-btn');
+    if (saveBtn) {
+        saveBtn.classList.add('has-changes');
+        saveBtn.innerHTML = '<i class="fas fa-exclamation-circle"></i> Save Changes';
+        
+        // Flash effect
+        row.classList.add('updated');
+        setTimeout(() => {
+            row.classList.remove('updated');
+        }, 1000);
+    }
+}
+        
 // ==================== AUTO-SAVE FEATURE ====================
 // Add to your existing initializeAttendancePage or similar method
 setupAutoSaveFilters() {
@@ -3704,6 +4373,9 @@ async initializeAttendancePage() {
         
         // Load initial data
         await this.loadAttendanceData();
+
+        // Listener
+        this.setupAttendanceEventListeners();
         
     } catch (error) {
         console.error('Error initializing attendance page:', error);
