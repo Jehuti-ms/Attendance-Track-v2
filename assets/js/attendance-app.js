@@ -4686,7 +4686,7 @@ class App {
             this.showToast('Error loading attendance page', 'error');
         }
     }
-}
+
     
      // ==================== REPORTS PAGE METHODS ====================
     initializeReportsPage() {
