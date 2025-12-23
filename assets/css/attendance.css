@@ -1449,3 +1449,110 @@ tr.updated {
     }
 }
 
+// ==================== CSS FOR AUTO-SAVE ====================
+.auto-save-toggle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    color: #666;
+}
+
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 40px;
+    height: 20px;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+    border-radius: 20px;
+}
+
+.toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 16px;
+    width: 16px;
+    left: 2px;
+    bottom: 2px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+
+input:checked + .toggle-slider {
+    background-color: #2ecc71;
+}
+
+input:checked + .toggle-slider:before {
+    transform: translateX(20px);
+}
+
+.auto-save-status i {
+    margin-right: 5px;
+    transition: color 0.3s;
+}
+
+.auto-save-status i.pulse {
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+
+.last-saved-time {
+    font-size: 11px;
+    color: #888;
+    margin-top: 2px;
+}
+
+.auto-save-notification {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: #2ecc71;
+    color: white;
+    padding: 10px 15px;
+    border-radius: 5px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transform: translateY(100px);
+    opacity: 0;
+    transition: all 0.3s ease;
+    z-index: 1000;
+}
+
+.auto-save-notification.show {
+    transform: translateY(0);
+    opacity: 1;
+}
+
+.has-unsaved-changes {
+    border-left: 3px solid #f39c12 !important;
+}
+
+.save-attendance-btn.has-changes {
+    background-color: #f39c12 !important;
+    border-color: #f39c12 !important;
+    animation: pulse 2s infinite;
+}
