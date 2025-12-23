@@ -1871,24 +1871,10 @@ async init() {
                 }, 500);
             }
         }, 200);
-        
-             
-        console.log('✅ AttendanceApp initialized successfully');
-        
-    } catch (error) {
-        console.error('❌ Error initializing app:', error);
-        // FIXED: Check if showError exists before calling it
-        if (typeof this.showError === 'function') {
-            this.showError(error.message);
-        } else {
-            console.error('Error (showError not available):', error.message);
-        }
-    }
-}
-    
-               // Initialize service worker
+
+        // Initialize service worker
         this.initServiceWorker();
-        
+
         // ==================== CREATE APP INSTANCE ====================
         // This is CRITICAL for attendance page to work
         console.log('🔄 Creating App instance...');
@@ -1950,8 +1936,8 @@ async init() {
         }
     }
 } // <-- This is the CORRECT end of init() method
-    
-    // ==================== SETUP PAGE INITIALIZATION ====================
+                                
+   // ==================== SETUP PAGE INITIALIZATION ====================
     async initSetupPage() {
         console.log('⚙️ Initializing setup page...');
         
