@@ -1872,9 +1872,7 @@ async init() {
             }
         }, 200);
         
-        // Initialize service worker
-        this.initServiceWorker();
-        
+             
         console.log('✅ AttendanceApp initialized successfully');
         
     } catch (error) {
@@ -1888,6 +1886,9 @@ async init() {
     }
 }
     
+               // Initialize service worker
+        this.initServiceWorker();
+        
         // ==================== CREATE APP INSTANCE ====================
         // This is CRITICAL for attendance page to work
         console.log('🔄 Creating App instance...');
@@ -1902,19 +1903,23 @@ async init() {
                 constructor() {
                     console.log('📱 Minimal App class created');
                     this.user = null;
-                }
-                
-                // Basic placeholder methods
-                handleAttendanceInput(inputElement) {
-                    console.log('handleAttendanceInput called (placeholder)');
-                }
-                
-                updateAttendanceCalculations(classId) {
-                    console.log('updateAttendanceCalculations called (placeholder)');
-                }
-                
-                showToast(message, type = 'info') {
-                    console.log(`[${type}] ${message}`);
+                    
+                    // Basic placeholder methods
+                    this.handleAttendanceInput = function(inputElement) {
+                        console.log('handleAttendanceInput called (placeholder)', inputElement);
+                        const classId = inputElement.getAttribute('data-class-id');
+                        if (classId && this.updateAttendanceCalculations) {
+                            this.updateAttendanceCalculations(classId);
+                        }
+                    };
+                    
+                    this.updateAttendanceCalculations = function(classId) {
+                        console.log('updateAttendanceCalculations called (placeholder)', classId);
+                    };
+                    
+                    this.showToast = function(message, type = 'info') {
+                        console.log(`[${type}] ${message}`);
+                    };
                 }
             }
             
@@ -1932,46 +1937,19 @@ async init() {
         
         console.log('✅ App instance created and assigned to window.app');
         console.log('App instance available:', !!window.app);
-        console.log('App methods:', {
-            handleAttendanceInput: typeof window.app.handleAttendanceInput,
-            updateAttendanceCalculations: typeof window.app.updateAttendanceCalculations,
-            showToast: typeof window.app.showToast
-        });
-
-        // Update nav status AND apply dark design fixes
-        setTimeout(() => {
-            this.updateNavStatus();
-            this.fixUserStatusDesign(); // Apply dark design fixes
-            
-            // Initialize responsive behavior for protected pages
-            if (!isPublicPage && hasUser) {
-                setTimeout(() => {
-                    if (typeof this.initWindowResizeListener === 'function') {
-                        this.initWindowResizeListener();
-                    }
-                }, 500);
-            }
-        }, 200);
-        
-        // Initialize service worker
-        this.initServiceWorker();
         
         console.log('✅ AttendanceApp initialized successfully');
         
     } catch (error) {
         console.error('❌ Error initializing app:', error);
-        
-        // Safe error display
+        // FIXED: Check if showError exists before calling it
         if (typeof this.showError === 'function') {
             this.showError(error.message);
-        } else if (typeof this.showToast === 'function') {
-            this.showToast(`Initialization error: ${error.message}`, 'error');
         } else {
-            console.error('Show error methods not available:', error.message);
-            alert(`Initialization Error: ${error.message}`);
+            console.error('Error (showError not available):', error.message);
         }
     }
-}
+} // <-- This is the CORRECT end of init() method
     
     // ==================== SETUP PAGE INITIALIZATION ====================
     async initSetupPage() {
