@@ -1754,7 +1754,7 @@ showAutoSaveStatus(context, message) {
     }, 3000);
 }
     
-    // ==================== INITIALIZATION ====================
+// ==================== INITIALIZATION ====================
 async init() {
     console.log('🚀 Initializing AttendanceApp...');
     
@@ -1813,10 +1813,14 @@ async init() {
             this.user = authResult.user;
             this.state.currentUser = authResult.user;
             
-            // Try Firebase sync (non-blocking)
-            this.syncLocalUserToFirebase().catch(err => {
-                console.log('Firebase sync optional:', err.message);
-            });
+            // Try Firebase sync (non-blocking) with safe check
+            if (typeof this.syncLocalUserToFirebase === 'function') {
+                this.syncLocalUserToFirebase().catch(err => {
+                    console.log('Firebase sync optional:', err.message);
+                });
+            } else {
+                console.log('Note: syncLocalUserToFirebase method not available');
+            }
         }
         
         // CASE 4: No user AND on public page → CONTINUE (show login form)
@@ -1845,7 +1849,57 @@ async init() {
         // Setup event listeners
         this.setupEventListeners();
 
-       // Update nav status AND apply dark design fixes
+        // ==================== CREATE APP INSTANCE ====================
+        // This is CRITICAL for attendance page to work
+        console.log('🔄 Creating App instance...');
+        
+        // Check if App class is defined
+        if (typeof App === 'undefined') {
+            console.error('❌ App class is not defined!');
+            console.error('Make sure App class is defined before init() is called');
+            
+            // Try to define a minimal App class if missing
+            class App {
+                constructor() {
+                    console.log('📱 Minimal App class created');
+                    this.user = null;
+                }
+                
+                // Basic placeholder methods
+                handleAttendanceInput(inputElement) {
+                    console.log('handleAttendanceInput called (placeholder)');
+                }
+                
+                updateAttendanceCalculations(classId) {
+                    console.log('updateAttendanceCalculations called (placeholder)');
+                }
+                
+                showToast(message, type = 'info') {
+                    console.log(`[${type}] ${message}`);
+                }
+            }
+            
+            window.App = App; // Make it globally available
+            console.log('✅ Created minimal App class as fallback');
+        }
+        
+        // Create the App instance
+        window.app = new App();
+        
+        // Pass user data to App instance
+        if (this.user) {
+            window.app.user = this.user;
+        }
+        
+        console.log('✅ App instance created and assigned to window.app');
+        console.log('App instance available:', !!window.app);
+        console.log('App methods:', {
+            handleAttendanceInput: typeof window.app.handleAttendanceInput,
+            updateAttendanceCalculations: typeof window.app.updateAttendanceCalculations,
+            showToast: typeof window.app.showToast
+        });
+
+        // Update nav status AND apply dark design fixes
         setTimeout(() => {
             this.updateNavStatus();
             this.fixUserStatusDesign(); // Apply dark design fixes
@@ -1867,7 +1921,16 @@ async init() {
         
     } catch (error) {
         console.error('❌ Error initializing app:', error);
-        this.showError(error.message);
+        
+        // Safe error display
+        if (typeof this.showError === 'function') {
+            this.showError(error.message);
+        } else if (typeof this.showToast === 'function') {
+            this.showToast(`Initialization error: ${error.message}`, 'error');
+        } else {
+            console.error('Show error methods not available:', error.message);
+            alert(`Initialization Error: ${error.message}`);
+        }
     }
 }
     
