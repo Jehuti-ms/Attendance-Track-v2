@@ -3212,6 +3212,7 @@ async init() {
         this.loadDashboardData();
         this.showToast('Dashboard refreshed', 'success');
     }
+}
 
    // ==================== APP CLASS (Attendance Module) ====================
 class App {
