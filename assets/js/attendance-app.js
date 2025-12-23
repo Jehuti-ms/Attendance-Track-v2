@@ -4207,6 +4207,7 @@ setupAutoSaveFilters() {
     const autoSave = debounce(async () => {
         console.log('💾 Auto-saving attendance filters...');
         await this.saveAttendanceFilters();
+        this.showFilterSaveNotification('Filter settings saved');
         this.showAutoSaveNotification('Settings saved automatically');
         
         // Reload data with new filters
@@ -4341,7 +4342,7 @@ async loadAttendanceFilters() {
 }
 
 // Show auto-save notification
-showAutoSaveNotification(message) {
+showFilterSaveNotification(message) {
     // Remove existing notification
     const existingNotification = document.querySelector('.save-notification');
     if (existingNotification) {
