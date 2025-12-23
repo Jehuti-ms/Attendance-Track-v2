@@ -4330,6 +4330,244 @@ showAutoSaveNotification(message) {
     }, 2000);
 }
 
+    // ==================== AUTO-SAVE FEATURE ====================
+setupAutoSave() {
+    console.log('⏱️ Setting up auto-save feature...');
+    
+    this.autoSaveEnabled = true;
+    this.autoSaveInterval = null;
+    this.unsavedChanges = new Set(); // Track which classes have unsaved changes
+    this.isSaving = false;
+    this.autoSaveDelay = 30000; // 30 seconds
+    
+    // Initialize auto-save
+    this.startAutoSave();
+    
+    // Setup auto-save indicator
+    this.setupAutoSaveIndicator();
+    
+    // Track input changes
+    this.setupInputTracking();
+    
+    // Warn before leaving with unsaved changes
+    this.setupBeforeUnloadWarning();
+}
+
+startAutoSave() {
+    if (this.autoSaveInterval) {
+        clearInterval(this.autoSaveInterval);
+    }
+    
+    this.autoSaveInterval = setInterval(async () => {
+        if (this.autoSaveEnabled && this.unsavedChanges.size > 0 && !this.isSaving) {
+            console.log(`⏱️ Auto-saving ${this.unsavedChanges.size} classes...`);
+            await this.autoSaveChanges();
+        }
+    }, this.autoSaveDelay);
+}
+
+stopAutoSave() {
+    if (this.autoSaveInterval) {
+        clearInterval(this.autoSaveInterval);
+        this.autoSaveInterval = null;
+    }
+}
+
+async autoSaveChanges() {
+    if (this.isSaving || this.unsavedChanges.size === 0) return;
+    
+    this.isSaving = true;
+    this.showSaveStatus('saving');
+    
+    const classesToSave = Array.from(this.unsavedChanges);
+    let successCount = 0;
+    let errorCount = 0;
+    
+    try {
+        // Save each class with unsaved changes
+        for (const classId of classesToSave) {
+            try {
+                await this.saveClassAttendance(classId);
+                this.unsavedChanges.delete(classId);
+                successCount++;
+            } catch (error) {
+                console.error(`Auto-save failed for class ${classId}:`, error);
+                errorCount++;
+            }
+        }
+        
+        if (successCount > 0) {
+            this.showAutoSaveNotification(`Auto-saved ${successCount} classes`);
+        }
+        
+        if (errorCount > 0) {
+            console.warn(`Auto-save: ${errorCount} classes failed`);
+        }
+        
+    } catch (error) {
+        console.error('Auto-save error:', error);
+    } finally {
+        this.isSaving = false;
+        this.updateSaveStatus();
+    }
+}
+
+setupAutoSaveIndicator() {
+    // Create or update auto-save indicator in your HTML
+    const autoSaveIndicator = document.querySelector('.auto-save-indicator');
+    if (autoSaveIndicator) {
+        // Add toggle functionality
+        autoSaveIndicator.innerHTML = `
+            <div class="auto-save-toggle">
+                <span class="auto-save-status">
+                    <i class="fas fa-circle" style="color: #2ecc71"></i>
+                    Auto-save <span id="auto-save-status-text">active</span>
+                </span>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="auto-save-toggle" checked>
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+            <div class="last-saved-time" id="last-saved-time">
+                Last saved: Never
+            </div>
+        `;
+        
+        // Add toggle event listener
+        const toggle = document.getElementById('auto-save-toggle');
+        if (toggle) {
+            toggle.addEventListener('change', (e) => {
+                this.autoSaveEnabled = e.target.checked;
+                if (this.autoSaveEnabled) {
+                    this.startAutoSave();
+                    this.showAutoSaveNotification('Auto-save enabled');
+                } else {
+                    this.stopAutoSave();
+                    this.showAutoSaveNotification('Auto-save disabled');
+                }
+                this.updateSaveStatus();
+            });
+        }
+    }
+}
+
+setupInputTracking() {
+    // Track input changes for auto-save
+    document.addEventListener('input', (e) => {
+        if (e.target.classList.contains('attendance-input')) {
+            const classId = e.target.getAttribute('data-class-id');
+            if (classId) {
+                this.unsavedChanges.add(classId);
+                this.updateSaveStatus();
+                
+                // Mark row as unsaved
+                const row = document.querySelector(`tr[data-class-id="${classId}"]`);
+                if (row) {
+                    row.classList.add('has-unsaved-changes');
+                    
+                    // Update save button
+                    const saveBtn = row.querySelector('.save-attendance-btn');
+                    if (saveBtn && !saveBtn.classList.contains('has-changes')) {
+                        saveBtn.classList.add('has-changes');
+                        saveBtn.innerHTML = '<i class="fas fa-exclamation-circle"></i> Save Changes';
+                    }
+                }
+            }
+        }
+    });
+}
+
+setupBeforeUnloadWarning() {
+    window.addEventListener('beforeunload', (e) => {
+        if (this.unsavedChanges.size > 0) {
+            e.preventDefault();
+            e.returnValue = 'You have unsaved attendance changes. Are you sure you want to leave?';
+            return e.returnValue;
+        }
+    });
+}
+
+showSaveStatus(status) {
+    const statusDot = document.querySelector('.auto-save-status i');
+    const statusText = document.getElementById('auto-save-status-text');
+    
+    if (!statusDot || !statusText) return;
+    
+    switch (status) {
+        case 'saving':
+            statusDot.style.color = '#3498db';
+            statusText.textContent = 'saving...';
+            statusDot.classList.add('pulse');
+            break;
+        case 'unsaved':
+            statusDot.style.color = '#f39c12';
+            statusText.textContent = 'unsaved changes';
+            statusDot.classList.remove('pulse');
+            break;
+        case 'saved':
+            statusDot.style.color = '#2ecc71';
+            statusText.textContent = 'all saved';
+            statusDot.classList.remove('pulse');
+            break;
+        case 'error':
+            statusDot.style.color = '#e74c3c';
+            statusText.textContent = 'error';
+            statusDot.classList.remove('pulse');
+            break;
+    }
+}
+
+updateSaveStatus() {
+    if (this.isSaving) {
+        this.showSaveStatus('saving');
+    } else if (this.unsavedChanges.size > 0) {
+        this.showSaveStatus('unsaved');
+    } else {
+        this.showSaveStatus('saved');
+    }
+}
+
+showAutoSaveNotification(message) {
+    // Create notification
+    const notification = document.createElement('div');
+    notification.className = 'auto-save-notification';
+    notification.innerHTML = `
+        <i class="fas fa-save"></i>
+        <span>${message}</span>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Show with animation
+    setTimeout(() => {
+        notification.classList.add('show');
+    }, 10);
+    
+    // Auto-remove after 2 seconds
+    setTimeout(() => {
+        notification.classList.remove('show');
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
+        }, 300);
+    }, 2000);
+}
+
+updateLastSavedTime() {
+    const now = new Date();
+    const timeString = now.toLocaleTimeString([], { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        second: '2-digit' 
+    });
+    
+    const lastSavedElement = document.getElementById('last-saved-time');
+    if (lastSavedElement) {
+        lastSavedElement.textContent = `Last saved: ${timeString}`;
+    }
+}
+
 // ==================== INITIALIZATION ====================
 
 // Update your attendance page initialization
