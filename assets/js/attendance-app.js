@@ -4286,7 +4286,10 @@ option.addEventListener('click', async (e) => {
     // Reload data
     await this.loadAttendanceData();
 });
-
+ });
+    }
+} 
+    
 // Add this new method:
 applySessionLogic(sessionType) {
     console.log(`Applying ${sessionType} session logic...`);
