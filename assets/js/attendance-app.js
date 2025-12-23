@@ -3659,9 +3659,20 @@ async saveClassAttendance(classId) {
     const femaleAm = parseInt(femaleAmInput.value) || 0;
     const femalePm = parseInt(femalePmInput.value) || 0;
     
-    // Get class info
+    // Validate inputs
     const classes = Storage.get('classes') || [];
     const classItem = classes.find(c => c.id === classId);
+    const students = Storage.get('students') || [];
+    const classStudents = students.filter(s => s.classId === classId);
+    
+    const totalMale = classStudents.filter(s => s.gender?.toLowerCase() === 'male').length;
+    const totalFemale = classStudents.filter(s => s.gender?.toLowerCase() === 'female').length;
+    
+    // Validate against totals
+    const validatedMaleAm = Math.min(maleAm, totalMale);
+    const validatedMalePm = Math.min(malePm, totalMale);
+    const validatedFemaleAm = Math.min(femaleAm, totalFemale);
+    const validatedFemalePm = Math.min(femalePm, totalFemale);
     
     if (!classItem) {
         this.showToast('Class not found', 'error');
@@ -3674,21 +3685,22 @@ async saveClassAttendance(classId) {
     
     // Prepare attendance record
     const attendanceRecord = {
-        id: `attendance_${Date.now()}`,
+        id: `attendance_${Date.now()}_${classId}`,
         classId: classId,
         classCode: classItem.code,
         classYear: classItem.yearGroup,
         date: selectedDate,
         session: selectedSession,
-        malePresentAM: maleAm,
-        malePresentPM: malePm,
-        femalePresentAM: femaleAm,
-        femalePresentPM: femalePm,
+        malePresentAM: validatedMaleAm,
+        malePresentPM: validatedMalePm,
+        femalePresentAM: validatedFemaleAm,
+        femalePresentPM: validatedFemalePm,
         recordedBy: this.user?.email || this.user?.name || 'Unknown',
         recordedAt: new Date().toISOString(),
-        // For backward compatibility
-        total: (maleAm + malePm + femaleAm + femalePm),
-        present: (maleAm + malePm + femaleAm + femalePm)
+        autoSaved: this.isSaving, // Mark if auto-saved
+        totalStudents: classStudents.length,
+        totalMale: totalMale,
+        totalFemale: totalFemale
     };
     
     // Save to localStorage
@@ -3706,10 +3718,13 @@ async saveClassAttendance(classId) {
     Storage.set('attendance', attendanceRecords);
     
     // Update original values
-    maleAmInput.setAttribute('data-original', maleAm);
-    malePmInput.setAttribute('data-original', malePm);
-    femaleAmInput.setAttribute('data-original', femaleAm);
-    femalePmInput.setAttribute('data-original', femalePm);
+    maleAmInput.setAttribute('data-original', validatedMaleAm);
+    malePmInput.setAttribute('data-original', validatedMalePm);
+    femaleAmInput.setAttribute('data-original', validatedFemaleAm);
+    femalePmInput.setAttribute('data-original', validatedFemalePm);
+    
+    // Update UI
+    row.classList.remove('has-unsaved-changes');
     
     // Update save button
     const saveBtn = row.querySelector('.save-attendance-btn');
@@ -3717,10 +3732,10 @@ async saveClassAttendance(classId) {
     saveBtn.innerHTML = '<i class="fas fa-check"></i> Saved';
     saveBtn.classList.add('saved');
     
-    setTimeout(() => {
-        saveBtn.innerHTML = '<i class="fas fa-save"></i> Save';
-        saveBtn.classList.remove('saved');
-    }, 2000);
+    // Remove from unsaved changes
+    if (this.unsavedChanges) {
+        this.unsavedChanges.delete(classId);
+    }
     
     // Try to save to Firebase
     if (window.auth?.currentUser) {
@@ -3744,11 +3759,28 @@ async saveClassAttendance(classId) {
             }
         } catch (error) {
             console.error('Firebase save error:', error);
-            this.showToast('Saved locally (cloud sync failed)', 'warning');
+            // Don't show warning for auto-save
+            if (!this.isSaving) {
+                this.showToast('Saved locally (cloud sync failed)', 'warning');
+            }
         }
     }
     
-    this.showToast(`Attendance saved for ${classItem.code}`, 'success');
+    // Update last saved time
+    this.updateLastSavedTime();
+    
+    // Show success message (not for auto-save)
+    if (!this.isSaving) {
+        this.showToast(`Attendance saved for ${classItem.code}`, 'success');
+    }
+    
+    // Update save button after delay
+    setTimeout(() => {
+        saveBtn.innerHTML = '<i class="fas fa-save"></i> Save';
+        saveBtn.classList.remove('saved');
+    }, 2000);
+    
+    return attendanceRecord;
 }
 
             // Add this near your Firestore calls
@@ -4607,13 +4639,16 @@ async initializeAttendancePage() {
             }
         }
         
-        // Setup auto-save
+        // Setup auto-save filters
         this.setupAutoSaveFilters();
+        
+        // Setup auto-save feature
+        this.setupAutoSave();
         
         // Load initial data
         await this.loadAttendanceData();
-
-        // Listener
+        
+        // Setup event listeners
         this.setupAttendanceEventListeners();
         
     } catch (error) {
@@ -4621,7 +4656,8 @@ async initializeAttendancePage() {
         this.showToast('Error loading attendance page', 'error');
     }
 }
-    // ==================== REPORTS PAGE METHODS ====================
+    
+     // ==================== REPORTS PAGE METHODS ====================
     initializeReportsPage() {
         // Populate class dropdown
         this.populateReportsClassDropdown();
