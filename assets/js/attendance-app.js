@@ -1845,10 +1845,7 @@ async init() {
         // Setup event listeners
         this.setupEventListeners();
 
-        // Create app instance
-        const app = new App();
-
-         // Update nav status AND apply dark design fixes
+       // Update nav status AND apply dark design fixes
         setTimeout(() => {
             this.updateNavStatus();
             this.fixUserStatusDesign(); // Apply dark design fixes
@@ -7812,5 +7809,4 @@ document.addEventListener('DOMContentLoaded', () => {
     window.app = new AttendanceApp();
 });
 
-// Make it globally accessible
-window.app = app;
+
