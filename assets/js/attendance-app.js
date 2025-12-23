@@ -3402,9 +3402,23 @@ async init() {
             
             // Summary row
             // Summary row with INPUT FIELDS
+// Summary row with INPUT FIELDS - FIXED VERSION
 const summaryRow = document.createElement('tr');
 summaryRow.className = 'attendance-data-row';
 summaryRow.setAttribute('data-class-id', classItem.id);
+
+// Get saved attendance for this class/date/session
+const savedAttendance = classAttendance.find(a => 
+    a.classId === classItem.id && 
+    a.date === filterDate &&
+    (a.session === selectedSession || selectedSession === 'both')
+);
+
+// Use saved values if they exist
+const savedMalePresentAM = savedAttendance?.malePresentAM || malePresentAM;
+const savedMalePresentPM = savedAttendance?.malePresentPM || malePresentPM;
+const savedFemalePresentAM = savedAttendance?.femalePresentAM || femalePresentAM;
+const savedFemalePresentPM = savedAttendance?.femalePresentPM || femalePresentPM;
 
 summaryRow.innerHTML = `
     <td class="year-group-cell">${classItem.yearGroup || 'All Years'}</td>
@@ -3415,82 +3429,83 @@ summaryRow.innerHTML = `
     <td class="input-cell">
         <input type="number" 
                class="attendance-input male-am-input" 
-               value="${malePresentAM}" 
+               value="${savedMalePresentAM}" 
                min="0" 
                max="${totalMale}"
                data-class-id="${classItem.id}"
                data-gender="male"
                data-session="am"
-               data-original="${malePresentAM}"
-               onchange="app.updateAttendanceCalculations('${classItem.id}')">
+               data-original="${savedMalePresentAM}"
+               oninput="app.handleAttendanceInput(this)">
     </td>
     
     <!-- MALE PM Input -->
     <td class="input-cell">
         <input type="number" 
                class="attendance-input male-pm-input" 
-               value="${malePresentPM}" 
+               value="${savedMalePresentPM}" 
                min="0" 
                max="${totalMale}"
                data-class-id="${classItem.id}"
                data-gender="male"
                data-session="pm"
-               data-original="${malePresentPM}"
-               onchange="app.updateAttendanceCalculations('${classItem.id}')">
+               data-original="${savedMalePresentPM}"
+               oninput="app.handleAttendanceInput(this)">
     </td>
     
     <!-- FEMALE AM Input -->
     <td class="input-cell">
         <input type="number" 
                class="attendance-input female-am-input" 
-               value="${femalePresentAM}" 
+               value="${savedFemalePresentAM}" 
                min="0" 
                max="${totalFemale}"
                data-class-id="${classItem.id}"
                data-gender="female"
                data-session="am"
-               data-original="${femalePresentAM}"
-               onchange="app.updateAttendanceCalculations('${classItem.id}')">
-                </td>
-                
-                <!-- FEMALE PM Input -->
-                <td class="input-cell">
-                    <input type="number" 
-                           class="attendance-input female-pm-input" 
-                           value="${femalePresentPM}" 
-                           min="0" 
-                           max="${totalFemale}"
-                           data-class-id="${classItem.id}"
-                           data-gender="female"
-                           data-session="pm"
-                           data-original="${femalePresentPM}"
-                           onchange="app.updateAttendanceCalculations('${classItem.id}')">
-                </td>
-                
-                <!-- Calculated Rates -->
-                <td class="am-rate-cell ${amRate >= 90 ? 'high' : amRate >= 75 ? 'medium' : 'low'}" 
-                    data-class-id="${classItem.id}">${amRate}%</td>
-                
-                <td class="pm-rate-cell ${pmRate >= 90 ? 'high' : pmRate >= 75 ? 'medium' : 'low'}" 
-                    data-class-id="${classItem.id}">${pmRate}%</td>
-                
-                <td class="daily-rate-cell ${dailyRate >= 90 ? 'high' : dailyRate >= 75 ? 'medium' : 'low'}" 
-                    data-class-id="${classItem.id}">${dailyRate}%</td>
-                
-                <!-- Actions -->
-                <td class="actions-cell">
-                    <button class="btn btn-sm btn-success save-attendance-btn" 
-                            onclick="app.saveClassAttendance('${classItem.id}')"
-                            data-class-id="${classItem.id}">
-                        <i class="fas fa-save"></i> Save
-                    </button>
-                    <button class="btn btn-sm btn-secondary reset-btn" 
-                            onclick="app.resetClassAttendance('${classItem.id}')"
-                            data-class-id="${classItem.id}">
-                        <i class="fas fa-undo"></i> Reset
-                    </button>
-                </td>
-            `;
+               data-original="${savedFemalePresentAM}"
+               oninput="app.handleAttendanceInput(this)">
+    </td>
+    
+    <!-- FEMALE PM Input -->
+    <td class="input-cell">
+        <input type="number" 
+               class="attendance-input female-pm-input" 
+               value="${savedFemalePresentPM}" 
+               min="0" 
+               max="${totalFemale}"
+               data-class-id="${classItem.id}"
+               data-gender="female"
+               data-session="pm"
+               data-original="${savedFemalePresentPM}"
+               oninput="app.handleAttendanceInput(this)">
+    </td>
+    
+    <!-- Calculated Rates -->
+    <td class="am-rate-cell ${amRate >= 90 ? 'high' : amRate >= 75 ? 'medium' : 'low'}" 
+        data-class-id="${classItem.id}">${amRate}%</td>
+    
+    <td class="pm-rate-cell ${pmRate >= 90 ? 'high' : pmRate >= 75 ? 'medium' : 'low'}" 
+        data-class-id="${classItem.id}">${pmRate}%</td>
+    
+    <td class="daily-rate-cell ${dailyRate >= 90 ? 'high' : dailyRate >= 75 ? 'medium' : 'low'}" 
+        data-class-id="${classItem.id}">${dailyRate}%</td>
+    
+    <!-- Actions -->
+    <td class="actions-cell">
+        <button class="btn btn-sm btn-success save-attendance-btn" 
+                onclick="app.saveClassAttendance('${classItem.id}')"
+                data-class-id="${classItem.id}">
+            <i class="fas fa-save"></i> Save
+        </button>
+        <button class="btn btn-sm btn-secondary reset-btn" 
+                onclick="app.resetClassAttendance('${classItem.id}')"
+                data-class-id="${classItem.id}">
+            <i class="fas fa-undo"></i> Reset
+        </button>
+    </td>
+`;
+            
             summaryTable.appendChild(summaryRow);
             
             // Student details section
@@ -3574,22 +3589,25 @@ summaryRow.innerHTML = `
     }
 }
 
-// ==================== ATTENDANCE INPUT METHODS ====================
-// Update calculations when inputs change
 updateAttendanceCalculations(classId) {
     console.log('🔄 Updating calculations for class:', classId);
     
     const row = document.querySelector(`tr[data-class-id="${classId}"]`);
     if (!row) return;
     
-    // Get input values
+    // Get input values with proper validation
     const maleAmInput = row.querySelector('.male-am-input');
     const malePmInput = row.querySelector('.male-pm-input');
     const femaleAmInput = row.querySelector('.female-am-input');
     const femalePmInput = row.querySelector('.female-pm-input');
     const totalStudentsCell = row.querySelector('.total-students-cell');
     
-    // Get max values (from total male/female counts)
+    const maleAm = parseInt(maleAmInput.value) || 0;
+    const malePm = parseInt(malePmInput.value) || 0;
+    const femaleAm = parseInt(femaleAmInput.value) || 0;
+    const femalePm = parseInt(femalePmInput.value) || 0;
+    
+    // Get totals
     const classes = Storage.get('classes') || [];
     const classItem = classes.find(c => c.id === classId);
     const students = Storage.get('students') || [];
@@ -3600,23 +3618,24 @@ updateAttendanceCalculations(classId) {
     const totalMale = classStudents.filter(s => s.gender?.toLowerCase() === 'male').length;
     const totalFemale = classStudents.filter(s => s.gender?.toLowerCase() === 'female').length;
     
-    // Validate inputs
-    const maleAm = Math.min(Math.max(parseInt(maleAmInput.value) || 0, 0), totalMale);
-    const malePm = Math.min(Math.max(parseInt(malePmInput.value) || 0, 0), totalMale);
-    const femaleAm = Math.min(Math.max(parseInt(femaleAmInput.value) || 0, 0), totalFemale);
-    const femalePm = Math.min(Math.max(parseInt(femalePmInput.value) || 0, 0), totalFemale);
+    // Ensure values don't exceed totals
+    if (maleAm > totalMale) maleAmInput.value = totalMale;
+    if (malePm > totalMale) malePmInput.value = totalMale;
+    if (femaleAm > totalFemale) femaleAmInput.value = totalFemale;
+    if (femalePm > totalFemale) femalePmInput.value = totalFemale;
     
-    // Update input values
-    maleAmInput.value = maleAm;
-    malePmInput.value = malePm;
-    femaleAmInput.value = femaleAm;
-    femalePmInput.value = femalePm;
+    // Calculate rates based on VALIDATED values
+    const validatedMaleAm = parseInt(maleAmInput.value) || 0;
+    const validatedMalePm = parseInt(malePmInput.value) || 0;
+    const validatedFemaleAm = parseInt(femaleAmInput.value) || 0;
+    const validatedFemalePm = parseInt(femalePmInput.value) || 0;
     
     // Calculate rates
-    const amRate = totalMale > 0 ? Math.round((maleAm / totalMale) * 100) : 0;
-    const pmRate = totalMale > 0 ? Math.round((malePm / totalMale) * 100) : 0;
+    const amRate = totalMale > 0 ? Math.round((validatedMaleAm / totalMale) * 100) : 0;
+    const pmRate = totalMale > 0 ? Math.round((validatedMalePm / totalMale) * 100) : 0;
     const dailyRate = classStudents.length > 0 ? 
-        Math.round(((maleAm + malePm + femaleAm + femalePm) / (classStudents.length * 2)) * 100) : 0;
+        Math.round(((validatedMaleAm + validatedMalePm + validatedFemaleAm + validatedFemalePm) / 
+                   (classStudents.length * 2)) * 100) : 0;
     
     // Update rate cells
     const amRateCell = row.querySelector('.am-rate-cell');
@@ -3639,20 +3658,33 @@ updateAttendanceCalculations(classId) {
     const originalFemaleAm = parseInt(femaleAmInput.getAttribute('data-original')) || 0;
     const originalFemalePm = parseInt(femalePmInput.getAttribute('data-original')) || 0;
     
-    const hasChanges = maleAm !== originalMaleAm || 
-                       malePm !== originalMalePm || 
-                       femaleAm !== originalFemaleAm || 
-                       femalePm !== originalFemalePm;
+    const hasChanges = validatedMaleAm !== originalMaleAm || 
+                       validatedMalePm !== originalMalePm || 
+                       validatedFemaleAm !== originalFemaleAm || 
+                       validatedFemalePm !== originalFemalePm;
     
     if (hasChanges) {
         saveBtn.classList.add('has-changes');
         saveBtn.innerHTML = '<i class="fas fa-exclamation-circle"></i> Save Changes';
+        
+        // Add to unsaved changes for auto-save
+        if (this.unsavedChanges) {
+            this.unsavedChanges.add(classId);
+        }
     } else {
         saveBtn.classList.remove('has-changes');
         saveBtn.innerHTML = '<i class="fas fa-save"></i> Save';
+        
+        // Remove from unsaved changes
+        if (this.unsavedChanges) {
+            this.unsavedChanges.delete(classId);
+        }
     }
+    
+    // Update save status
+    this.updateSaveStatus();
 }
-
+    
 // Save attendance for a specific class
 async saveClassAttendance(classId) {
     console.log('💾 Saving attendance for class:', classId);
@@ -4234,22 +4266,111 @@ setupAutoSaveFilters() {
     
     if (sessionOptions.length > 0) {
         sessionOptions.forEach(option => {
-            option.addEventListener('click', async (e) => {
-                // Update UI immediately
-                document.querySelectorAll('.session-option').forEach(opt => 
-                    opt.classList.remove('active')
-                );
-                option.classList.add('active');
+           // In your session option click handler:
+option.addEventListener('click', async (e) => {
+    // Update UI immediately
+    document.querySelectorAll('.session-option').forEach(opt => 
+        opt.classList.remove('active')
+    );
+    option.classList.add('active');
+    
+    const selectedSession = option.dataset.session;
+    
+    // Apply session logic to all classes
+    this.applySessionLogic(selectedSession);
+    
+    // Save settings
+    await this.saveAttendanceFilters();
+    this.showFilterSaveNotification('Session saved');
+    
+    // Reload data
+    await this.loadAttendanceData();
+});
+
+// Add this new method:
+applySessionLogic(sessionType) {
+    console.log(`Applying ${sessionType} session logic...`);
+    
+    const attendanceRows = document.querySelectorAll('.attendance-data-row');
+    
+    attendanceRows.forEach(row => {
+        const classId = row.getAttribute('data-class-id');
+        const maleAmInput = row.querySelector('.male-am-input');
+        const malePmInput = row.querySelector('.male-pm-input');
+        const femaleAmInput = row.querySelector('.female-am-input');
+        const femalePmInput = row.querySelector('.female-pm-input');
+        
+        if (!maleAmInput || !malePmInput || !femaleAmInput || !femalePmInput) return;
+        
+        const maleAmValue = parseInt(maleAmInput.value) || 0;
+        const malePmValue = parseInt(malePmInput.value) || 0;
+        const femaleAmValue = parseInt(femaleAmInput.value) || 0;
+        const femalePmValue = parseInt(femalePmInput.value) || 0;
+        
+        switch (sessionType) {
+            case 'am':
+                // Copy AM to PM
+                malePmInput.value = maleAmValue;
+                femalePmInput.value = femaleAmValue;
+                break;
                 
-                // Save settings
-                await this.saveAttendanceFilters();
-                this.showAutoSaveNotification('Session saved');
+            case 'pm':
+                // Copy PM to AM
+                maleAmInput.value = malePmValue;
+                femaleAmInput.value = femalePmValue;
+                break;
                 
-                // Reload data
-                await this.loadAttendanceData();
-            });
-        });
-    }
+            case 'both':
+                // Keep values as they are
+                break;
+        }
+        
+        // Update calculations
+        this.updateAttendanceCalculations(classId);
+    });
+}
+
+            // Add this new method:
+applySessionLogic(sessionType) {
+    console.log(`Applying ${sessionType} session logic...`);
+    
+    const attendanceRows = document.querySelectorAll('.attendance-data-row');
+    
+    attendanceRows.forEach(row => {
+        const classId = row.getAttribute('data-class-id');
+        const maleAmInput = row.querySelector('.male-am-input');
+        const malePmInput = row.querySelector('.male-pm-input');
+        const femaleAmInput = row.querySelector('.female-am-input');
+        const femalePmInput = row.querySelector('.female-pm-input');
+        
+        if (!maleAmInput || !malePmInput || !femaleAmInput || !femalePmInput) return;
+        
+        const maleAmValue = parseInt(maleAmInput.value) || 0;
+        const malePmValue = parseInt(malePmInput.value) || 0;
+        const femaleAmValue = parseInt(femaleAmInput.value) || 0;
+        const femalePmValue = parseInt(femalePmInput.value) || 0;
+        
+        switch (sessionType) {
+            case 'am':
+                // Copy AM to PM
+                malePmInput.value = maleAmValue;
+                femalePmInput.value = femaleAmValue;
+                break;
+                
+            case 'pm':
+                // Copy PM to AM
+                maleAmInput.value = malePmValue;
+                femaleAmInput.value = femalePmValue;
+                break;
+                
+            case 'both':
+                // Keep values as they are
+                break;
+        }
+        
+        // Update calculations
+        this.updateAttendanceCalculations(classId);
+    });
 }
 
 // Save attendance filters
