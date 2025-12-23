@@ -3881,6 +3881,78 @@ class App {
         }
     }
 
+    // ==================== FIREBASE SYNC METHODS ====================
+async syncLocalUserToFirebase() {
+    console.log('☁️ Syncing local user to Firebase...');
+    
+    if (!this.user || !this.user.id) {
+        console.log('No user to sync');
+        return;
+    }
+    
+    // If Firebase is available, sync user data
+    if (typeof firestore !== 'undefined') {
+        try {
+            const userData = {
+                id: this.user.id,
+                email: this.user.email,
+                name: this.user.name,
+                role: this.user.role,
+                lastLogin: new Date().toISOString(),
+                lastSync: new Date().toISOString(),
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            
+            // Save to Firebase
+            await firestore.collection('users').doc(this.user.id).set(userData, { merge: true });
+            console.log('✅ User synced to Firebase');
+            
+        } catch (error) {
+            console.warn('Firebase user sync failed:', error);
+            // Don't throw - this is optional sync
+        }
+    } else {
+        console.log('Firebase not available for sync');
+    }
+}
+
+// ==================== ERROR HANDLING ====================
+showError(message) {
+    console.error('❌ Error:', message);
+    
+    // Try to use existing toast system if available
+    if (typeof this.showToast === 'function') {
+        this.showToast(message, 'error');
+    } else if (typeof showToast === 'function') {
+        // Global toast function
+        showToast(message, 'error');
+    } else {
+        // Fallback to alert
+        alert(`Error: ${message}`);
+    }
+}
+
+// Also add this toast method if it doesn't exist:
+showToast(message, type = 'info') {
+    console.log(`[${type.toUpperCase()}] ${message}`);
+    
+    // If you have a UI toast system, implement it here
+    // For now, just log to console
+    switch(type) {
+        case 'success':
+            console.log('✅', message);
+            break;
+        case 'error':
+            console.error('❌', message);
+            break;
+        case 'warning':
+            console.warn('⚠️', message);
+            break;
+        default:
+            console.log('ℹ️', message);
+    }
+}
+    
     resetClassAttendance(classId) {
         const row = document.querySelector(`tr[data-class-id="${classId}"]`);
         if (!row) return;
