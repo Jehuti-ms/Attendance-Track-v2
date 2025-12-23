@@ -1813,14 +1813,13 @@ async init() {
             this.user = authResult.user;
             this.state.currentUser = authResult.user;
             
-            // Try Firebase sync (non-blocking) with safe check
+            // Try Firebase sync (non-blocking) - FIXED: Check if method exists
             if (typeof this.syncLocalUserToFirebase === 'function') {
                 this.syncLocalUserToFirebase().catch(err => {
                     console.log('Firebase sync optional:', err.message);
                 });
-            } else {
-                console.log('Note: syncLocalUserToFirebase method not available');
             }
+            // If method doesn't exist, just skip it - no error
         }
         
         // CASE 4: No user AND on public page → CONTINUE (show login form)
@@ -1849,6 +1848,46 @@ async init() {
         // Setup event listeners
         this.setupEventListeners();
 
+        // Create app instance - FIXED: Only if App class exists
+        if (typeof App !== 'undefined') {
+            const app = new App();
+            window.app = app; // Make it globally accessible
+            console.log('✅ App instance created');
+        } else {
+            console.log('ℹ️ App class not defined (may be for non-attendance pages)');
+        }
+
+        // Update nav status AND apply dark design fixes
+        setTimeout(() => {
+            this.updateNavStatus();
+            this.fixUserStatusDesign(); // Apply dark design fixes
+            
+            // Initialize responsive behavior for protected pages
+            if (!isPublicPage && hasUser) {
+                setTimeout(() => {
+                    if (typeof this.initWindowResizeListener === 'function') {
+                        this.initWindowResizeListener();
+                    }
+                }, 500);
+            }
+        }, 200);
+        
+        // Initialize service worker
+        this.initServiceWorker();
+        
+        console.log('✅ AttendanceApp initialized successfully');
+        
+    } catch (error) {
+        console.error('❌ Error initializing app:', error);
+        // FIXED: Check if showError exists before calling it
+        if (typeof this.showError === 'function') {
+            this.showError(error.message);
+        } else {
+            console.error('Error (showError not available):', error.message);
+        }
+    }
+}
+    
         // ==================== CREATE APP INSTANCE ====================
         // This is CRITICAL for attendance page to work
         console.log('🔄 Creating App instance...');
