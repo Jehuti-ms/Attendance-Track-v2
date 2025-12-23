@@ -3288,8 +3288,7 @@ class App {
         this.autoSaveInterval = null;
     }
 
-   update the entire Attendance Methods:
- // ==================== ATTENDANCE METHODS ====================
+   // ==================== ATTENDANCE METHODS ====================
    async loadAttendanceData() {
     console.log('📋 Loading attendance data...');
     
