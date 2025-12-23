@@ -2358,8 +2358,20 @@ async init() {
                     </button>
                 </div>
                 
-                <div class="auto-save-indicator">
-                    <i class="fas fa-save"></i> Auto-save enabled
+                 <div class="auto-save-indicator">
+                    <div class="auto-save-toggle">
+                        <span class="auto-save-status">
+                            <i class="fas fa-circle"></i>
+                            Auto-save <span id="auto-save-status-text">active</span>
+                        </span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="auto-save-toggle" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="last-saved-time" id="last-saved-time">
+                        Last saved: Never
+                    </div>
                 </div>
             </div>
             
