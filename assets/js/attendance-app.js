@@ -3993,6 +3993,8 @@ const attendanceSystem = new AttendanceSystem();
 
 // Make it globally accessible
 window.attendanceSystem = attendanceSystem;
+
+}
     
      // ==================== REPORTS PAGE METHODS ====================
     initializeReportsPage() {
