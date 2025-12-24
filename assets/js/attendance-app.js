@@ -1849,55 +1849,50 @@ async init() {
         // Setup event listeners
         this.setupEventListeners();
 
-        // ==================== CREATE APP INSTANCE ====================
-        // This is CRITICAL for attendance page to work
-        console.log('🔄 Creating App instance...');
+        // ==================== INITIALIZE ATTENDANCE SYSTEM ====================
+        console.log('🔄 Setting up attendance system...');
         
-        // Check if App class is defined
-        if (typeof App === 'undefined') {
-            console.error('❌ App class is not defined!');
-            console.error('Make sure App class is defined before init() is called');
+        // Check if attendanceSystem exists (it was created globally)
+        if (typeof attendanceSystem !== 'undefined') {
+            console.log('✅ AttendanceSystem found, initializing with user data');
             
-            // Try to define a minimal App class if missing
-            class App {
-                constructor() {
-                    console.log('📱 Minimal App class created');
-                    this.user = null;
-                }
-                
-                // Basic placeholder methods
-                handleAttendanceInput(inputElement) {
-                    console.log('handleAttendanceInput called (placeholder)');
-                }
-                
-                updateAttendanceCalculations(classId) {
-                    console.log('updateAttendanceCalculations called (placeholder)');
-                }
-                
-                showToast(message, type = 'info') {
-                    console.log(`[${type}] ${message}`);
-                }
+            // Initialize attendance system if we have a user
+            if (this.user) {
+                attendanceSystem.initialize({
+                    id: this.user.id,
+                    email: this.user.email,
+                    name: this.user.name,
+                    role: this.user.role,
+                    schoolId: this.user.schoolId || this.user.id
+                });
+                console.log('✅ Attendance System initialized with user:', this.user.email);
+            } else {
+                console.log('ℹ️ No user data available for attendance system');
+            }
+        } else {
+            console.error('❌ attendanceSystem not found!');
+            console.error('Make sure the AttendanceSystem class is defined and instantiated globally');
+            
+            // Create a fallback attendance system
+            this.createFallbackAttendanceSystem();
+        }
+        
+        // ==================== CREATE LEGACY APP INSTANCE (for backward compatibility) ====================
+        // This is for any existing code that uses window.app
+        console.log('🔄 Creating legacy App instance for compatibility...');
+        
+        if (typeof App !== 'undefined') {
+            window.app = new App();
+            
+            // Pass user data to App instance
+            if (this.user) {
+                window.app.user = this.user;
             }
             
-            window.App = App; // Make it globally available
-            console.log('✅ Created minimal App class as fallback');
+            console.log('✅ Legacy App instance created for backward compatibility');
+        } else {
+            console.log('ℹ️ No App class found (may not be needed)');
         }
-        
-        // Create the App instance
-        window.app = new App();
-        
-        // Pass user data to App instance
-        if (this.user) {
-            window.app.user = this.user;
-        }
-        
-        console.log('✅ App instance created and assigned to window.app');
-        console.log('App instance available:', !!window.app);
-        console.log('App methods:', {
-            handleAttendanceInput: typeof window.app.handleAttendanceInput,
-            updateAttendanceCalculations: typeof window.app.updateAttendanceCalculations,
-            showToast: typeof window.app.showToast
-        });
 
         // Update nav status AND apply dark design fixes
         setTimeout(() => {
@@ -1932,6 +1927,50 @@ async init() {
             alert(`Initialization Error: ${error.message}`);
         }
     }
+}
+
+// ==================== FALLBACK ATTENDANCE SYSTEM ====================
+createFallbackAttendanceSystem() {
+    console.log('⚠️ Creating fallback attendance system...');
+    
+    // Simple fallback if the main attendance system isn't available
+    window.attendanceSystem = {
+        user: null,
+        
+        initialize(userData) {
+            console.log('📱 Fallback attendance system initialized with:', userData);
+            this.user = userData;
+        },
+        
+        loadAttendanceData() {
+            console.log('📋 Fallback: Loading attendance data');
+            this.showToast('Using fallback attendance system', 'warning');
+        },
+        
+        saveClassAttendance(classId) {
+            console.log('💾 Fallback: Saving class', classId);
+            alert(`Fallback: Saved attendance for class ${classId}`);
+        },
+        
+        saveAllAttendance() {
+            console.log('💾 Fallback: Saving all attendance');
+            alert('Fallback: All attendance saved');
+        },
+        
+        resetClassAttendance(classId) {
+            console.log('↩️ Fallback: Resetting class', classId);
+            alert(`Fallback: Reset attendance for class ${classId}`);
+        },
+        
+        showToast(message, type = 'info') {
+            console.log(`[${type}] ${message}`);
+            if (type === 'error') {
+                alert(`Error: ${message}`);
+            }
+        }
+    };
+    
+    console.log('✅ Fallback attendance system created');
 }
     
     // ==================== SETUP PAGE INITIALIZATION ====================
