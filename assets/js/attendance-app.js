@@ -3328,7 +3328,7 @@ class App {
     }
 } 
 
- /*  // ==================== ATTENDANCE SYSTEM ====================
+// ==================== ATTENDANCE SYSTEM ====================
 
 class AttendanceSystem {
     constructor() {
@@ -3347,7 +3347,7 @@ class AttendanceSystem {
         this.setupSessionListeners();
         this.setupAutoSave();
     }
-*/
+
     // ==================== CORE ATTENDANCE METHODS ====================
 
     async loadAttendanceData() {
