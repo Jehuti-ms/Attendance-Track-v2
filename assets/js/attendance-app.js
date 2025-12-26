@@ -6991,7 +6991,6 @@ renderFallbackHeader() {
         console.error('❌ Error:', message);
         this.showToast(message, 'error');
     }
-}
 
 // Wait for DOM to be ready before creating app instance
 document.addEventListener('DOMContentLoaded', () => {
