@@ -3316,7 +3316,7 @@ createFallbackAttendanceSystem() {
     }
 }
 
-   // ==================== APP CLASS (Attendance Module) ====================
+/*   // ==================== APP CLASS (Attendance Module) ====================
 class App {
     constructor() {
         console.log('📱 App class initialized');
@@ -3326,7 +3326,7 @@ class App {
         this.isSaving = false;
         this.autoSaveInterval = null;
     }
-
+} */
 
    // ==================== ATTENDANCE SYSTEM ====================
 
