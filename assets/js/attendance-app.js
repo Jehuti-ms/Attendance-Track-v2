@@ -3326,7 +3326,7 @@ class App {
         this.isSaving = false;
         this.autoSaveInterval = null;
     }
-}
+
 
    // ==================== ATTENDANCE SYSTEM ====================
 
