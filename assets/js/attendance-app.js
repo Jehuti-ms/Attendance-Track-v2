@@ -1,4 +1,4 @@
-// attendance-app.js - COMPLETE MODULAR VERSION WITH ALL FUNCTIONALITY
+// attendance-app.js - COMPLETE FINAL VERSION
 // Clear old caches
 if ('serviceWorker' in navigator && 'caches' in window) {
     caches.keys().then(cacheNames => {
@@ -11,7 +11,334 @@ if ('serviceWorker' in navigator && 'caches' in window) {
     });
 }
 
-import { Storage, Utils } from './utils.js';
+// ==================== STORAGE UTILITY ====================
+const Storage = {
+    get(key, defaultValue = null) {
+        try {
+            const item = localStorage.getItem(key);
+            return item ? JSON.parse(item) : defaultValue;
+        } catch (error) {
+            console.error(`Error reading ${key} from localStorage:`, error);
+            return defaultValue;
+        }
+    },
+    
+    set(key, value) {
+        try {
+            localStorage.setItem(key, JSON.stringify(value));
+            return true;
+        } catch (error) {
+            console.error(`Error saving ${key} to localStorage:`, error);
+            return false;
+        }
+    },
+    
+    remove(key) {
+        localStorage.removeItem(key);
+    },
+    
+    clear() {
+        localStorage.clear();
+    }
+};
+
+// ==================== FIREBASE SERVICE ====================
+class FirebaseService {
+    constructor() {
+        this.isAvailable = false;
+        this.auth = null;
+        this.db = null;
+        this.firestore = null;
+        this.currentUser = null;
+        this.syncQueue = [];
+        this.init();
+    }
+    
+    async init() {
+        try {
+            if (typeof firebase === 'undefined') {
+                console.log('ℹ️ Firebase SDK not loaded');
+                return;
+            }
+            
+            // Firebase configuration
+            const firebaseConfig = {
+                apiKey: "AIzaSyCwKcFhLfiVHbn0Pr4hFLlqTn1rKJ4z8Ew",
+                authDomain: "attendance-track-v2.firebaseapp.com",
+                projectId: "attendance-track-v2",
+                storageBucket: "attendance-track-v2.firebasestorage.app",
+                messagingSenderId: "1234567890",
+                appId: "1:1234567890:web:abcdef123456"
+            };
+            
+            // Initialize Firebase
+            const app = firebase.initializeApp(firebaseConfig);
+            this.auth = firebase.auth();
+            this.db = firebase.firestore();
+            this.firestore = firebase.firestore;
+            this.isAvailable = true;
+            
+            console.log('🔥 Firebase initialized');
+            
+            // Set up auth state listener
+            this.auth.onAuthStateChanged((user) => {
+                this.currentUser = user;
+                if (user) {
+                    console.log('👤 Firebase user:', user.email);
+                    this.processSyncQueue();
+                }
+            });
+            
+            // Enable offline persistence
+            await this.enablePersistence();
+            
+        } catch (error) {
+            console.error('❌ Firebase init error:', error);
+            this.isAvailable = false;
+        }
+    }
+    
+    async enablePersistence() {
+        try {
+            await this.db.enablePersistence({ synchronizeTabs: true });
+            console.log('📱 Firebase persistence enabled');
+            return true;
+        } catch (err) {
+            if (err.code === 'failed-precondition') {
+                console.warn('⚠️ Multiple tabs open');
+            } else if (err.code === 'unimplemented') {
+                console.warn('⚠️ Browser doesn\'t support persistence');
+            }
+            return false;
+        }
+    }
+    
+    getSchoolId() {
+        const user = Storage.get('attendance_user');
+        return user?.schoolId || user?.id || 'default-school';
+    }
+    
+    async saveClass(classData) {
+        if (!this.isAvailable || !this.currentUser) {
+            console.log('📦 Queueing class for later sync');
+            this.addToSyncQueue('classes', classData, 'save');
+            return { success: false, offline: true };
+        }
+        
+        try {
+            const schoolId = this.getSchoolId();
+            let result;
+            
+            if (classData.firebaseId) {
+                // Update existing
+                await this.db.collection('schools').doc(schoolId)
+                    .collection('classes').doc(classData.firebaseId)
+                    .update({
+                        ...classData,
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                result = { success: true, id: classData.firebaseId };
+            } else {
+                // Create new
+                const docRef = await this.db.collection('schools').doc(schoolId)
+                    .collection('classes').add({
+                        ...classData,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        createdBy: this.currentUser.uid
+                    });
+                result = { success: true, id: docRef.id };
+            }
+            
+            console.log('✅ Class saved to Firebase');
+            return result;
+            
+        } catch (error) {
+            console.error('❌ Firebase save error:', error);
+            this.addToSyncQueue('classes', classData, 'save');
+            return { success: false, error: error.message };
+        }
+    }
+    
+    async getClasses() {
+        if (!this.isAvailable || !this.currentUser) {
+            return Storage.get('classes') || [];
+        }
+        
+        try {
+            const schoolId = this.getSchoolId();
+            const snapshot = await this.db.collection('schools').doc(schoolId)
+                .collection('classes').get();
+            
+            const classes = snapshot.docs.map(doc => ({
+                id: `class_${doc.id}`,
+                firebaseId: doc.id,
+                ...doc.data()
+            }));
+            
+            console.log(`✅ Loaded ${classes.length} classes from Firebase`);
+            return classes;
+            
+        } catch (error) {
+            console.error('❌ Firebase load error:', error);
+            return Storage.get('classes') || [];
+        }
+    }
+    
+    async saveAttendance(attendanceData) {
+        if (!this.isAvailable || !this.currentUser) {
+            this.addToSyncQueue('attendance', attendanceData, 'save');
+            return { success: false, offline: true };
+        }
+        
+        try {
+            const schoolId = this.getSchoolId();
+            
+            await this.db.collection('schools').doc(schoolId)
+                .collection('attendance').doc(attendanceData.id)
+                .set({
+                    ...attendanceData,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    recordedBy: this.currentUser.uid
+                });
+            
+            console.log('✅ Attendance saved to Firebase');
+            return { success: true, id: attendanceData.id };
+            
+        } catch (error) {
+            console.error('❌ Firebase attendance save error:', error);
+            this.addToSyncQueue('attendance', attendanceData, 'save');
+            return { success: false, error: error.message };
+        }
+    }
+    
+    async getAttendance(date = null, session = 'both') {
+        if (!this.isAvailable || !this.currentUser) {
+            return Storage.get('attendance') || [];
+        }
+        
+        try {
+            const schoolId = this.getSchoolId();
+            let query = this.db.collection('schools').doc(schoolId)
+                .collection('attendance');
+            
+            if (date) {
+                query = query.where('date', '==', date);
+            }
+            if (session !== 'both') {
+                query = query.where('session', '==', session);
+            }
+            
+            const snapshot = await query.get();
+            const attendance = snapshot.docs.map(doc => ({
+                id: doc.id,
+                firebaseId: doc.id,
+                ...doc.data()
+            }));
+            
+            return attendance;
+            
+        } catch (error) {
+            console.error('❌ Firebase attendance load error:', error);
+            return Storage.get('attendance') || [];
+        }
+    }
+    
+    addToSyncQueue(collection, data, action) {
+        this.syncQueue.push({
+            collection,
+            data,
+            action,
+            timestamp: Date.now(),
+            attempts: 0
+        });
+        
+        Storage.set('firebase_sync_queue', this.syncQueue);
+        this.updateSyncIndicator();
+    }
+    
+    async processSyncQueue() {
+        if (!this.isAvailable || !this.currentUser || this.syncQueue.length === 0) {
+            return;
+        }
+        
+        console.log(`🔄 Processing ${this.syncQueue.length} queued items`);
+        
+        const failed = [];
+        
+        for (let i = 0; i < this.syncQueue.length; i++) {
+            const item = this.syncQueue[i];
+            
+            try {
+                if (item.collection === 'classes' && item.action === 'save') {
+                    await this.saveClass(item.data);
+                } else if (item.collection === 'attendance' && item.action === 'save') {
+                    await this.saveAttendance(item.data);
+                }
+                // Success - remove from queue
+                this.syncQueue.splice(i, 1);
+                i--;
+                
+            } catch (error) {
+                console.error('❌ Sync failed:', error);
+                item.attempts++;
+                
+                if (item.attempts >= 3) {
+                    console.log('🗑️ Removing failed item after 3 attempts');
+                    this.syncQueue.splice(i, 1);
+                    i--;
+                } else {
+                    failed.push(item);
+                }
+            }
+        }
+        
+        Storage.set('firebase_sync_queue', this.syncQueue);
+        this.updateSyncIndicator();
+    }
+    
+    updateSyncIndicator() {
+        const count = this.syncQueue.length;
+        let indicator = document.getElementById('firebase-sync-indicator');
+        
+        if (count > 0) {
+            if (!indicator) {
+                indicator = document.createElement('div');
+                indicator.id = 'firebase-sync-indicator';
+                indicator.style.cssText = `
+                    position: fixed;
+                    bottom: 20px;
+                    left: 20px;
+                    background: #f39c12;
+                    color: white;
+                    padding: 8px 16px;
+                    border-radius: 20px;
+                    font-size: 12px;
+                    font-weight: bold;
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    z-index: 1000;
+                    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+                `;
+                document.body.appendChild(indicator);
+            }
+            
+            indicator.innerHTML = `
+                <i class="fas fa-cloud-upload-alt ${this.isAvailable ? 'fa-spin' : ''}"></i>
+                <span>${count} pending sync</span>
+                ${!this.isAvailable ? '<small>(offline)</small>' : ''}
+            `;
+            indicator.style.display = 'flex';
+        } else if (indicator) {
+            indicator.style.display = 'none';
+        }
+    }
+}
+
+// Initialize Firebase service
+const firebaseService = new FirebaseService();
 
 // ==================== MAIN APP ORCHESTRATOR ====================
 class AttendanceApp {
@@ -22,29 +349,17 @@ class AttendanceApp {
             currentUser: null,
             currentPage: this.getCurrentPage(),
             isOnline: navigator.onLine,
-            settings: Storage.get('app_settings', {}),
             navLinksElement: null,
             hamburgerElement: null,
             resizeListenerInitialized: false
         };
 
         this.user = null;
-        this.firebaseAvailable = false;
+        this.modules = {};
         
-        // Initialize modules
-        this.modules = {
-            dashboard: new DashboardModule(this),
-            attendance: new AttendanceModule(this),
-            reports: new ReportsModule(this),
-            setup: new SetupModule(this),
-            settings: new SettingsModule(this)
-        };
-        
-        // Initialize app
         this.init();
     }
     
-    // ==================== CORE APP METHODS ====================
     getCurrentPage() {
         const path = window.location.pathname;
         let page = path.split('/').pop() || 'index.html';
@@ -74,29 +389,36 @@ class AttendanceApp {
             const currentPage = this.state.currentPage;
             const authResult = await this.checkAuth();
             const hasUser = authResult.success;
-            const publicPages = ['index', 'login', 'setup'];
+            const publicPages = ['index', 'login'];
             const isPublicPage = publicPages.includes(currentPage);
             
             // Handle routing logic
-            if (hasUser && isPublicPage && currentPage !== 'setup') {
+            if (hasUser && isPublicPage) {
                 window.location.replace('dashboard.html');
                 return;
             }
             
-            if (!hasUser && !isPublicPage) {
+            if (!hasUser && !isPublicPage && currentPage !== 'setup') {
                 window.location.replace('index.html');
                 return;
             }
             
-            if (hasUser && !isPublicPage) {
+            if (hasUser) {
                 this.user = authResult.user;
                 this.state.currentUser = authResult.user;
-            }
-            
-            if (!hasUser && isPublicPage) {
+            } else {
                 this.user = null;
                 this.state.currentUser = null;
             }
+            
+            // Initialize modules
+            this.modules = {
+                dashboard: new DashboardModule(this),
+                attendance: new AttendanceModule(this),
+                reports: new ReportsModule(this),
+                setup: new SetupModule(this),
+                settings: new SettingsModule(this)
+            };
             
             await this.loadPageContent();
             this.setupUIComponents();
@@ -110,10 +432,28 @@ class AttendanceApp {
         }
     }
     
+    async checkAuth() {
+        try {
+            const userJson = localStorage.getItem('attendance_user');
+            if (!userJson) return { success: false, user: null };
+            
+            const user = JSON.parse(userJson);
+            if (!user || !user.email) {
+                localStorage.removeItem('attendance_user');
+                return { success: false, user: null };
+            }
+            
+            return { success: true, user };
+        } catch (error) {
+            console.error("❌ Error in checkAuth:", error);
+            return { success: false, user: null };
+        }
+    }
+    
     async loadPageContent() {
         const appContainer = document.getElementById('app-container');
         if (!appContainer) {
-            console.error('❌ app-container not found in DOM');
+            console.error('❌ app-container not found');
             this.showError('App container not found');
             return;
         }
@@ -144,317 +484,7 @@ class AttendanceApp {
         }
     }
     
-    // ==================== AUTHENTICATION ====================
-    async checkAuth() {
-        try {
-            const userJson = localStorage.getItem('attendance_user');
-            if (!userJson) return { success: false, user: null };
-            
-            const user = JSON.parse(userJson);
-            if (!user || !user.email) {
-                localStorage.removeItem('attendance_user');
-                return { success: false, user: null };
-            }
-            
-            return { success: true, user };
-        } catch (error) {
-            console.error("❌ Error in checkAuth:", error);
-            return { success: false, user: null };
-        }
-    }
-    
-    async handleLogin() {
-        const email = document.getElementById('loginEmail')?.value || 'teacher@school.edu';
-        const password = document.getElementById('loginPassword')?.value || 'demo123';
-        
-        const user = {
-            id: 'user_' + Date.now(),
-            email: email,
-            name: email.split('@')[0],
-            role: 'teacher',
-            school: 'Demo School',
-            lastLogin: new Date().toISOString()
-        };
-        
-        Storage.set('attendance_user', user);
-        this.user = user;
-        this.state.currentUser = user;
-        
-        this.showToast('Login successful!', 'success');
-        
-        setTimeout(() => {
-            this.redirectTo('dashboard.html');
-        }, 1000);
-    }
-    
-    handleLogout() {
-        if (confirm('Are you sure you want to logout?')) {
-            localStorage.removeItem('attendance_user');
-            this.user = null;
-            this.state.currentUser = null;
-            this.showToast('Successfully logged out!', 'success');
-            setTimeout(() => {
-                window.location.href = 'index.html';
-            }, 1000);
-        }
-    }
-    
-    startDemoMode() {
-        const demoUser = {
-            id: 'demo_' + Date.now(),
-            email: 'demo@school.edu',
-            name: 'Demo Teacher',
-            role: 'teacher',
-            school: 'Demo Academy',
-            demo: true,
-            lastLogin: new Date().toISOString()
-        };
-        
-        Storage.set('attendance_user', demoUser);
-        this.user = demoUser;
-        this.state.currentUser = demoUser;
-        
-        this.showToast('Demo mode activated!', 'success');
-        setTimeout(() => {
-            this.redirectTo('dashboard.html');
-        }, 1000);
-    }
-    
-    // ==================== UI COMPONENTS ====================
-    setupUIComponents() {
-        this.updateNavStatus();
-        this.fixUserStatusDesign();
-        this.initWindowResizeListener();
-    }
-    
-    updateNavStatus() {
-        const statusElement = document.getElementById('navUserStatus');
-        if (!statusElement) {
-            setTimeout(() => this.updateNavStatus(), 300);
-            return;
-        }
-        
-        let username = 'User';
-        if (this.state && this.state.currentUser) {
-            username = this.state.currentUser.name || this.state.currentUser.email || 'User';
-        } else {
-            try {
-                const storedUser = localStorage.getItem('attendance_user');
-                if (storedUser) {
-                    const user = JSON.parse(storedUser);
-                    username = user.name || user.email || 'User';
-                }
-            } catch(e) {
-                console.error('Error parsing user:', e);
-            }
-        }
-        
-        const isOnline = navigator.onLine;
-        const statusText = isOnline ? 'Online' : 'Offline';
-        
-        statusElement.innerHTML = `
-            <div class="status-content">
-                <div class="user-display">
-                    <i class="fas fa-user"></i>
-                    <span class="user-name">${username}</span>
-                </div>
-                <div class="connection-status">
-                    <span class="status-dot ${isOnline ? 'online' : 'offline'}"></span>
-                    <span class="status-text">${statusText}</span>
-                </div>
-            </div>
-        `;
-    }
-    
-    fixUserStatusDesign() {
-        setTimeout(() => {
-            this.setupLogoutButton();
-            this.setupResponsiveHamburgerMenu();
-        }, 100);
-    }
-    
-    setupLogoutButton() {
-        const logoutBtn = document.querySelector('.btn-logout');
-        if (!logoutBtn) return;
-        
-        logoutBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            this.handleLogout();
-        });
-    }
-    
-    setupResponsiveHamburgerMenu() {
-        let hamburger = document.querySelector('.hamburger-menu, .navbar-toggle');
-        
-        if (!hamburger) {
-            hamburger = this.createHamburgerButton();
-        }
-        
-        this.setupHamburgerButton(hamburger);
-        this.setupNavbarToggling();
-        setTimeout(() => this.checkResponsiveView(), 100);
-    }
-    
-    createHamburgerButton() {
-        const hamburger = document.createElement('button');
-        hamburger.className = 'hamburger-menu navbar-toggle';
-        hamburger.setAttribute('aria-label', 'Toggle navigation menu');
-        hamburger.innerHTML = '☰';
-        
-        const userStatus = document.querySelector('#navUserStatus, .user-status');
-        if (userStatus) {
-            userStatus.appendChild(hamburger);
-        } else {
-            document.body.appendChild(hamburger);
-        }
-        
-        return hamburger;
-    }
-    
-    setupHamburgerButton(element) {
-        Object.assign(element.style, {
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: '40px',
-            height: '40px',
-            borderRadius: '50%',
-            background: 'rgba(26, 35, 126, 0.1)',
-            border: '1px solid rgba(26, 35, 126, 0.2)',
-            color: '#1a237e',
-            cursor: 'pointer',
-            fontSize: '20px',
-            margin: '0',
-            padding: '0',
-            flexShrink: '0',
-            position: 'relative',
-            zIndex: '100',
-            transition: 'all 0.3s ease'
-        });
-        
-        element.addEventListener('mouseenter', () => {
-            element.style.background = 'rgba(26, 35, 126, 0.2)';
-            element.style.color = '#3498db';
-            element.style.transform = 'scale(1.1)';
-        });
-        
-        element.addEventListener('mouseleave', () => {
-            element.style.background = 'rgba(26, 35, 126, 0.1)';
-            element.style.color = '#1a237e';
-            element.style.transform = 'scale(1)';
-        });
-        
-        element.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            this.toggleNavigationLinks();
-        });
-    }
-    
-    toggleNavigationLinks() {
-        const navLinks = this.state.navLinksElement;
-        const hamburger = document.querySelector('.hamburger-menu, .navbar-toggle');
-        
-        if (!navLinks || !hamburger) return;
-        
-        const screenWidth = window.innerWidth;
-        const isLargeScreen = screenWidth >= 768;
-        
-        if (isLargeScreen) return;
-        
-        const computedStyle = window.getComputedStyle(navLinks);
-        const isCurrentlyVisible = computedStyle.display !== 'none' && 
-                                   computedStyle.visibility !== 'hidden';
-        
-        if (isCurrentlyVisible) {
-            navLinks.style.cssText = `display: none !important; visibility: hidden !important;`;
-            hamburger.innerHTML = '☰';
-            hamburger.setAttribute('aria-expanded', 'false');
-        } else {
-            const menuWidth = 280;
-            const leftPosition = Math.max(10, window.innerWidth - menuWidth - 10);
-            
-            navLinks.style.cssText = `
-                display: flex !important;
-                visibility: visible !important;
-                flex-direction: column !important;
-                position: fixed !important;
-                top: 80px !important;
-                left: ${leftPosition}px !important;
-                background: rgba(20, 20, 30, 0.98) !important;
-                border-radius: 15px !important;
-                padding: 20px !important;
-                z-index: 99999 !important;
-                box-shadow: 0 10px 40px rgba(0,0,0,0.6) !important;
-                border: 2px solid #3498db !important;
-                width: ${menuWidth}px !important;
-                max-width: 90vw !important;
-                gap: 12px !important;
-                color: white !important;
-            `;
-            
-            hamburger.innerHTML = '✕';
-            hamburger.setAttribute('aria-expanded', 'true');
-        }
-    }
-    
-    setupNavbarToggling() {
-        const linkSelectors = ['.nav-links', '.navigation-links', '.navbar-links', 'nav > ul'];
-        
-        let navLinks = null;
-        for (const selector of linkSelectors) {
-            const element = document.querySelector(selector);
-            if (element && element.querySelector('a, .nav-link, [href]')) {
-                navLinks = element;
-                break;
-            }
-        }
-        
-        if (navLinks) {
-            navLinks.classList.add('toggleable-links');
-            this.state.navLinksElement = navLinks;
-        }
-    }
-    
-    checkResponsiveView() {
-        const hamburger = document.querySelector('.hamburger-menu, .navbar-toggle');
-        const navLinks = this.state.navLinksElement;
-        
-        if (!hamburger || !navLinks) return;
-        
-        const screenWidth = window.innerWidth;
-        const isLargeScreen = screenWidth >= 768;
-        
-        if (isLargeScreen) {
-            hamburger.style.display = 'none';
-            navLinks.style.display = 'flex';
-        } else {
-            hamburger.style.display = 'flex';
-            if (!navLinks.classList.contains('links-visible')) {
-                navLinks.style.display = 'none';
-            }
-        }
-    }
-    
-    initWindowResizeListener() {
-        if (this.state.resizeListenerInitialized) return;
-        
-        let resizeTimeout;
-        window.addEventListener('resize', () => {
-            clearTimeout(resizeTimeout);
-            resizeTimeout = setTimeout(() => {
-                this.checkResponsiveView();
-            }, 250);
-        });
-        
-        this.state.resizeListenerInitialized = true;
-    }
-    
-    // ==================== PUBLIC PAGES ====================
     async loadIndexContent(container) {
-        if (!container) return;
-        
         container.innerHTML = `
             <div class="landing-page">
                 <div class="hero">
@@ -485,8 +515,6 @@ class AttendanceApp {
     }
     
     async loadLoginContent(container) {
-        if (!container) return;
-        
         container.innerHTML = `
             <div class="login-container">
                 <div class="login-card">
@@ -530,6 +558,153 @@ class AttendanceApp {
         }
     }
     
+    async handleLogin() {
+        const email = document.getElementById('loginEmail')?.value || 'teacher@school.edu';
+        const password = document.getElementById('loginPassword')?.value || 'demo123';
+        
+        const user = {
+            id: 'user_' + Date.now(),
+            email: email,
+            name: email.split('@')[0],
+            role: 'teacher',
+            school: 'Demo School',
+            lastLogin: new Date().toISOString()
+        };
+        
+        Storage.set('attendance_user', user);
+        this.user = user;
+        this.state.currentUser = user;
+        
+        this.showToast('Login successful!', 'success');
+        
+        setTimeout(() => {
+            window.location.href = 'dashboard.html';
+        }, 1000);
+    }
+    
+    handleLogout() {
+        if (confirm('Are you sure you want to logout?')) {
+            localStorage.removeItem('attendance_user');
+            this.user = null;
+            this.state.currentUser = null;
+            
+            this.showToast('Successfully logged out!', 'success');
+            
+            setTimeout(() => {
+                window.location.href = 'index.html';
+            }, 1000);
+        }
+    }
+    
+    startDemoMode() {
+        const demoUser = {
+            id: 'demo_' + Date.now(),
+            email: 'demo@school.edu',
+            name: 'Demo Teacher',
+            role: 'teacher',
+            school: 'Demo Academy',
+            demo: true,
+            lastLogin: new Date().toISOString()
+        };
+        
+        Storage.set('attendance_user', demoUser);
+        this.user = demoUser;
+        this.state.currentUser = demoUser;
+        
+        this.showToast('Demo mode activated!', 'success');
+        
+        setTimeout(() => {
+            window.location.href = 'dashboard.html';
+        }, 1000);
+    }
+    
+    setupUIComponents() {
+        this.updateNavStatus();
+        this.setupHamburgerMenu();
+        this.initWindowResizeListener();
+    }
+    
+    updateNavStatus() {
+        const statusElement = document.getElementById('navUserStatus');
+        if (!statusElement) {
+            setTimeout(() => this.updateNavStatus(), 300);
+            return;
+        }
+        
+        let username = 'User';
+        if (this.state.currentUser) {
+            username = this.state.currentUser.name || this.state.currentUser.email || 'User';
+        }
+        
+        const isOnline = navigator.onLine;
+        const statusText = isOnline ? 'Online' : 'Offline';
+        
+        statusElement.innerHTML = `
+            <div class="status-content">
+                <div class="user-display">
+                    <i class="fas fa-user"></i>
+                    <span class="user-name">${username}</span>
+                </div>
+                <div class="connection-status">
+                    <span class="status-dot ${isOnline ? 'online' : 'offline'}"></span>
+                    <span class="status-text">${statusText}</span>
+                </div>
+            </div>
+        `;
+    }
+    
+    setupHamburgerMenu() {
+        let hamburger = document.querySelector('.hamburger-menu');
+        if (!hamburger) {
+            hamburger = document.createElement('button');
+            hamburger.className = 'hamburger-menu';
+            hamburger.innerHTML = '☰';
+            hamburger.style.cssText = `
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                width: 40px;
+                height: 40px;
+                border-radius: 50%;
+                background: rgba(26, 35, 126, 0.1);
+                border: 1px solid rgba(26, 35, 126, 0.2);
+                color: #1a237e;
+                cursor: pointer;
+                font-size: 20px;
+                margin: 0 10px;
+            `;
+            
+            const nav = document.querySelector('nav');
+            if (nav) nav.prepend(hamburger);
+        }
+        
+        hamburger.addEventListener('click', () => {
+            const navLinks = document.querySelector('.nav-links');
+            if (navLinks) {
+                navLinks.style.display = navLinks.style.display === 'none' ? 'flex' : 'none';
+                hamburger.innerHTML = navLinks.style.display === 'none' ? '☰' : '✕';
+            }
+        });
+    }
+    
+    initWindowResizeListener() {
+        if (this.state.resizeListenerInitialized) return;
+        
+        window.addEventListener('resize', () => {
+            const navLinks = document.querySelector('.nav-links');
+            const hamburger = document.querySelector('.hamburger-menu');
+            
+            if (window.innerWidth >= 768) {
+                if (navLinks) navLinks.style.display = 'flex';
+                if (hamburger) hamburger.style.display = 'none';
+            } else {
+                if (hamburger) hamburger.style.display = 'flex';
+            }
+        });
+        
+        this.state.resizeListenerInitialized = true;
+    }
+    
     showPageNotFound(container) {
         container.innerHTML = `
             <div class="error-page">
@@ -540,45 +715,34 @@ class AttendanceApp {
         `;
     }
     
-    // ==================== UTILITY METHODS ====================
     redirectTo(page) {
-        const basePath = this.getBasePath();
-        window.location.href = basePath + page;
+        window.location.href = this.getBasePath() + page;
     }
     
     showToast(message, type = 'info') {
-        console.log(`📢 ${type.toUpperCase()}: ${message}`);
-        
-        const notification = document.createElement('div');
-        notification.className = `notification notification-${type}`;
-        notification.innerHTML = `
-            <div class="notification-content">
-                <span class="notification-icon">${type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️'}</span>
-                <span class="notification-text">${message}</span>
-            </div>
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type}`;
+        toast.textContent = message;
+        toast.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 24px;
+            background: ${type === 'success' ? '#4CAF50' : type === 'error' ? '#f44336' : '#2196F3'};
+            color: white;
+            border-radius: 4px;
+            z-index: 10000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         `;
         
-        Object.assign(notification.style, {
-            position: 'fixed',
-            top: '20px',
-            right: '20px',
-            background: type === 'success' ? '#2ecc71' : type === 'error' ? '#e74c3c' : '#3498db',
-            color: 'white',
-            padding: '15px 20px',
-            borderRadius: '8px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-            zIndex: '9999'
-        });
-        
-        document.body.appendChild(notification);
+        document.body.appendChild(toast);
         
         setTimeout(() => {
-            notification.remove();
+            toast.remove();
         }, 3000);
     }
     
     showError(message) {
-        console.error('❌ Error:', message);
         this.showToast(message, 'error');
     }
     
@@ -600,11 +764,9 @@ class AttendanceApp {
 class DashboardModule {
     constructor(app) {
         this.app = app;
-        this.container = null;
     }
     
     render(container) {
-        this.container = container;
         if (!this.app.user) {
             container.innerHTML = `<div class="error">No user found. Please login again.</div>`;
             return;
@@ -612,29 +774,20 @@ class DashboardModule {
         
         container.innerHTML = this.getHTML();
         this.loadDashboardData();
+        this.setupEventListeners();
     }
     
     getHTML() {
         return `
             <div class="dashboard-page">
                 <div class="dashboard-header">
-                    <div class="header-content">
-                        <div class="welcome-text">
-                            <h2>Welcome, ${this.app.user.name || 'Teacher'}!</h2>
-                            <p>Here's your attendance overview</p>
-                        </div>
-                    </div>
-                    <div class="date-display" id="current-date">
-                        ${new Date().toLocaleDateString('en-US', {
-                            weekday: 'long',
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric'
-                        })}
+                    <div class="welcome-text">
+                        <h2>Welcome, ${this.app.user.name || 'Teacher'}!</h2>
+                        <p>Here's your attendance overview</p>
                     </div>
                 </div>
                 
-                <div class="stats-grid" id="dashboard-stats">
+                <div class="stats-grid">
                     <div class="stat-card">
                         <div class="stat-icon">📊</div>
                         <div class="stat-content">
@@ -727,10 +880,10 @@ class DashboardModule {
         const activityHTML = recent.map(record => `
             <div class="activity-item">
                 <div class="activity-icon">
-                    ${record.status === 'present' ? '✅' : record.status === 'absent' ? '❌' : '⏰'}
+                    ${record.status === 'present' ? '✅' : '📋'}
                 </div>
                 <div class="activity-content">
-                    <p>${record.className || 'Class'} - ${record.status || 'recorded'}</p>
+                    <p>${record.className || 'Class'} attendance</p>
                     <small>${record.date} • ${record.session || ''}</small>
                 </div>
             </div>
@@ -743,6 +896,10 @@ class DashboardModule {
         this.loadDashboardData();
         this.app.showToast('Dashboard refreshed', 'success');
     }
+    
+    setupEventListeners() {
+        // Dashboard event listeners
+    }
 }
 
 // ==================== ATTENDANCE MODULE ====================
@@ -750,24 +907,21 @@ class AttendanceModule {
     constructor(app) {
         this.app = app;
         this.attendanceSystem = new AttendanceSystem();
-        this.container = null;
     }
     
     render(container) {
-        this.container = container;
         if (!this.app.user) {
             container.innerHTML = `<div class="error">No user found. Please login again.</div>`;
             return;
         }
         
         container.innerHTML = this.getHTML();
-        this.initializeAttendanceSystem();
+        this.attendanceSystem.initialize(this.app.user);
         this.setupEventListeners();
     }
     
     getHTML() {
-        const today = new Date();
-        const formattedDate = today.toISOString().split('T')[0];
+        const today = new Date().toISOString().split('T')[0];
         
         return `
             <div class="attendance-report">
@@ -779,7 +933,7 @@ class AttendanceModule {
                 <div class="controls-row">
                     <div class="control-group">
                         <label for="date-picker"><i class="fas fa-calendar-alt"></i> Date</label>
-                        <input type="date" id="date-picker" class="date-input" value="${formattedDate}">
+                        <input type="date" id="date-picker" class="date-input" value="${today}">
                     </div>
                     
                     <div class="control-group">
@@ -811,24 +965,19 @@ class AttendanceModule {
                 </div>
                 
                 <div class="table-container">
-                    <table class="attendance-table sticky-header">
-                       <thead>
+                    <table class="attendance-table">
+                        <thead>
                             <tr>
-                                <th rowspan="2">Year Group</th>
-                                <th rowspan="2">Class</th>
-                                <th rowspan="2">Total</th>
-                                <th colspan="2">Male Present</th>
-                                <th colspan="2">Female Present</th>
-                                <th rowspan="2">AM Rate</th>
-                                <th rowspan="2">PM Rate</th>
-                                <th rowspan="2">Daily Rate</th>
-                                <th rowspan="2">Actions</th>
-                            </tr>
-                            <tr>
-                                <th>AM</th>
-                                <th>PM</th>
-                                <th>AM</th>
-                                <th>PM</th>
+                                <th>Class</th>
+                                <th>Total</th>
+                                <th>Male AM</th>
+                                <th>Male PM</th>
+                                <th>Female AM</th>
+                                <th>Female PM</th>
+                                <th>AM Rate</th>
+                                <th>PM Rate</th>
+                                <th>Daily Rate</th>
+                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody id="attendance-table-body">
@@ -838,10 +987,6 @@ class AttendanceModule {
                 </div>
             </div>
         `;
-    }
-    
-    initializeAttendanceSystem() {
-        this.attendanceSystem.initialize(this.app.user);
     }
     
     setupEventListeners() {
@@ -860,6 +1005,7 @@ class AttendanceModule {
                 
                 sessionOptions.forEach(opt => opt.classList.remove('active'));
                 option.classList.add('active');
+                
                 this.attendanceSystem.applySessionLogic(session);
                 this.attendanceSystem.loadAttendanceData();
             });
@@ -874,7 +1020,7 @@ class AttendanceModule {
     }
 }
 
-// ==================== ATTENDANCE SYSTEM (Business Logic) ====================
+// ==================== ATTENDANCE SYSTEM ====================
 class AttendanceSystem {
     constructor() {
         this.user = null;
@@ -905,11 +1051,26 @@ class AttendanceSystem {
             const selectedDate = this.getSelectedDate();
             const selectedSession = this.currentSession;
             
-            const classes = await this.loadClasses();
-            const students = await this.loadStudents();
-            const attendance = await this.loadAttendance(selectedDate, selectedSession);
+            // Try Firebase first, then localStorage
+            let classes = [];
+            let attendance = [];
             
-            this.renderAttendanceTable(classes, students, attendance, selectedDate, selectedSession);
+            if (firebaseService.isAvailable) {
+                classes = await firebaseService.getClasses();
+                attendance = await firebaseService.getAttendance(selectedDate, selectedSession);
+            } else {
+                classes = Storage.get('classes') || [];
+                attendance = Storage.get('attendance') || [];
+            }
+            
+            // Filter attendance by date and session
+            const filteredAttendance = attendance.filter(a => {
+                const dateMatch = !selectedDate || a.date === selectedDate;
+                const sessionMatch = selectedSession === 'both' || a.session === selectedSession;
+                return dateMatch && sessionMatch;
+            });
+            
+            this.renderAttendanceTable(classes, filteredAttendance);
             
         } catch (error) {
             console.error('Error loading attendance:', error);
@@ -917,108 +1078,48 @@ class AttendanceSystem {
         }
     }
     
-    async loadClasses() {
-        // Try Firebase first
-        if (this.user && typeof firestore !== 'undefined') {
-            try {
-                const snapshot = await firestore.collection('schools')
-                    .doc(this.user.schoolId || this.user.id)
-                    .collection('classes')
-                    .get();
-                const classes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                Storage.set('classes', classes);
-                return classes;
-            } catch (error) {
-                console.log('Using cached classes:', error.message);
-            }
-        }
-        return Storage.get('classes') || [];
-    }
-    
-    async loadStudents() {
-        if (this.user && typeof firestore !== 'undefined') {
-            try {
-                const snapshot = await firestore.collection('schools')
-                    .doc(this.user.schoolId || this.user.id)
-                    .collection('students')
-                    .get();
-                const students = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                Storage.set('students', students);
-                return students;
-            } catch (error) {
-                console.log('Using cached students:', error.message);
-            }
-        }
-        return Storage.get('students') || [];
-    }
-    
-    async loadAttendance(date, session) {
-        if (this.user && typeof firestore !== 'undefined') {
-            try {
-                let query = firestore.collection('schools')
-                    .doc(this.user.schoolId || this.user.id)
-                    .collection('attendance');
-                
-                if (date) query = query.where('date', '==', date);
-                if (session !== 'both') query = query.where('session', '==', session);
-                
-                const snapshot = await query.get();
-                const attendance = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                Storage.set('attendance', attendance);
-                return attendance;
-            } catch (error) {
-                console.log('Using cached attendance:', error.message);
-            }
-        }
-        return Storage.get('attendance') || [];
-    }
-    
-    renderAttendanceTable(classes, students, attendance, date, session) {
+    renderAttendanceTable(classes, attendance) {
         const tbody = document.getElementById('attendance-table-body');
         if (!tbody) return;
         
         tbody.innerHTML = '';
         
         if (classes.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="11" class="no-data">No classes found</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="10" class="no-data">No classes found</td></tr>`;
             return;
         }
         
         classes.forEach(classItem => {
-            const row = this.createClassRow(classItem, students, attendance, date, session);
+            const row = this.createClassRow(classItem, attendance);
             tbody.appendChild(row);
         });
         
-        this.applySessionLogic(session);
+        this.applySessionLogic(this.currentSession);
     }
     
-    createClassRow(classItem, students, attendance, date, session) {
-        const classStudents = students.filter(s => s.classId === classItem.id);
-        const classAttendance = attendance.filter(a => a.classId === classItem.id && a.date === date);
+    createClassRow(classItem, attendance) {
+        const classAttendance = attendance.filter(a => a.classId === classItem.id);
         
-        const totalStudents = classStudents.length;
-        const totalMale = classStudents.filter(s => s.gender?.toLowerCase() === 'male').length;
-        const totalFemale = classStudents.filter(s => s.gender?.toLowerCase() === 'female').length;
-        
+        // Get saved attendance or defaults
         const savedRecord = classAttendance.find(a => 
-            a.session === session || session === 'both' || !a.session
+            a.session === this.currentSession || this.currentSession === 'both' || !a.session
         );
         
         const maleAm = savedRecord?.malePresentAM || 0;
         const malePm = savedRecord?.malePresentPM || 0;
         const femaleAm = savedRecord?.femalePresentAM || 0;
         const femalePm = savedRecord?.femalePresentPM || 0;
+        const totalStudents = classItem.total || 0;
         
+        // Calculate rates
         const amRate = this.calculateRate(maleAm + femaleAm, totalStudents);
         const pmRate = this.calculateRate(malePm + femalePm, totalStudents);
         const dailyRate = this.calculateRate((maleAm + malePm + femaleAm + femalePm), totalStudents * 2);
         
         const row = document.createElement('tr');
-        row.className = 'attendance-data-row';
         row.dataset.classId = classItem.id;
         
         row.innerHTML = `
-            <td>${classItem.yearGroup || ''}</td>
             <td><strong>${classItem.code || classItem.name}</strong></td>
             <td class="total-students">${totalStudents}</td>
             
@@ -1027,7 +1128,7 @@ class AttendanceSystem {
                        class="attendance-input male-am" 
                        value="${maleAm}"
                        min="0" 
-                       max="${totalMale}"
+                       max="${classItem.males || totalStudents}"
                        data-gender="male"
                        data-session="am"
                        data-original="${maleAm}">
@@ -1038,7 +1139,7 @@ class AttendanceSystem {
                        class="attendance-input male-pm" 
                        value="${malePm}"
                        min="0" 
-                       max="${totalMale}"
+                       max="${classItem.males || totalStudents}"
                        data-gender="male"
                        data-session="pm"
                        data-original="${malePm}">
@@ -1049,7 +1150,7 @@ class AttendanceSystem {
                        class="attendance-input female-am" 
                        value="${femaleAm}"
                        min="0" 
-                       max="${totalFemale}"
+                       max="${classItem.females || totalStudents}"
                        data-gender="female"
                        data-session="am"
                        data-original="${femaleAm}">
@@ -1060,15 +1161,15 @@ class AttendanceSystem {
                        class="attendance-input female-pm" 
                        value="${femalePm}"
                        min="0" 
-                       max="${totalFemale}"
+                       max="${classItem.females || totalStudents}"
                        data-gender="female"
                        data-session="pm"
                        data-original="${femalePm}">
             </td>
             
-            <td class="rate-cell am-rate ${this.getRateClass(amRate)}">${amRate}%</td>
-            <td class="rate-cell pm-rate ${this.getRateClass(pmRate)}">${pmRate}%</td>
-            <td class="rate-cell daily-rate ${this.getRateClass(dailyRate)}">${dailyRate}%</td>
+            <td class="rate-cell am-rate">${amRate}%</td>
+            <td class="rate-cell pm-rate">${pmRate}%</td>
+            <td class="rate-cell daily-rate">${dailyRate}%</td>
             
             <td class="actions-cell">
                 <button class="btn btn-sm btn-success save-btn" onclick="app.modules.attendance.attendanceSystem.saveClassAttendance('${classItem.id}')">
@@ -1090,37 +1191,39 @@ class AttendanceSystem {
     
     handleInput(inputElement) {
         const classId = inputElement.closest('tr').dataset.classId;
-        const gender = inputElement.dataset.gender;
         let value = parseInt(inputElement.value) || 0;
         
-        const row = document.querySelector(`tr[data-class-id="${classId}"]`);
-        const totalCell = row.querySelector('.total-students');
-        const total = parseInt(totalCell.textContent) || 0;
+        // Get max value from class data
+        const classes = Storage.get('classes') || [];
+        const classItem = classes.find(c => c.id === classId);
+        const max = classItem ? (classItem[inputElement.dataset.gender + 's'] || classItem.total || 100) : 100;
         
-        const students = Storage.get('students') || [];
-        const classStudents = students.filter(s => s.classId === classId);
-        const genderTotal = classStudents.filter(s => s.gender?.toLowerCase() === gender).length;
-        
-        value = Math.max(0, Math.min(value, genderTotal));
+        // Validate
+        value = Math.max(0, Math.min(value, max));
         inputElement.value = value;
         
-        this.handleSessionCopying(inputElement, value, gender);
+        // Session-based copying
+        this.handleSessionCopying(inputElement, value);
+        
+        // Update calculations
         this.updateCalculations(classId);
+        
+        // Mark as unsaved
         this.markAsUnsaved(classId);
     }
     
-    handleSessionCopying(changedInput, value, gender) {
-        const session = this.currentSession;
+    handleSessionCopying(changedInput, value) {
+        const gender = changedInput.dataset.gender;
         const classId = changedInput.closest('tr').dataset.classId;
         const row = document.querySelector(`tr[data-class-id="${classId}"]`);
         
-        if (session === 'am') {
+        if (this.currentSession === 'am') {
             const pmInput = row.querySelector(`.${gender}-pm`);
             if (pmInput) {
                 pmInput.value = value;
                 pmInput.dataset.original = value;
             }
-        } else if (session === 'pm') {
+        } else if (this.currentSession === 'pm') {
             const amInput = row.querySelector(`.${gender}-am`);
             if (amInput) {
                 amInput.value = value;
@@ -1131,7 +1234,7 @@ class AttendanceSystem {
     
     applySessionLogic(session) {
         this.currentSession = session;
-        const rows = document.querySelectorAll('.attendance-data-row');
+        const rows = document.querySelectorAll('tr[data-class-id]');
         
         rows.forEach(row => {
             const classId = row.dataset.classId;
@@ -1172,10 +1275,6 @@ class AttendanceSystem {
         row.querySelector('.pm-rate').textContent = `${pmRate}%`;
         row.querySelector('.daily-rate').textContent = `${dailyRate}%`;
         
-        row.querySelector('.am-rate').className = `rate-cell am-rate ${this.getRateClass(amRate)}`;
-        row.querySelector('.pm-rate').className = `rate-cell pm-rate ${this.getRateClass(pmRate)}`;
-        row.querySelector('.daily-rate').className = `rate-cell daily-rate ${this.getRateClass(dailyRate)}`;
-        
         this.updateSaveButton(row, classId);
     }
     
@@ -1209,7 +1308,6 @@ class AttendanceSystem {
         }
     }
     
-    // ==================== SAVE METHODS ====================
     async saveClassAttendance(classId) {
         const row = document.querySelector(`tr[data-class-id="${classId}"]`);
         if (!row) return;
@@ -1227,14 +1325,18 @@ class AttendanceSystem {
             id: `attendance_${Date.now()}`,
             classId: classId,
             classCode: classItem.code,
+            className: classItem.name,
             date: this.getSelectedDate(),
             session: this.currentSession,
             malePresentAM: maleAm,
             malePresentPM: malePm,
             femalePresentAM: femaleAm,
             femalePresentPM: femalePm,
+            totalPresent: maleAm + malePm + femaleAm + femalePm,
+            totalStudents: classItem.total || 0,
             recordedBy: this.user?.email || 'Unknown',
-            recordedAt: new Date().toISOString()
+            recordedAt: new Date().toISOString(),
+            schoolId: this.user?.schoolId || this.user?.id
         };
         
         // Save to localStorage
@@ -1248,21 +1350,7 @@ class AttendanceSystem {
         Storage.set('attendance', attendance);
         
         // Save to Firebase
-        if (this.user && typeof firestore !== 'undefined') {
-            try {
-                await firestore.collection('schools')
-                    .doc(this.user.schoolId || this.user.id)
-                    .collection('attendance')
-                    .doc(attendanceRecord.id)
-                    .set({
-                        ...attendanceRecord,
-                        schoolId: this.user.schoolId || this.user.id
-                    });
-                console.log('✅ Saved to Firebase');
-            } catch (error) {
-                console.error('Firebase save error:', error);
-            }
-        }
+        await firebaseService.saveAttendance(attendanceRecord);
         
         // Update UI
         const inputs = row.querySelectorAll('.attendance-input');
@@ -1284,7 +1372,6 @@ class AttendanceSystem {
         }, 2000);
         
         this.showToast(`Saved ${classItem.code}`, 'success');
-        this.updateLastSavedTime();
     }
     
     async saveAllAttendance() {
@@ -1317,7 +1404,6 @@ class AttendanceSystem {
         this.showToast('Reset to saved values', 'info');
     }
     
-    // ==================== AUTO-SAVE ====================
     setupAutoSave() {
         if (this.autoSaveInterval) clearInterval(this.autoSaveInterval);
         
@@ -1355,7 +1441,6 @@ class AttendanceSystem {
         }
     }
     
-    // ==================== HELPER METHODS ====================
     getSelectedDate() {
         const datePicker = document.getElementById('date-picker');
         return datePicker?.value || new Date().toISOString().split('T')[0];
@@ -1365,294 +1450,12 @@ class AttendanceSystem {
         return total > 0 ? Math.round((present / total) * 100) : 0;
     }
     
-    getRateClass(rate) {
-        if (rate >= 90) return 'high';
-        if (rate >= 75) return 'medium';
-        return 'low';
-    }
-    
-    updateLastSavedTime() {
-        const now = new Date();
-        const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        const element = document.getElementById('last-saved-time');
-        if (element) {
-            element.textContent = `Last saved: ${timeString}`;
-        }
-    }
-    
     showToast(message, type = 'info') {
-        console.log(`[${type.toUpperCase()}] ${message}`);
-        // Could call app.showToast here
-    }
-}
-
-// ==================== REPORTS MODULE ====================
-class ReportsModule {
-    constructor(app) {
-        this.app = app;
-        this.container = null;
-    }
-    
-    render(container) {
-        this.container = container;
-        if (!this.app.user) {
-            container.innerHTML = `<div class="error">No user found. Please login again.</div>`;
-            return;
+        if (window.app) {
+            window.app.showToast(message, type);
+        } else {
+            console.log(`[${type}] ${message}`);
         }
-        
-        container.innerHTML = this.getHTML();
-        this.initializeReportsPage();
-        this.setupEventListeners();
-    }
-    
-    getHTML() {
-        return `
-            <div class="reports-page">
-                <div class="reports-container">
-                    <div class="reports-header">
-                        <h1>Attendance Reports</h1>
-                        <p class="reports-subtitle">Generate detailed attendance reports and analytics</p>
-                    </div>
-                    
-                    <section class="reports-section">
-                        <div class="section-title">Report Configuration</div>
-                        
-                        <div class="filter-section">
-                            <div class="filter-row">
-                                <div class="filter-group">
-                                    <label class="filter-label">Report Type:</label>
-                                    <select id="report-type" class="reports-select">
-                                        <option value="daily">Daily Report</option>
-                                        <option value="weekly">Weekly Report</option>
-                                        <option value="monthly">Monthly Report</option>
-                                        <option value="term">Term Report</option>
-                                        <option value="comparison">Class Comparison</option>
-                                        <option value="custom">Custom Range</option>
-                                    </select>
-                                </div>
-                                
-                                <div class="filter-group">
-                                    <label class="filter-label">Date Range:</label>
-                                    <div class="date-range">
-                                        <input type="date" id="start-date" class="date-input">
-                                        <span>to</span>
-                                        <input type="date" id="end-date" class="date-input">
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="filter-row">
-                                <div class="filter-group">
-                                    <label class="filter-label">Class:</label>
-                                    <select id="report-class" class="reports-select">
-                                        <option value="all">All Classes</option>
-                                    </select>
-                                </div>
-                                
-                                <div class="filter-group">
-                                    <label class="filter-label">Format:</label>
-                                    <select id="report-format" class="reports-select">
-                                        <option value="summary">Summary</option>
-                                        <option value="detailed">Detailed</option>
-                                        <option value="analytics">Analytics</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="section-title">Report Actions</div>
-                        
-                        <div class="controls-section">
-                            <button class="control-btn primary-btn" id="generate-report">
-                                <i class="fas fa-chart-bar"></i> Generate Report
-                            </button>
-                            <button class="control-btn secondary-btn" id="export-pdf">
-                                <i class="fas fa-file-pdf"></i> Export PDF
-                            </button>
-                            <button class="control-btn secondary-btn" id="export-excel">
-                                <i class="fas fa-file-excel"></i> Export Excel
-                            </button>
-                            <button class="control-btn secondary-btn" id="print-report">
-                                <i class="fas fa-print"></i> Print
-                            </button>
-                        </div>
-                        
-                        <div class="section-title">Report Output</div>
-                        
-                        <div class="report-output" id="report-output">
-                            <div class="output-header">
-                                <span id="report-title">Attendance Report</span>
-                                <span id="report-time">Select filters and generate report</span>
-                            </div>
-                            
-                            <div class="output-content">
-                                <div class="loading" id="report-loading" style="display: none;">
-                                    <div class="spinner"></div>
-                                    <div>Generating report...</div>
-                                </div>
-                                
-                                <div id="report-content">
-                                    <div class="no-report">
-                                        <i class="fas fa-chart-bar"></i>
-                                        <h3>No Report Generated</h3>
-                                        <p>Configure your report filters and click "Generate Report" to view data.</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </section>
-                </div>
-            </div>
-        `;
-    }
-    
-    initializeReportsPage() {
-        this.populateReportsClassDropdown();
-        this.setDefaultReportDates();
-        this.setupReportsEventListeners();
-    }
-    
-    populateReportsClassDropdown() {
-        const classDropdown = document.getElementById('report-class');
-        if (!classDropdown) return;
-        
-        const classes = Storage.get('classes') || [];
-        classDropdown.innerHTML = '<option value="all">All Classes</option>';
-        
-        classes.forEach(cls => {
-            const option = document.createElement('option');
-            option.value = cls.id;
-            option.textContent = `${cls.name} (${cls.code})`;
-            classDropdown.appendChild(option);
-        });
-    }
-    
-    setDefaultReportDates() {
-        const today = new Date();
-        const startDate = document.getElementById('start-date');
-        const endDate = document.getElementById('end-date');
-        
-        if (startDate) {
-            const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-            startDate.value = firstDay.toISOString().split('T')[0];
-        }
-        
-        if (endDate) {
-            endDate.value = today.toISOString().split('T')[0];
-        }
-    }
-    
-    setupReportsEventListeners() {
-        const generateBtn = document.getElementById('generate-report');
-        if (generateBtn) {
-            generateBtn.addEventListener('click', () => this.generateReport());
-        }
-    }
-    
-    generateReport() {
-        console.log('📊 Generating report...');
-        
-        const reportType = document.getElementById('report-type').value;
-        const startDate = document.getElementById('start-date').value;
-        const endDate = document.getElementById('end-date').value;
-        const classId = document.getElementById('report-class').value;
-        const format = document.getElementById('report-format').value;
-        
-        const loading = document.getElementById('report-loading');
-        const reportContent = document.getElementById('report-content');
-        
-        if (loading) loading.style.display = 'flex';
-        if (reportContent) reportContent.innerHTML = '';
-        
-        setTimeout(() => {
-            const attendance = Storage.get('attendance') || [];
-            const classes = Storage.get('classes') || [];
-            
-            let filteredAttendance = attendance.filter(a => {
-                const dateMatch = (!startDate || a.date >= startDate) && (!endDate || a.date <= endDate);
-                const classMatch = classId === 'all' || a.classId === classId;
-                return dateMatch && classMatch;
-            });
-            
-            let reportHTML = this.generateReportContent(filteredAttendance, classes, {
-                type: reportType,
-                startDate,
-                endDate,
-                classId,
-                format
-            });
-            
-            if (loading) loading.style.display = 'none';
-            if (reportContent) reportContent.innerHTML = reportHTML;
-            
-            this.app.showToast('Report generated successfully!', 'success');
-        }, 1000);
-    }
-    
-    generateReportContent(attendance, classes, options) {
-        if (attendance.length === 0) {
-            return `
-                <div class="no-data-report">
-                    <i class="fas fa-chart-bar"></i>
-                    <h3>No Data Available</h3>
-                    <p>No attendance records found for the selected criteria.</p>
-                </div>
-            `;
-        }
-        
-        const attendanceByClass = {};
-        attendance.forEach(record => {
-            if (!attendanceByClass[record.classId]) {
-                attendanceByClass[record.classId] = [];
-            }
-            attendanceByClass[record.classId].push(record);
-        });
-        
-        let html = `
-            <div class="report-summary">
-                <h3>Report Summary</h3>
-                <div class="summary-stats">
-                    <div class="stat-item">
-                        <span class="stat-label">Total Records:</span>
-                        <span class="stat-value">${attendance.length}</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">Date Range:</span>
-                        <span class="stat-value">${options.startDate} to ${options.endDate}</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">Classes Covered:</span>
-                        <span class="stat-value">${Object.keys(attendanceByClass).length}</span>
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        Object.entries(attendanceByClass).forEach(([classId, classAttendance]) => {
-            const cls = classes.find(c => c.id === classId);
-            if (!cls) return;
-            
-            html += `
-                <div class="class-report">
-                    <h4>${cls.name} (${cls.code})</h4>
-                    <div class="class-stats">
-                        <div class="stat-card">
-                            <div class="stat-icon">✅</div>
-                            <div class="stat-info">
-                                <span class="stat-value">${classAttendance.length}</span>
-                                <span class="stat-label">Records</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-        });
-        
-        return html;
-    }
-    
-    setupEventListeners() {
-        // Additional event listeners
     }
 }
 
@@ -1660,15 +1463,30 @@ class ReportsModule {
 class SetupModule {
     constructor(app) {
         this.app = app;
-        this.container = null;
         this.autoSaveTimeouts = {};
-        this.autoSaveQueue = [];
     }
     
     render(container) {
-        this.container = container;
         if (!this.app.user) {
-            container.innerHTML = `<div class="error">No user found. Please login again.</div>`;
+            container.innerHTML = `
+                <div class="setup-page">
+                    <div class="setup-container">
+                        <div class="setup-header">
+                            <h1>System Setup & Configuration</h1>
+                            <p class="setup-subtitle">Please login to access setup features</p>
+                        </div>
+                        
+                        <div class="login-required">
+                            <div class="login-icon">
+                                <i class="fas fa-lock"></i>
+                            </div>
+                            <h3>Authentication Required</h3>
+                            <p>You need to be logged in to access the setup page.</p>
+                            <a href="index.html" class="btn btn-primary">Go to Login</a>
+                        </div>
+                    </div>
+                </div>
+            `;
             return;
         }
         
@@ -1690,12 +1508,6 @@ class SetupModule {
                         <div class="setup-tabs">
                             <button class="tab-btn active" data-tab="classes">
                                 <i class="fas fa-chalkboard-teacher"></i> Classes
-                            </button>
-                            <button class="tab-btn" data-tab="students">
-                                <i class="fas fa-users"></i> Students
-                            </button>
-                            <button class="tab-btn" data-tab="system">
-                                <i class="fas fa-cog"></i> System Settings
                             </button>
                         </div>
                         
@@ -1719,7 +1531,7 @@ class SetupModule {
                                     </div>
                                     <div class="form-group">
                                         <label class="form-label">Class Code</label>
-                                        <input type="text" id="classCode" class="form-input uppercase-input" placeholder="e.g., 1LEY, U5MASCOLL, 10RAN" required>
+                                        <input type="text" id="classCode" class="form-input" placeholder="e.g., 1LEY, U5MASCOLL, 10RAN" required>
                                     </div>
                                 </div>
                                 
@@ -1743,6 +1555,9 @@ class SetupModule {
                                     <button class="action-btn save-btn" id="save-class">
                                         <i class="fas fa-save"></i> Save Class
                                     </button>
+                                    <button class="action-btn cancel-btn" id="clear-class">
+                                        <i class="fas fa-undo"></i> Clear Form
+                                    </button>
                                 </div>
                             </div>
                             
@@ -1758,44 +1573,9 @@ class SetupModule {
     }
     
     initializeSetupPage() {
-        this.initAutoSave();
         this.setupTotalCalculation();
         this.setupUppercaseConversion();
         this.loadClassesList();
-    }
-    
-    initAutoSave() {
-        this.autoSaveTimeouts = {};
-        this.autoSaveQueue = [];
-        
-        setInterval(() => {
-            if (this.autoSaveQueue.length > 0 && navigator.onLine) {
-                this.processAutoSaveQueue();
-            }
-        }, 5000);
-        
-        this.setupClassAutoSave();
-    }
-    
-    setupClassAutoSave() {
-        const inputIds = ['yearGroup', 'classCode', 'maleCount', 'femaleCount'];
-        
-        inputIds.forEach(id => {
-            const input = document.getElementById(id);
-            if (input) {
-                input.addEventListener('input', () => {
-                    this.queueAutoSave('class');
-                    if (id === 'maleCount' || id === 'femaleCount') {
-                        this.updateTotalDisplay();
-                    }
-                });
-                input.addEventListener('blur', () => {
-                    this.autoSaveClassForm();
-                });
-            }
-        });
-        
-        this.setupTotalCalculation();
     }
     
     setupTotalCalculation() {
@@ -1814,6 +1594,22 @@ class SetupModule {
             femaleInput.addEventListener('input', calculateTotal);
             calculateTotal();
         }
+    }
+    
+    setupUppercaseConversion() {
+        const classCodeInput = document.getElementById('classCode');
+        if (!classCodeInput) return;
+        
+        classCodeInput.addEventListener('input', (e) => {
+            const input = e.target;
+            const cursorPosition = input.selectionStart;
+            const uppercaseValue = input.value.toUpperCase();
+            
+            if (input.value !== uppercaseValue) {
+                input.value = uppercaseValue;
+                input.setSelectionRange(cursorPosition, cursorPosition);
+            }
+        });
     }
     
     async saveClass() {
@@ -1845,23 +1641,33 @@ class SetupModule {
             total: totalStudents,
             name: `${yearGroup} - ${classCode}`,
             createdAt: new Date().toISOString(),
-            teacherId: this.app.user?.id
+            updatedAt: new Date().toISOString(),
+            teacherId: this.app.user?.id,
+            schoolId: this.app.user?.schoolId || this.app.user?.id
         };
         
+        // Save to localStorage
         classes.push(classData);
         Storage.set('classes', classes);
         
         // Try to save to Firebase
-        if (window.auth?.currentUser) {
-            try {
-                // Add Firebase save logic here
-                console.log('Would save to Firebase:', classData);
-            } catch (error) {
-                console.error('Firebase save error:', error);
-            }
+        const result = await firebaseService.saveClass(classData);
+        
+        if (result.success) {
+            // Update with Firebase ID
+            classData.firebaseId = result.id;
+            const updatedClasses = classes.map(c => 
+                c.id === classData.id ? { ...c, firebaseId: result.id } : c
+            );
+            Storage.set('classes', updatedClasses);
+            
+            this.app.showToast('Class saved to cloud!', 'success');
+        } else if (result.offline) {
+            this.app.showToast('Class saved locally (will sync when online)', 'info');
+        } else {
+            this.app.showToast('Class saved locally (cloud sync failed)', 'warning');
         }
         
-        this.app.showToast('Class saved successfully!', 'success');
         this.clearClassForm();
         this.loadClassesList();
     }
@@ -1893,20 +1699,27 @@ class SetupModule {
         }
         
         classesList.innerHTML = classes.map(cls => {
+            const cloudIcon = cls.firebaseId ? 
+                '<i class="fas fa-cloud" style="color: #3498db; margin-left: 5px;"></i>' : '';
+            
             return `
                 <div class="class-card">
                     <div class="class-header">
                         <div class="class-title">${cls.name}</div>
-                        <div class="class-code">${cls.code}</div>
+                        <div class="class-code">${cls.code} ${cloudIcon}</div>
                     </div>
                     <div class="class-info">
                         <div class="info-item">
-                            <span class="info-label">Year Group:</span>
-                            <span class="info-value">${cls.yearGroup || 'Not set'}</span>
-                        </div>
-                        <div class="info-item">
                             <span class="info-label">Students:</span>
                             <span class="info-value">${cls.total || 0}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Males:</span>
+                            <span class="info-value">${cls.males || 0}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Females:</span>
+                            <span class="info-value">${cls.females || 0}</span>
                         </div>
                     </div>
                 </div>
@@ -1914,156 +1727,48 @@ class SetupModule {
         }).join('');
     }
     
-    setupUppercaseConversion() {
-        const classCodeInput = document.getElementById('classCode');
-        if (!classCodeInput) return;
-        
-        classCodeInput.addEventListener('input', (e) => {
-            const input = e.target;
-            const cursorPosition = input.selectionStart;
-            const originalValue = input.value;
-            const uppercaseValue = originalValue.toUpperCase();
-            
-            if (originalValue !== uppercaseValue) {
-                input.value = uppercaseValue;
-                input.setSelectionRange(cursorPosition, cursorPosition);
-            }
-        });
-        
-        classCodeInput.addEventListener('blur', (e) => {
-            e.target.value = e.target.value.toUpperCase().trim();
-        });
-    }
-    
-    queueAutoSave(type) {
-        clearTimeout(this.autoSaveTimeouts[type]);
-        this.autoSaveTimeouts[type] = setTimeout(() => {
-            if (type === 'class') {
-                this.autoSaveClassForm();
-            }
-        }, 1500);
-    }
-    
-    async autoSaveClassForm() {
-        const yearGroup = document.getElementById('yearGroup')?.value;
-        const classCode = document.getElementById('classCode')?.value?.trim();
-        const maleCount = parseInt(document.getElementById('maleCount')?.value) || 0;
-        const femaleCount = parseInt(document.getElementById('femaleCount')?.value) || 0;
-        
-        if (!yearGroup || !classCode) return;
-        
-        const classData = {
-            id: `draft_class_${Date.now()}`,
-            yearGroup: yearGroup,
-            code: classCode,
-            males: maleCount,
-            females: femaleCount,
-            total: maleCount + femaleCount,
-            name: `${yearGroup} - ${classCode}`,
-            isDraft: true,
-            lastAutoSave: new Date().toISOString()
-        };
-        
-        const drafts = Storage.get('classDrafts') || [];
-        const existingIndex = drafts.findIndex(d => 
-            d.yearGroup === yearGroup && d.code === classCode
-        );
-        
-        if (existingIndex >= 0) {
-            drafts[existingIndex] = classData;
-        } else {
-            drafts.push(classData);
-        }
-        
-        Storage.set('classDrafts', drafts);
-        this.addToAutoSaveQueue('classes', classData, 'save');
-    }
-    
-    addToAutoSaveQueue(collection, data, action) {
-        this.autoSaveQueue.push({
-            collection,
-            data,
-            action,
-            timestamp: Date.now(),
-            attempts: 0
-        });
-        
-        this.updateAutoSaveIndicator();
-    }
-    
-    async processAutoSaveQueue() {
-        if (!navigator.onLine || !window.auth?.currentUser || !this.autoSaveQueue?.length) return;
-        
-        for (let i = 0; i < this.autoSaveQueue.length; i++) {
-            const item = this.autoSaveQueue[i];
-            
-            try {
-                if (item.action === 'save' && item.collection === 'classes') {
-                    // Firebase save logic would go here
-                    console.log('Auto-saving to Firebase:', item.data);
-                    this.autoSaveQueue.splice(i, 1);
-                    i--;
-                }
-            } catch (error) {
-                console.error('Auto-save failed:', error);
-                item.attempts++;
-                
-                if (item.attempts >= 3) {
-                    this.autoSaveQueue.splice(i, 1);
-                    i--;
-                }
-            }
-        }
-        
-        this.updateAutoSaveIndicator();
-    }
-    
-    updateAutoSaveIndicator() {
-        const count = this.autoSaveQueue.length;
-        let indicator = document.getElementById('global-autosave-indicator');
-        
-        if (count > 0) {
-            if (!indicator) {
-                indicator = document.createElement('div');
-                indicator.id = 'global-autosave-indicator';
-                indicator.style.cssText = `
-                    position: fixed;
-                    bottom: 20px;
-                    right: 20px;
-                    background: #f39c12;
-                    color: white;
-                    padding: 8px 16px;
-                    border-radius: 20px;
-                    font-size: 12px;
-                    font-weight: bold;
-                    z-index: 1000;
-                `;
-                document.body.appendChild(indicator);
-            }
-            
-            indicator.innerHTML = `<i class="fas fa-sync-alt fa-spin"></i> ${count} pending`;
-        } else if (indicator) {
-            indicator.remove();
-        }
-    }
-    
-    updateTotalDisplay() {
-        const maleInput = document.getElementById('maleCount');
-        const femaleInput = document.getElementById('femaleCount');
-        const totalDisplay = document.getElementById('totalStudents');
-        
-        if (maleInput && femaleInput && totalDisplay) {
-            const males = parseInt(maleInput.value) || 0;
-            const females = parseInt(femaleInput.value) || 0;
-            totalDisplay.textContent = males + females;
-        }
-    }
-    
     setupEventListeners() {
         const saveClassBtn = document.getElementById('save-class');
         if (saveClassBtn) {
             saveClassBtn.addEventListener('click', () => this.saveClass());
         }
+        
+        const clearClassBtn = document.getElementById('clear-class');
+        if (clearClassBtn) {
+            clearClassBtn.addEventListener('click', () => this.clearClassForm());
+        }
+    }
+}
+
+// ==================== REPORTS MODULE ====================
+class ReportsModule {
+    constructor(app) {
+        this.app = app;
+    }
+    
+    render(container) {
+        if (!this.app.user) {
+            container.innerHTML = `<div class="error">No user found. Please login again.</div>`;
+            return;
+        }
+        
+        container.innerHTML = `
+            <div class="reports-page">
+                <div class="reports-container">
+                    <div class="reports-header">
+                        <h1>Attendance Reports</h1>
+                        <p class="reports-subtitle">Generate detailed attendance reports and analytics</p>
+                    </div>
+                    
+                    <div class="reports-coming-soon">
+                        <i class="fas fa-chart-bar"></i>
+                        <h3>Reports Coming Soon</h3>
+                        <p>This feature is currently under development.</p>
+                        <a href="dashboard.html" class="btn btn-primary">Back to Dashboard</a>
+                    </div>
+                </div>
+            </div>
+        `;
     }
 }
 
@@ -2071,23 +1776,15 @@ class SetupModule {
 class SettingsModule {
     constructor(app) {
         this.app = app;
-        this.container = null;
     }
     
     render(container) {
-        this.container = container;
         if (!this.app.user) {
             container.innerHTML = `<div class="error">No user found. Please login again.</div>`;
             return;
         }
         
-        container.innerHTML = this.getHTML();
-        this.initializeSettingsPage();
-        this.setupEventListeners();
-    }
-    
-    getHTML() {
-        return `
+        container.innerHTML = `
             <div class="settings-page">
                 <div class="settings-container">
                     <div class="settings-header">
@@ -2095,63 +1792,27 @@ class SettingsModule {
                         <p class="settings-subtitle">Manage your account preferences and app settings</p>
                     </div>
                     
-                    <section class="settings-section">
-                        <div class="settings-tabs">
-                            <button class="tab-btn active" data-tab="profile">
-                                <i class="fas fa-user"></i> Profile
-                            </button>
-                        </div>
-                        
-                        <div class="tab-content active" id="profile-tab">
-                            <div class="section-title">Profile Information</div>
-                            <div class="settings-form">
-                                <div class="form-group">
-                                    <label class="form-label">Full Name</label>
-                                    <input type="text" id="userName" class="form-input" value="${this.app.user.name || ''}" placeholder="Your full name">
-                                </div>
-                                
-                                <div class="actions-container">
-                                    <button class="action-btn save-btn" id="save-profile">
-                                        <i class="fas fa-save"></i> Save Profile
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </section>
+                    <div class="settings-coming-soon">
+                        <i class="fas fa-cogs"></i>
+                        <h3>Settings Coming Soon</h3>
+                        <p>This feature is currently under development.</p>
+                        <a href="dashboard.html" class="btn btn-primary">Back to Dashboard</a>
+                    </div>
                 </div>
             </div>
         `;
     }
-    
-    initializeSettingsPage() {
-        this.loadUserSettings();
-    }
-    
-    loadUserSettings() {
-        const userName = document.getElementById('userName');
-        if (userName) userName.value = this.app.user.name || '';
-    }
-    
-    saveProfile() {
-        const userName = document.getElementById('userName')?.value;
-        this.app.user.name = userName || this.app.user.name;
-        Storage.set('attendance_user', this.app.user);
-        this.app.showToast('Profile updated successfully!', 'success');
-    }
-    
-    setupEventListeners() {
-        const saveProfileBtn = document.getElementById('save-profile');
-        if (saveProfileBtn) {
-            saveProfileBtn.addEventListener('click', () => this.saveProfile());
-        }
-    }
 }
 
-// ==================== GLOBAL INSTANCE ====================
-const app = new AttendanceApp();
-window.app = app;
-
+// ==================== INITIALIZE APP ====================
 // Wait for DOM to be ready
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('📱 DOM fully loaded, app is ready');
+    console.log('📱 DOM fully loaded');
+    window.app = new AttendanceApp();
 });
+
+// Make app globally accessible
+if (typeof window !== 'undefined') {
+    window.AttendanceApp = AttendanceApp;
+    window.Storage = Storage;
+}
