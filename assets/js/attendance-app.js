@@ -762,87 +762,124 @@ class AttendanceApp {
 
 // ==================== DASHBOARD MODULE ====================
 class DashboardModule {
-    constructor(app) {
-        this.app = app;
+    constructor(firebaseService, attendanceSystem) {
+        this.firebaseService = firebaseService;
+        this.attendanceSystem = attendanceSystem;
     }
-    
-    render(container) {
-        if (!this.app.user) {
-            container.innerHTML = `<div class="error">No user found. Please login again.</div>`;
-            return;
-        }
+
+    // ADD THIS METHOD
+    render() {
+        const container = document.getElementById('dashboardModule');
+        if (!container) return;
         
-        container.innerHTML = this.getHTML();
-        this.loadDashboardData();
-        this.setupEventListeners();
-    }
-    
-    getHTML() {
-        return `
-            <div class="dashboard-page">
-                <div class="dashboard-header">
-                    <div class="welcome-text">
-                        <h2>Welcome, ${this.app.user.name || 'Teacher'}!</h2>
-                        <p>Here's your attendance overview</p>
+        container.innerHTML = `
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">📊</div>
+                    <div class="stat-content">
+                        <h3 id="total-classes">0</h3>
+                        <p>Total Classes</p>
                     </div>
                 </div>
-                
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-icon">📊</div>
-                        <div class="stat-content">
-                            <h3 id="total-classes">0</h3>
-                            <p>Total Classes</p>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon">👥</div>
-                        <div class="stat-content">
-                            <h3 id="total-students">0</h3>
-                            <p>Total Students</p>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon">✅</div>
-                        <div class="stat-content">
-                            <h3 id="attendance-rate">0%</h3>
-                            <p>Today's Attendance</p>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon">📈</div>
-                        <div class="stat-content">
-                            <h3 id="total-sessions">0</h3>
-                            <p>Sessions Tracked</p>
-                        </div>
+                <div class="stat-card">
+                    <div class="stat-icon">👥</div>
+                    <div class="stat-content">
+                        <h3 id="total-students">0</h3>
+                        <p>Total Students</p>
                     </div>
                 </div>
-                
-                <div class="actions-grid">
-                    <a href="attendance.html" class="action-card">Take Attendance</a>
-                    <a href="reports.html" class="action-card">View Reports</a>
-                    <a href="setup.html" class="action-card">Setup Classes</a>
-                    <a href="settings.html" class="action-card">Settings</a>
-                </div>
-                
-                <div class="recent-activity">
-                    <div class="activity-header">
-                        <h3>Recent Activity</h3>
-                        <button class="btn-refresh" onclick="app.modules.dashboard.refresh()">Refresh</button>
+                <div class="stat-card">
+                    <div class="stat-icon">✅</div>
+                    <div class="stat-content">
+                        <h3 id="attendance-rate">0%</h3>
+                        <p>Today's Attendance</p>
                     </div>
-                    <div class="activity-list" id="recent-activity">
-                        <div class="activity-item">
-                            <div class="activity-icon">📋</div>
-                            <div class="activity-content">
-                                <p>Welcome to Attendance Tracker v2!</p>
-                                <small>${new Date().toLocaleDateString()}</small>
-                            </div>
-                        </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">📈</div>
+                    <div class="stat-content">
+                        <h3 id="total-sessions">0</h3>
+                        <p>Sessions Tracked</p>
                     </div>
                 </div>
             </div>
+            
+            <div class="quick-actions">
+                <div class="action-card" id="quickAttendanceCard">
+                    <i class="fas fa-clipboard-check"></i>
+                    <h3>Take Attendance</h3>
+                    <p>Quickly mark attendance for today</p>
+                </div>
+                
+                <div class="action-card" id="manageClassesCard">
+                    <i class="fas fa-cogs"></i>
+                    <h3>Manage Classes</h3>
+                    <p>Add or edit classes and students</p>
+                </div>
+                
+                <div class="action-card" id="viewReportsCard">
+                    <i class="fas fa-chart-bar"></i>
+                    <h3>View Reports</h3>
+                    <p>Generate attendance reports</p>
+                </div>
+            </div>
+            
+            <div class="recent-attendance">
+                <h3>Recent Attendance</h3>
+                <div class="table-container">
+                    <!-- Recent attendance will be populated here -->
+                </div>
+            </div>
         `;
+        
+        // Setup event listeners for quick action cards
+        this.setupQuickActions();
     }
+
+    // ADD THIS METHOD
+    setupQuickActions() {
+        const quickAttendanceCard = document.getElementById('quickAttendanceCard');
+        const manageClassesCard = document.getElementById('manageClassesCard');
+        const viewReportsCard = document.getElementById('viewReportsCard');
+        
+        if (quickAttendanceCard) {
+            quickAttendanceCard.addEventListener('click', () => {
+                // Switch to attendance module
+                if (window.navigationManager) {
+                    window.navigationManager.switchModule('attendance');
+                }
+            });
+        }
+        
+        if (manageClassesCard) {
+            manageClassesCard.addEventListener('click', () => {
+                // Switch to setup module
+                if (window.navigationManager) {
+                    window.navigationManager.switchModule('setup');
+                }
+            });
+        }
+        
+        if (viewReportsCard) {
+            viewReportsCard.addEventListener('click', () => {
+                // Switch to reports module
+                if (window.navigationManager) {
+                    window.navigationManager.switchModule('reports');
+                }
+            });
+        }
+    }
+
+    loadStats() {
+        // Your existing stats loading code
+        console.log('Loading dashboard stats...');
+    }
+
+    loadRecentAttendance() {
+        // Your existing recent attendance loading code
+        console.log('Loading recent attendance...');
+    }
+}
     
     async loadDashboardData() {
         try {
@@ -902,28 +939,128 @@ class DashboardModule {
     }
 }
 
-// ==================== ATTENDANCE MODULE ====================
+// ==================== DASHBOARD PAGE ENHANCEMENTS ====================
+async loadDashboardData() {
+    console.log('📊 Loading dashboard data...');
+    
+    try {
+        // Load existing data
+        const classes = Storage.get('classes') || [];
+        const students = Storage.get('students') || [];
+        const attendance = Storage.get('attendance') || [];
+        
+        // Update stats in your existing HTML
+        this.updateDashboardStats({
+            totalClasses: classes.length,
+            totalStudents: students.length,
+            totalSessions: attendance.length
+        });
+        
+        // Calculate today's attendance rate
+        const todayRate = this.calculateTodayAttendanceRate(attendance);
+        this.updateAttendanceRate(todayRate);
+        
+        // Load recent activity
+        this.loadRecentActivity(attendance);
+        
+        // Setup quick action cards
+        this.setupQuickActions();
+        
+    } catch (error) {
+        console.error('Error loading dashboard data:', error);
+    }
+}
+
+calculateTodayAttendanceRate(attendance) {
+    const today = new Date().toISOString().split('T')[0];
+    const todayAttendance = attendance.filter(a => a.date === today);
+    
+    if (todayAttendance.length === 0) return 0;
+    
+    const totalPresent = todayAttendance.reduce((sum, a) => 
+        sum + (a.malePresentAM || 0) + (a.malePresentPM || 0) + 
+              (a.femalePresentAM || 0) + (a.femalePresentPM || 0), 0);
+    
+    const totalStudents = todayAttendance.reduce((sum, a) => 
+        sum + (a.totalStudents || 0), 0);
+    
+    return totalStudents > 0 ? Math.round((totalPresent / totalStudents) * 100) : 0;
+}
+
+updateDashboardStats(stats) {
+    // Update your dashboard HTML elements
+    const statsGrid = document.querySelector('.stats-grid');
+    if (!statsGrid) return;
+    
+    statsGrid.innerHTML = `
+        <div class="stat-card">
+            <div class="stat-icon">📊</div>
+            <div class="stat-content">
+                <h3 id="total-classes">${stats.totalClasses}</h3>
+                <p>Total Classes</p>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">👥</div>
+            <div class="stat-content">
+                <h3 id="total-students">${stats.totalStudents}</h3>
+                <p>Total Students</p>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">✅</div>
+            <div class="stat-content">
+                <h3 id="attendance-rate">${stats.todayRate || 0}%</h3>
+                <p>Today's Attendance</p>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">📈</div>
+            <div class="stat-content">
+                <h3 id="total-sessions">${stats.totalSessions}</h3>
+                <p>Sessions Tracked</p>
+            </div>
+        </div>
+    `;
+}
+
+setupQuickActions() {
+    const quickActions = document.querySelector('.quick-actions');
+    if (!quickActions) return;
+    
+    quickActions.innerHTML = `
+        <div class="action-card" id="quickAttendanceCard">
+            <i class="fas fa-clipboard-check"></i>
+            <h3>Take Attendance</h3>
+            <p>Quickly mark attendance for today</p>
+        </div>
+        
+        <div class="action-card" id="manageClassesCard">
+            <i class="fas fa-cogs"></i>
+            <h3>Manage Classes</h3>
+            <p>Add or edit classes and students</p>
+        </div>
+        
+        <div class="action-card" id="viewReportsCard">
+            <i class="fas fa-chart-bar"></i>
+            <h3>View Reports</h3>
+            <p>Generate attendance reports</p>
+        </div>
+    `;
+}
+
 class AttendanceModule {
-    constructor(app) {
-        this.app = app;
-        this.attendanceSystem = new AttendanceSystem();
+    constructor(firebaseService, attendanceSystem) {
+        this.firebaseService = firebaseService;
+        this.attendanceSystem = attendanceSystem;
+        this.container = null;
     }
-    
-    render(container) {
-        if (!this.app.user) {
-            container.innerHTML = `<div class="error">No user found. Please login again.</div>`;
-            return;
-        }
+
+    render() {
+        this.container = document.getElementById('attendanceModule');
+        if (!this.container) return;
         
-        container.innerHTML = this.getHTML();
-        this.attendanceSystem.initialize(this.app.user);
-        this.setupEventListeners();
-    }
-    
-    getHTML() {
-        const today = new Date().toISOString().split('T')[0];
-        
-        return `
+        this.container.innerHTML = `
             <div class="attendance-report">
                 <div class="header">
                     <h1><i class="fas fa-clipboard-check"></i> Attendance Track</h1>
@@ -933,9 +1070,25 @@ class AttendanceModule {
                 <div class="controls-row">
                     <div class="control-group">
                         <label for="date-picker"><i class="fas fa-calendar-alt"></i> Date</label>
-                        <input type="date" id="date-picker" class="date-input" value="${today}">
+                        <input type="date" id="date-picker" class="date-input" value="${this.getTodayDate()}">
                     </div>
                     
+                    <div class="control-group">
+                        <label for="week-picker"><i class="fas fa-calendar-week"></i> Week</label>
+                        <select id="week-picker" class="week-select">
+                            ${this.generateWeekOptions()}
+                        </select>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label for="term-picker"><i class="fas fa-graduation-cap"></i> Term</label>
+                        <select id="term-picker" class="term-select">
+                            <option value="1" selected>Term 1</option>
+                            <option value="2">Term 2</option>
+                            <option value="3">Term 3</option>
+                        </select>
+                    </div>
+
                     <div class="control-group">
                         <button class="btn btn-success save-all-btn" id="save-all-attendance">
                             <i class="fas fa-save"></i> Save All Changes
@@ -965,19 +1118,23 @@ class AttendanceModule {
                 </div>
                 
                 <div class="table-container">
-                    <table class="attendance-table">
-                        <thead>
+                    <table class="attendance-table sticky-header">
+                       <thead>
                             <tr>
-                                <th>Class</th>
-                                <th>Total</th>
-                                <th>Male AM</th>
-                                <th>Male PM</th>
-                                <th>Female AM</th>
-                                <th>Female PM</th>
-                                <th>AM Rate</th>
-                                <th>PM Rate</th>
-                                <th>Daily Rate</th>
-                                <th>Actions</th>
+                                <th rowspan="2">Class</th>
+                                <th rowspan="2">Total</th>
+                                <th colspan="2">Male Present</th>
+                                <th colspan="2">Female Present</th>
+                                <th rowspan="2">AM Rate</th>
+                                <th rowspan="2">PM Rate</th>
+                                <th rowspan="2">Daily Rate</th>
+                                <th rowspan="2">Actions</th>
+                            </tr>
+                            <tr>
+                                <th>AM <span class="input-label">(Input)</span></th>
+                                <th>PM <span class="input-label">(Input)</span></th>
+                                <th>AM <span class="input-label">(Input)</span></th>
+                                <th>PM <span class="input-label">(Input)</span></th>
                             </tr>
                         </thead>
                         <tbody id="attendance-table-body">
@@ -985,37 +1142,125 @@ class AttendanceModule {
                         </tbody>
                     </table>
                 </div>
+                
+                <div class="attendance-actions">
+                    <button class="btn btn-primary" id="take-attendance">
+                        <i class="fas fa-user-check"></i>
+                        <span>Take Attendance</span>
+                    </button>
+                    <button class="btn btn-secondary" id="print-report">
+                        <i class="fas fa-print"></i>
+                        <span>Print Report</span>
+                    </button>
+                    <button class="btn btn-secondary" id="refresh-data">
+                        <i class="fas fa-sync-alt"></i>
+                        <span>Refresh</span>
+                    </button>
+                </div>
             </div>
         `;
-    }
-    
-    setupEventListeners() {
-        const saveAllBtn = document.getElementById('save-all-attendance');
-        if (saveAllBtn) {
-            saveAllBtn.addEventListener('click', () => {
-                this.attendanceSystem.saveAllAttendance();
-            });
-        }
         
-        const sessionOptions = document.querySelectorAll('.session-option');
-        sessionOptions.forEach(option => {
+        this.setupEventListeners();
+        this.loadClasses();
+    }
+
+    setupEventListeners() {
+        // Session type selection
+        document.querySelectorAll('.session-option').forEach(option => {
             option.addEventListener('click', (e) => {
-                const session = option.dataset.session;
-                this.attendanceSystem.currentSession = session;
-                
-                sessionOptions.forEach(opt => opt.classList.remove('active'));
-                option.classList.add('active');
-                
-                this.attendanceSystem.applySessionLogic(session);
-                this.attendanceSystem.loadAttendanceData();
+                const session = e.currentTarget.dataset.session;
+                this.handleSessionChange(session);
             });
         });
         
-        const datePicker = document.getElementById('date-picker');
-        if (datePicker) {
-            datePicker.addEventListener('change', () => {
+        // Save all button
+        document.getElementById('save-all-attendance')?.addEventListener('click', () => {
+            if (this.attendanceSystem) {
+                this.attendanceSystem.saveAllAttendance();
+            }
+        });
+        
+        // Take attendance button
+        document.getElementById('take-attendance')?.addEventListener('click', () => {
+            this.loadClasses();
+        });
+        
+        // Date picker
+        document.getElementById('date-picker')?.addEventListener('change', (e) => {
+            if (this.attendanceSystem) {
                 this.attendanceSystem.loadAttendanceData();
-            });
+            }
+        });
+        
+        // Print button
+        document.getElementById('print-report')?.addEventListener('click', () => {
+            window.print();
+        });
+        
+        // Refresh button
+        document.getElementById('refresh-data')?.addEventListener('click', () => {
+            this.loadClasses();
+        });
+    }
+
+    handleSessionChange(session) {
+        if (this.attendanceSystem) {
+            this.attendanceSystem.currentSession = session;
+            this.attendanceSystem.applySessionLogic(session);
+        }
+        
+        // Update UI
+        document.querySelectorAll('.session-option').forEach(opt => {
+            opt.classList.remove('active');
+        });
+        document.querySelector(`.session-option[data-session="${session}"]`)?.classList.add('active');
+    }
+
+    async loadClasses() {
+        try {
+            let classes = [];
+            
+            if (this.firebaseService.isAvailable) {
+                classes = await this.firebaseService.getClasses();
+            } else {
+                classes = Storage.get('classes') || [];
+            }
+            
+            // Initialize attendance system with classes
+            if (this.attendanceSystem) {
+                // Store classes for attendance system to use
+                Storage.set('classes', classes);
+                // Load attendance data
+                await this.attendanceSystem.loadAttendanceData();
+            }
+            
+        } catch (error) {
+            console.error('Error loading classes:', error);
+            this.showError('Failed to load classes');
+        }
+    }
+
+    getTodayDate() {
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+
+    generateWeekOptions() {
+        let options = '';
+        for (let i = 1; i <= 14; i++) {
+            const isCurrent = i === 1;
+            options += `<option value="${i}" ${isCurrent ? 'selected' : ''}>Week ${i}</option>`;
+        }
+        return options;
+    }
+
+    showError(message) {
+        console.error('Attendance Module Error:', message);
+        if (window.app && window.app.showToast) {
+            window.app.showToast(message, 'error');
         }
     }
 }
@@ -1459,126 +1704,365 @@ class AttendanceSystem {
     }
 }
 
-// ==================== SETUP MODULE ====================
-class SetupModule {
-    constructor(app) {
-        this.app = app;
-        this.autoSaveTimeouts = {};
-    }
+// ==================== ATTENDANCE PAGE ENHANCEMENTS ====================
+loadAttendanceContent() {
+    const container = document.getElementById('attendanceModule');
+    if (!container) return;
     
-    render(container) {
-        if (!this.app.user) {
-            container.innerHTML = `
-                <div class="setup-page">
-                    <div class="setup-container">
-                        <div class="setup-header">
-                            <h1>System Setup & Configuration</h1>
-                            <p class="setup-subtitle">Please login to access setup features</p>
-                        </div>
-                        
-                        <div class="login-required">
-                            <div class="login-icon">
-                                <i class="fas fa-lock"></i>
-                            </div>
-                            <h3>Authentication Required</h3>
-                            <p>You need to be logged in to access the setup page.</p>
-                            <a href="index.html" class="btn btn-primary">Go to Login</a>
-                        </div>
-                    </div>
+    container.innerHTML = `
+        <div class="attendance-report">
+            <div class="header">
+                <h1><i class="fas fa-clipboard-check"></i> Attendance Track</h1>
+                <p class="subtitle">Daily Attendance Report</p>
+            </div>
+            
+            <div class="controls-row">
+                <div class="control-group">
+                    <label for="date-picker"><i class="fas fa-calendar-alt"></i> Date</label>
+                    <input type="date" id="date-picker" class="date-input" value="${this.getTodayDate()}">
                 </div>
-            `;
-            return;
+                
+                <div class="control-group">
+                    <label for="week-picker"><i class="fas fa-calendar-week"></i> Week</label>
+                    <select id="week-picker" class="week-select">
+                        ${this.generateWeekOptions()}
+                    </select>
+                </div>
+                
+                <div class="control-group">
+                    <label for="term-picker"><i class="fas fa-graduation-cap"></i> Term</label>
+                    <select id="term-picker" class="term-select">
+                        <option value="1" selected>Term 1</option>
+                        <option value="2">Term 2</option>
+                        <option value="3">Term 3</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <button class="btn btn-success save-all-btn" id="save-all-attendance">
+                        <i class="fas fa-save"></i> Save All Changes
+                    </button>
+                </div>
+            </div>
+            
+            <div class="session-selector">
+                <div class="session-label">Session Type:</div>
+                <div class="session-options">
+                    <label class="session-option active" data-session="both">
+                        <input type="radio" name="session" value="both" checked>
+                        <span class="session-checkbox"></span>
+                        <span class="session-text">Both Sessions (AM & PM)</span>
+                    </label>
+                    <label class="session-option" data-session="am">
+                        <input type="radio" name="session" value="am">
+                        <span class="session-checkbox"></span>
+                        <span class="session-text">AM Session Only</span>
+                    </label>
+                    <label class="session-option" data-session="pm">
+                        <input type="radio" name="session" value="pm">
+                        <span class="session-checkbox"></span>
+                        <span class="session-text">PM Session Only</span>
+                    </label>
+                </div>
+            </div>
+            
+            <div class="table-container">
+                <table class="attendance-table sticky-header">
+                   <thead>
+                        <tr>
+                            <th rowspan="2">Year Group</th>
+                            <th rowspan="2">Class</th>
+                            <th rowspan="2">Total</th>
+                            <th colspan="2">Male Present</th>
+                            <th colspan="2">Female Present</th>
+                            <th rowspan="2">AM Rate</th>
+                            <th rowspan="2">PM Rate</th>
+                            <th rowspan="2">Daily Rate</th>
+                            <th rowspan="2">Actions</th>
+                        </tr>
+                        <tr>
+                            <th>AM <span class="input-label">(Input)</span></th>
+                            <th>PM <span class="input-label">(Input)</span></th>
+                            <th>AM <span class="input-label">(Input)</span></th>
+                            <th>PM <span class="input-label">(Input)</span></th>
+                        </tr>
+                    </thead>
+                    <tbody id="attendance-table-body">
+                        <!-- Data will be loaded here -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="attendance-actions">
+                <button class="btn btn-primary take-attendance-btn" id="take-attendance">
+                    <i class="fas fa-user-check"></i>
+                    <span>Take Attendance</span>
+                </button>
+                <button class="btn btn-secondary print-report-btn">
+                    <i class="fas fa-print"></i>
+                    <span>Print Report</span>
+                </button>
+                <button class="btn btn-secondary refresh-data-btn">
+                    <i class="fas fa-sync-alt"></i>
+                    <span>Refresh</span>
+                </button>
+            </div>
+        </div>
+    `;
+    
+    this.setupAttendanceEventListeners();
+}
+
+setupAttendanceEventListeners() {
+    // Session type selection
+    document.querySelectorAll('.session-option').forEach(option => {
+        option.addEventListener('click', (e) => {
+            const session = e.currentTarget.dataset.session;
+            this.handleSessionChange(session);
+        });
+    });
+    
+    // Save all button
+    document.getElementById('save-all-attendance')?.addEventListener('click', () => {
+        this.saveAllAttendance();
+    });
+    
+    // Take attendance button
+    document.getElementById('take-attendance')?.addEventListener('click', () => {
+        this.takeAttendance();
+    });
+    
+    // Date picker
+    document.getElementById('date-picker')?.addEventListener('change', (e) => {
+        this.loadAttendanceData(e.target.value);
+    });
+}
+
+// CALCULATION METHODS FROM OLD APP
+calculateAttendanceRates(maleAM, malePM, femaleAM, femalePM, totalStudents) {
+    const amTotal = maleAM + femaleAM;
+    const pmTotal = malePM + femalePM;
+    const dailyTotal = amTotal + pmTotal;
+    
+    const amRate = totalStudents > 0 ? Math.round((amTotal / totalStudents) * 100) : 0;
+    const pmRate = totalStudents > 0 ? Math.round((pmTotal / totalStudents) * 100) : 0;
+    const dailyRate = totalStudents > 0 ? Math.round((dailyTotal / (totalStudents * 2)) * 100) : 0;
+    
+    return { amRate, pmRate, dailyRate };
+}
+
+getRateClass(rate) {
+    if (rate >= 90) return 'high';
+    if (rate >= 75) return 'medium';
+    return 'low';
+}
+
+handleSessionChange(session) {
+    // Update all inputs based on session selection
+    const rows = document.querySelectorAll('.attendance-data-row');
+    rows.forEach(row => {
+        const maleAM = row.querySelector('.male-am');
+        const malePM = row.querySelector('.male-pm');
+        const femaleAM = row.querySelector('.female-am');
+        const femalePM = row.querySelector('.female-pm');
+        
+        if (session === 'am') {
+            // Copy AM to PM
+            if (maleAM && malePM) malePM.value = maleAM.value;
+            if (femaleAM && femalePM) femalePM.value = femaleAM.value;
+        } else if (session === 'pm') {
+            // Copy PM to AM
+            if (maleAM && malePM) maleAM.value = malePM.value;
+            if (femaleAM && femalePM) femaleAM.value = femalePM.value;
         }
         
-        container.innerHTML = this.getHTML();
-        this.initializeSetupPage();
-        this.setupEventListeners();
+        // Recalculate rates
+        this.updateRowCalculations(row);
+    });
+}
+
+class SetupModule {
+    constructor(firebaseService) {
+        this.firebaseService = firebaseService;
+        this.container = null;
+        this.autoSaveTimeouts = {};
     }
-    
-    getHTML() {
-        return `
+
+    render() {
+        this.container = document.getElementById('setupModule');
+        if (!this.container) return;
+        
+        this.container.innerHTML = `
             <div class="setup-page">
                 <div class="setup-container">
                     <div class="setup-header">
-                        <h1>System Setup & Configuration</h1>
-                        <p class="setup-subtitle">Configure all system settings, user preferences, and manage data</p>
+                        <h1>Class Setup</h1>
+                        <p class="setup-subtitle">Manage your classes and students</p>
                     </div>
                     
-                    <section class="setup-section">
-                        <div class="setup-tabs">
-                            <button class="tab-btn active" data-tab="classes">
-                                <i class="fas fa-chalkboard-teacher"></i> Classes
-                            </button>
-                        </div>
-                        
-                        <div class="tab-content active" id="classes-tab">
-                            <div class="section-title">Class Management</div>
-                            <div class="setup-form">
-                                <div class="form-row">
-                                    <div class="form-group">
-                                        <label class="form-label">Year Group</label>
-                                        <select id="yearGroup" class="form-input">
-                                            <option value="">Select Year Group</option>
-                                            <option value="1st Years">1st Years</option>
-                                            <option value="2nd Years">2nd Years</option>
-                                            <option value="3rd Years">3rd Years</option>
-                                            <option value="4th Years">4th Years</option>
-                                            <option value="5th Years">5th Years</option>
-                                            <option value="U5">Upper 5th</option>
-                                            <option value="L6">Lower 6th</option>
-                                            <option value="U6">Upper 6th</option>
-                                        </select>
-                                    </div>
-                                    <div class="form-group">
-                                        <label class="form-label">Class Code</label>
-                                        <input type="text" id="classCode" class="form-input" placeholder="e.g., 1LEY, U5MASCOLL, 10RAN" required>
-                                    </div>
-                                </div>
-                                
-                                <div class="form-row">
-                                    <div class="form-group">
-                                        <label class="form-label">Number of Males</label>
-                                        <input type="number" id="maleCount" class="form-input" placeholder="0" min="0">
-                                    </div>
-                                    <div class="form-group">
-                                        <label class="form-label">Number of Females</label>
-                                        <input type="number" id="femaleCount" class="form-input" placeholder="0" min="0">
-                                    </div>
-                                </div>
-                                
+                    <div class="setup-tabs">
+                        <button class="tab-btn active" data-tab="classes">
+                            <i class="fas fa-chalkboard-teacher"></i> Classes
+                        </button>
+                        <button class="tab-btn" data-tab="students">
+                            <i class="fas fa-users"></i> Students
+                        </button>
+                    </div>
+                    
+                    <!-- Classes Tab -->
+                    <div class="tab-content active" id="classes-tab">
+                        <div class="section-title">Add New Class</div>
+                        <div class="setup-form">
+                            <div class="form-row">
                                 <div class="form-group">
-                                    <label class="form-label">Total Students</label>
-                                    <div id="totalStudents" class="total-display">0</div>
+                                    <label class="form-label">Year Group</label>
+                                    <select id="yearGroup" class="form-input">
+                                        <option value="">Select Year Group</option>
+                                        <option value="1st Years">1st Years</option>
+                                        <option value="2nd Years">2nd Years</option>
+                                        <option value="3rd Years">3rd Years</option>
+                                        <option value="4th Years">4th Years</option>
+                                        <option value="5th Years">5th Years</option>
+                                        <option value="U5">Upper 5th</option>
+                                        <option value="L6">Lower 6th</option>
+                                        <option value="U6">Upper 6th</option>
+                                    </select>
                                 </div>
-                                
-                                <div class="actions-container">
-                                    <button class="action-btn save-btn" id="save-class">
-                                        <i class="fas fa-save"></i> Save Class
-                                    </button>
-                                    <button class="action-btn cancel-btn" id="clear-class">
-                                        <i class="fas fa-undo"></i> Clear Form
-                                    </button>
+                                <div class="form-group">
+                                    <label class="form-label">Class Code</label>
+                                    <input type="text" id="classCode" class="form-input uppercase-input" 
+                                           placeholder="e.g., 1LEY, U5MASCOLL" required>
                                 </div>
                             </div>
                             
-                            <div class="section-title">Existing Classes</div>
-                            <div class="classes-list" id="classes-list">
-                                <!-- Classes will be loaded here -->
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label">Number of Males</label>
+                                    <input type="number" id="maleCount" class="form-input" placeholder="0" min="0">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Number of Females</label>
+                                    <input type="number" id="femaleCount" class="form-input" placeholder="0" min="0">
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Total Students</label>
+                                <div id="totalStudents" class="total-display">0</div>
+                            </div>
+                            
+                            <input type="hidden" id="editClassId" value="">
+                            
+                            <div class="actions-container">
+                                <button class="action-btn save-btn" id="save-class">
+                                    <i class="fas fa-save"></i> Save Class
+                                </button>
+                                <button class="action-btn cancel-btn" id="clear-class">
+                                    <i class="fas fa-undo"></i> Clear Form
+                                </button>
                             </div>
                         </div>
-                    </section>
+                        
+                        <div class="section-title">Existing Classes</div>
+                        <div class="classes-list" id="classes-list">
+                            <!-- Classes will be loaded here -->
+                        </div>
+                    </div>
+                    
+                    <!-- Students Tab -->
+                    <div class="tab-content" id="students-tab">
+                        <div class="section-title">Add New Student</div>
+                        <div class="setup-form">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label">First Name</label>
+                                    <input type="text" id="firstName" class="form-input" placeholder="John">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Last Name</label>
+                                    <input type="text" id="lastName" class="form-input" placeholder="Doe">
+                                </div>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label">Student ID</label>
+                                    <input type="text" id="studentId" class="form-input" placeholder="STU001">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Gender</label>
+                                    <select id="gender" class="form-input">
+                                        <option value="">Select Gender</option>
+                                        <option value="male">Male</option>
+                                        <option value="female">Female</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Class</label>
+                                <select id="studentClass" class="form-input">
+                                    <option value="">Select Class</option>
+                                    <!-- Classes will be populated here -->
+                                </select>
+                            </div>
+                            
+                            <div class="actions-container">
+                                <button class="action-btn save-btn" id="save-student">
+                                    <i class="fas fa-save"></i> Save Student
+                                </button>
+                                <button class="action-btn cancel-btn" id="clear-student">
+                                    <i class="fas fa-undo"></i> Clear Form
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="section-title">Existing Students</div>
+                        <div class="students-list" id="students-list">
+                            <!-- Students will be loaded here -->
+                        </div>
+                    </div>
                 </div>
             </div>
         `;
+        
+        this.initializePage();
     }
-    
-    initializeSetupPage() {
-        this.setupTotalCalculation();
-        this.setupUppercaseConversion();
+
+    initializePage() {
+        this.setupTabSwitching();
+        this.setupClassForm();
+        this.setupStudentForm();
         this.loadClassesList();
+        this.loadStudentsList();
+        this.populateClassDropdown();
     }
-    
-    setupTotalCalculation() {
+
+    setupTabSwitching() {
+        const tabBtns = document.querySelectorAll('.tab-btn');
+        const tabContents = document.querySelectorAll('.tab-content');
+        
+        tabBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const tabId = btn.getAttribute('data-tab');
+                
+                // Update active tab button
+                tabBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                
+                // Show active tab content
+                tabContents.forEach(content => {
+                    content.classList.remove('active');
+                    if (content.id === `${tabId}-tab`) {
+                        content.classList.add('active');
+                    }
+                });
+            });
+        });
+    }
+
+    setupClassForm() {
+        // Setup total calculation
         const maleInput = document.getElementById('maleCount');
         const femaleInput = document.getElementById('femaleCount');
         const totalDisplay = document.getElementById('totalStudents');
@@ -1594,46 +2078,125 @@ class SetupModule {
             femaleInput.addEventListener('input', calculateTotal);
             calculateTotal();
         }
-    }
-    
-    setupUppercaseConversion() {
-        const classCodeInput = document.getElementById('classCode');
-        if (!classCodeInput) return;
         
-        classCodeInput.addEventListener('input', (e) => {
-            const input = e.target;
-            const cursorPosition = input.selectionStart;
-            const uppercaseValue = input.value.toUpperCase();
-            
-            if (input.value !== uppercaseValue) {
-                input.value = uppercaseValue;
-                input.setSelectionRange(cursorPosition, cursorPosition);
+        // Setup uppercase conversion for class code
+        const classCodeInput = document.getElementById('classCode');
+        if (classCodeInput) {
+            classCodeInput.addEventListener('input', (e) => {
+                e.target.value = e.target.value.toUpperCase();
+            });
+        }
+        
+        // Setup auto-save
+        this.setupClassAutoSave();
+        
+        // Save button
+        const saveBtn = document.getElementById('save-class');
+        if (saveBtn) {
+            saveBtn.addEventListener('click', () => this.saveClass());
+        }
+        
+        // Clear button
+        const clearBtn = document.getElementById('clear-class');
+        if (clearBtn) {
+            clearBtn.addEventListener('click', () => this.clearClassForm());
+        }
+    }
+
+    setupClassAutoSave() {
+        const inputIds = ['yearGroup', 'classCode', 'maleCount', 'femaleCount'];
+        
+        inputIds.forEach(id => {
+            const input = document.getElementById(id);
+            if (input) {
+                input.addEventListener('input', () => {
+                    this.queueAutoSave('class');
+                });
+                input.addEventListener('blur', () => {
+                    this.autoSaveClassForm();
+                });
             }
         });
     }
-    
-    async saveClass() {
+
+    queueAutoSave(type) {
+        clearTimeout(this.autoSaveTimeouts?.[type]);
+        
+        if (!this.autoSaveTimeouts) this.autoSaveTimeouts = {};
+        
+        this.autoSaveTimeouts[type] = setTimeout(() => {
+            if (type === 'class') {
+                this.autoSaveClassForm();
+            }
+        }, 1500);
+    }
+
+    async autoSaveClassForm() {
         const yearGroup = document.getElementById('yearGroup')?.value;
         const classCode = document.getElementById('classCode')?.value?.trim();
         const maleCount = parseInt(document.getElementById('maleCount')?.value) || 0;
         const femaleCount = parseInt(document.getElementById('femaleCount')?.value) || 0;
         
+        if (!yearGroup || !classCode) return;
+        
+        const classData = {
+            id: `draft_class_${Date.now()}`,
+            yearGroup: yearGroup,
+            code: classCode,
+            males: maleCount,
+            females: femaleCount,
+            total: maleCount + femaleCount,
+            name: `${yearGroup} - ${classCode}`,
+            isDraft: true,
+            lastAutoSave: new Date().toISOString()
+        };
+        
+        // Save draft to localStorage
+        const drafts = Storage.get('classDrafts') || [];
+        const existingIndex = drafts.findIndex(d => 
+            d.yearGroup === yearGroup && d.code === classCode
+        );
+        
+        if (existingIndex >= 0) {
+            drafts[existingIndex] = classData;
+        } else {
+            drafts.push(classData);
+        }
+        
+        Storage.set('classDrafts', drafts);
+        
+        this.showAutoSaveStatus('class', 'Draft autosaved');
+    }
+
+    showAutoSaveStatus(context, message) {
+        console.log(`${context}: ${message}`);
+        // You can add UI notification here
+    }
+
+    async saveClass() {
+        const yearGroup = document.getElementById('yearGroup')?.value;
+        const classCode = document.getElementById('classCode')?.value?.trim();
+        const maleCount = parseInt(document.getElementById('maleCount')?.value) || 0;
+        const femaleCount = parseInt(document.getElementById('femaleCount')?.value) || 0;
+        const editClassId = document.getElementById('editClassId')?.value;
+        
         if (!yearGroup || !classCode) {
-            this.app.showToast('Please fill in Year Group and Class Code', 'error');
+            this.showError('Please fill in Year Group and Class Code');
             return;
         }
         
         const classes = Storage.get('classes') || [];
         
-        if (classes.some(c => c.code === classCode)) {
-            this.app.showToast('Class code already exists', 'error');
+        // Check for duplicate class code (but allow editing)
+        if (!editClassId && classes.some(c => c.code === classCode)) {
+            this.showError('Class code already exists');
             return;
         }
         
         const totalStudents = maleCount + femaleCount;
         
         const classData = {
-            id: `class_${Date.now()}`,
+            id: editClassId || `class_${Date.now()}`,
             yearGroup: yearGroup,
             code: classCode,
             males: maleCount,
@@ -1641,53 +2204,84 @@ class SetupModule {
             total: totalStudents,
             name: `${yearGroup} - ${classCode}`,
             createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            teacherId: this.app.user?.id,
-            schoolId: this.app.user?.schoolId || this.app.user?.id
+            updatedAt: new Date().toISOString()
         };
         
+        if (editClassId) {
+            // Update existing class
+            const index = classes.findIndex(c => c.id === editClassId);
+            if (index !== -1) {
+                classes[index] = classData;
+            }
+        } else {
+            // Add new class
+            classes.push(classData);
+        }
+        
         // Save to localStorage
-        classes.push(classData);
         Storage.set('classes', classes);
         
         // Try to save to Firebase
-        const result = await firebaseService.saveClass(classData);
-        
-        if (result.success) {
-            // Update with Firebase ID
-            classData.firebaseId = result.id;
-            const updatedClasses = classes.map(c => 
-                c.id === classData.id ? { ...c, firebaseId: result.id } : c
-            );
-            Storage.set('classes', updatedClasses);
-            
-            this.app.showToast('Class saved to cloud!', 'success');
-        } else if (result.offline) {
-            this.app.showToast('Class saved locally (will sync when online)', 'info');
+        if (this.firebaseService.isAvailable) {
+            try {
+                await this.firebaseService.saveClass(classData);
+                this.showSuccess('Class saved to cloud!');
+            } catch (error) {
+                console.error('Firebase save error:', error);
+                this.showSuccess('Class saved locally (cloud sync failed)');
+            }
         } else {
-            this.app.showToast('Class saved locally (cloud sync failed)', 'warning');
+            this.showSuccess('Class saved locally');
         }
+        
+        // Clear drafts for this class
+        const drafts = Storage.get('classDrafts') || [];
+        const filteredDrafts = drafts.filter(d => 
+            !(d.yearGroup === yearGroup && d.code === classCode)
+        );
+        Storage.set('classDrafts', filteredDrafts);
         
         this.clearClassForm();
         this.loadClassesList();
+        this.populateClassDropdown();
     }
-    
+
     clearClassForm() {
-        document.getElementById('yearGroup').value = '';
-        document.getElementById('classCode').value = '';
-        document.getElementById('maleCount').value = '0';
-        document.getElementById('femaleCount').value = '0';
-        document.getElementById('totalStudents').textContent = '0';
-    }
-    
-    loadClassesList() {
-        const classesList = document.getElementById('classes-list');
-        if (!classesList) return;
+        const yearGroup = document.getElementById('yearGroup');
+        const classCode = document.getElementById('classCode');
+        const maleCount = document.getElementById('maleCount');
+        const femaleCount = document.getElementById('femaleCount');
+        const totalDisplay = document.getElementById('totalStudents');
+        const editClassId = document.getElementById('editClassId');
         
-        const classes = Storage.get('classes') || [];
+        if (yearGroup) yearGroup.value = '';
+        if (classCode) classCode.value = '';
+        if (maleCount) maleCount.value = '0';
+        if (femaleCount) femaleCount.value = '0';
+        if (totalDisplay) totalDisplay.textContent = '0';
+        if (editClassId) editClassId.value = '';
+        
+        // Reset button text
+        const saveBtn = document.getElementById('save-class');
+        if (saveBtn) {
+            saveBtn.innerHTML = '<i class="fas fa-save"></i> Save Class';
+        }
+    }
+
+    async loadClassesList() {
+        const container = document.getElementById('classes-list');
+        if (!container) return;
+        
+        let classes = [];
+        
+        if (this.firebaseService.isAvailable) {
+            classes = await this.firebaseService.getClasses();
+        } else {
+            classes = Storage.get('classes') || [];
+        }
         
         if (classes.length === 0) {
-            classesList.innerHTML = `
+            container.innerHTML = `
                 <div class="empty-state">
                     <div class="empty-icon">
                         <i class="fas fa-chalkboard-teacher"></i>
@@ -1698,61 +2292,453 @@ class SetupModule {
             return;
         }
         
-        classesList.innerHTML = classes.map(cls => {
-            const cloudIcon = cls.firebaseId ? 
-                '<i class="fas fa-cloud" style="color: #3498db; margin-left: 5px;"></i>' : '';
-            
-            return `
+        let html = '';
+        classes.forEach(cls => {
+            html += `
                 <div class="class-card">
                     <div class="class-header">
-                        <div class="class-title">${cls.name}</div>
-                        <div class="class-code">${cls.code} ${cloudIcon}</div>
+                        <div class="class-title">${cls.yearGroup || ''} - ${cls.code}</div>
+                        <div class="class-stats">
+                            <span class="stat">M: ${cls.males || 0}</span>
+                            <span class="stat">F: ${cls.females || 0}</span>
+                            <span class="stat">Total: ${cls.total || 0}</span>
+                        </div>
                     </div>
-                    <div class="class-info">
-                        <div class="info-item">
-                            <span class="info-label">Students:</span>
-                            <span class="info-value">${cls.total || 0}</span>
-                        </div>
-                        <div class="info-item">
-                            <span class="info-label">Males:</span>
-                            <span class="info-value">${cls.males || 0}</span>
-                        </div>
-                        <div class="info-item">
-                            <span class="info-label">Females:</span>
-                            <span class="info-value">${cls.females || 0}</span>
-                        </div>
+                    <div class="class-actions">
+                        <button class="btn btn-sm btn-edit" onclick="app.modules.setup.editClass('${cls.id}')">
+                            <i class="fas fa-edit"></i> Edit
+                        </button>
+                        <button class="btn btn-sm btn-delete" onclick="app.modules.setup.deleteClass('${cls.id}')">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
                     </div>
                 </div>
             `;
-        }).join('');
+        });
+        
+        container.innerHTML = html;
     }
-    
-    setupEventListeners() {
-        const saveClassBtn = document.getElementById('save-class');
-        if (saveClassBtn) {
-            saveClassBtn.addEventListener('click', () => this.saveClass());
+
+    editClass(classId) {
+        const classes = Storage.get('classes') || [];
+        const cls = classes.find(c => c.id === classId);
+        
+        if (cls) {
+            document.getElementById('yearGroup').value = cls.yearGroup || '';
+            document.getElementById('classCode').value = cls.code || '';
+            document.getElementById('maleCount').value = cls.males || 0;
+            document.getElementById('femaleCount').value = cls.females || 0;
+            document.getElementById('editClassId').value = cls.id;
+            
+            // Update total display
+            const total = (parseInt(cls.males) || 0) + (parseInt(cls.females) || 0);
+            document.getElementById('totalStudents').textContent = total;
+            
+            // Update button text
+            const saveBtn = document.getElementById('save-class');
+            if (saveBtn) {
+                saveBtn.innerHTML = '<i class="fas fa-save"></i> Update Class';
+            }
+        }
+    }
+
+    async deleteClass(classId) {
+        if (!confirm('Delete this class?')) return;
+        
+        let classes = Storage.get('classes') || [];
+        classes = classes.filter(c => c.id !== classId);
+        Storage.set('classes', classes);
+        
+        // Also delete from Firebase if available
+        if (this.firebaseService.isAvailable) {
+            await this.firebaseService.deleteClass(classId);
         }
         
-        const clearClassBtn = document.getElementById('clear-class');
-        if (clearClassBtn) {
-            clearClassBtn.addEventListener('click', () => this.clearClassForm());
+        this.showSuccess('Class deleted');
+        this.loadClassesList();
+        this.populateClassDropdown();
+    }
+
+    setupStudentForm() {
+        // Save student button
+        const saveBtn = document.getElementById('save-student');
+        if (saveBtn) {
+            saveBtn.addEventListener('click', () => this.saveStudent());
+        }
+        
+        // Clear student button
+        const clearBtn = document.getElementById('clear-student');
+        if (clearBtn) {
+            clearBtn.addEventListener('click', () => this.clearStudentForm());
+        }
+    }
+
+    async saveStudent() {
+        const firstName = document.getElementById('firstName')?.value;
+        const lastName = document.getElementById('lastName')?.value;
+        
+        if (!firstName || !lastName) {
+            this.showError('Please fill in first and last name');
+            return;
+        }
+        
+        const students = Storage.get('students') || [];
+        
+        const newStudent = {
+            id: `student_${Date.now()}`,
+            firstName: firstName,
+            lastName: lastName,
+            fullName: `${firstName} ${lastName}`,
+            studentId: document.getElementById('studentId')?.value || `STU${Date.now().toString().slice(-6)}`,
+            gender: document.getElementById('gender')?.value || null,
+            classId: document.getElementById('studentClass')?.value || null,
+            createdAt: new Date().toISOString(),
+            enrollmentDate: new Date().toISOString()
+        };
+        
+        students.push(newStudent);
+        Storage.set('students', students);
+        
+        this.showSuccess('Student saved successfully!');
+        this.clearStudentForm();
+        this.loadStudentsList();
+    }
+
+    clearStudentForm() {
+        ['firstName', 'lastName', 'studentId'].forEach(id => {
+            const element = document.getElementById(id);
+            if (element) element.value = '';
+        });
+        
+        const genderSelect = document.getElementById('gender');
+        const classSelect = document.getElementById('studentClass');
+        if (genderSelect) genderSelect.value = '';
+        if (classSelect) classSelect.value = '';
+    }
+
+    async loadStudentsList() {
+        const container = document.getElementById('students-list');
+        if (!container) return;
+        
+        const students = Storage.get('students') || [];
+        
+        if (students.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="empty-text">No students added yet</div>
+                </div>
+            `;
+            return;
+        }
+        
+        const classes = Storage.get('classes') || [];
+        
+        let html = '';
+        students.forEach(student => {
+            const studentClass = classes.find(c => c.id === student.classId);
+            const className = studentClass ? studentClass.code : 'Unassigned';
+            
+            html += `
+                <div class="student-card">
+                    <div class="student-info">
+                        <div class="student-name">${student.fullName}</div>
+                        <div class="student-details">
+                            <span class="detail">ID: ${student.studentId}</span>
+                            <span class="detail">Gender: ${student.gender || 'Not set'}</span>
+                            <span class="detail">Class: ${className}</span>
+                        </div>
+                    </div>
+                    <div class="student-actions">
+                        <button class="btn btn-sm btn-delete" onclick="app.modules.setup.deleteStudent('${student.id}')">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                    </div>
+                </div>
+            `;
+        });
+        
+        container.innerHTML = html;
+    }
+
+    populateClassDropdown() {
+        const dropdown = document.getElementById('studentClass');
+        if (!dropdown) return;
+        
+        const classes = Storage.get('classes') || [];
+        
+        dropdown.innerHTML = '<option value="">Select Class</option>';
+        classes.forEach(cls => {
+            const option = document.createElement('option');
+            option.value = cls.id;
+            option.textContent = `${cls.code} (${cls.yearGroup || 'No Year'})`;
+            dropdown.appendChild(option);
+        });
+    }
+
+    deleteStudent(studentId) {
+        if (!confirm('Delete this student?')) return;
+        
+        const students = Storage.get('students') || [];
+        const updatedStudents = students.filter(s => s.id !== studentId);
+        Storage.set('students', updatedStudents);
+        
+        this.showSuccess('Student deleted');
+        this.loadStudentsList();
+    }
+
+    showSuccess(message) {
+        console.log('Success:', message);
+        if (window.app && window.app.showToast) {
+            window.app.showToast(message, 'success');
+        }
+    }
+
+    showError(message) {
+        console.error('Error:', message);
+        if (window.app && window.app.showToast) {
+            window.app.showToast(message, 'error');
         }
     }
 }
 
-// ==================== REPORTS MODULE ====================
-class ReportsModule {
-    constructor(app) {
-        this.app = app;
+// ==================== SETUP PAGE ENHANCEMENTS ====================
+renderSetupPage() {
+    return `
+        <div class="setup-page">
+            <div class="setup-container">
+                <div class="setup-header">
+                    <h1>System Setup & Configuration</h1>
+                    <p class="setup-subtitle">Configure all system settings, user preferences, and manage data</p>
+                </div>
+                
+                <section class="setup-section">
+                    <div class="setup-tabs">
+                        <button class="tab-btn active" data-tab="classes">
+                            <i class="fas fa-chalkboard-teacher"></i> Classes
+                        </button>
+                        <button class="tab-btn" data-tab="students">
+                            <i class="fas fa-users"></i> Students
+                        </button>
+                        <button class="tab-btn" data-tab="import">
+                            <i class="fas fa-file-import"></i> Import
+                        </button>
+                        <button class="tab-btn" data-tab="system">
+                            <i class="fas fa-cog"></i> System Settings
+                        </button>
+                        <button class="tab-btn" data-tab="data">
+                            <i class="fas fa-database"></i> Data Management
+                        </button>
+                    </div>
+                    
+                    <!-- Classes Tab -->
+                    <div class="tab-content active" id="classes-tab">
+                        ${this.renderClassesTab()}
+                    </div>
+                    
+                    <!-- Students Tab -->
+                    <div class="tab-content" id="students-tab">
+                        ${this.renderStudentsTab()}
+                    </div>
+                    
+                    <!-- Import Tab -->
+                    <div class="tab-content" id="import-tab">
+                        ${this.renderImportTab()}
+                    </div>
+                    
+                    <!-- System Settings Tab -->
+                    <div class="tab-content" id="system-tab">
+                        ${this.renderSystemSettingsTab()}
+                    </div>
+                    
+                    <!-- Data Management Tab -->
+                    <div class="tab-content" id="data-tab">
+                        ${this.renderDataManagementTab()}
+                    </div>
+                </section>
+            </div>
+        </div>
+    `;
+}
+
+renderClassesTab() {
+    return `
+        <div class="section-title">Class Management</div>
+        <div class="setup-form">
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Year Group</label>
+                    <select id="yearGroup" class="form-input">
+                        <option value="">Select Year Group</option>
+                        <option value="1st Years">1st Years</option>
+                        <option value="2nd Years">2nd Years</option>
+                        <option value="3rd Years">3rd Years</option>
+                        <option value="4th Years">4th Years</option>
+                        <option value="5th Years">5th Years</option>
+                        <option value="U5">Upper 5th</option>
+                        <option value="L6">Lower 6th</option>
+                        <option value="U6">Upper 6th</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Class Code</label>
+                    <input type="text" id="classCode" class="form-input uppercase-input" 
+                           placeholder="e.g., 1LEY, U5MASCOLL, 10RAN" required>
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Number of Males</label>
+                    <input type="number" id="maleCount" class="form-input" placeholder="0" min="0">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Number of Females</label>
+                    <input type="number" id="femaleCount" class="form-input" placeholder="0" min="0">
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Total Students</label>
+                <div id="totalStudents" class="total-display">0</div>
+            </div>
+            
+            <input type="hidden" id="editClassId" value="">
+            
+            <div class="actions-container">
+                <button class="action-btn save-btn" id="save-class">
+                    <i class="fas fa-save"></i> Save Class
+                </button>
+                <button class="action-btn cancel-btn" id="clear-class">
+                    <i class="fas fa-undo"></i> Clear Form
+                </button>
+            </div>
+        </div>
+        
+        <div class="section-title">Existing Classes</div>
+        <div class="classes-list" id="classes-list">
+            ${this.renderClassesList()}
+        </div>
+    `;
+}
+
+// AUTO-SAVE LOGIC FROM OLD APP
+setupAutoSave() {
+    this.autoSaveTimeouts = {};
+    
+    // Class form auto-save
+    const classInputs = ['yearGroup', 'classCode', 'maleCount', 'femaleCount'];
+    classInputs.forEach(id => {
+        const input = document.getElementById(id);
+        if (input) {
+            input.addEventListener('input', () => {
+                this.queueAutoSave('class');
+                if (id === 'maleCount' || id === 'femaleCount') {
+                    this.updateTotalDisplay();
+                }
+            });
+        }
+    });
+    
+    // Setup total calculation
+    this.setupTotalCalculation();
+}
+
+setupTotalCalculation() {
+    const maleInput = document.getElementById('maleCount');
+    const femaleInput = document.getElementById('femaleCount');
+    const totalDisplay = document.getElementById('totalStudents');
+    
+    if (maleInput && femaleInput && totalDisplay) {
+        const calculateTotal = () => {
+            const males = parseInt(maleInput.value) || 0;
+            const females = parseInt(femaleInput.value) || 0;
+            totalDisplay.textContent = males + females;
+        };
+        
+        maleInput.addEventListener('input', calculateTotal);
+        femaleInput.addEventListener('input', calculateTotal);
+        
+        calculateTotal();
+    }
+}
+
+updateTotalDisplay() {
+    const maleInput = document.getElementById('maleCount');
+    const femaleInput = document.getElementById('femaleCount');
+    const totalDisplay = document.getElementById('totalStudents');
+    
+    if (maleInput && femaleInput && totalDisplay) {
+        const males = parseInt(maleInput.value) || 0;
+        const females = parseInt(femaleInput.value) || 0;
+        totalDisplay.textContent = males + females;
+    }
+}
+
+queueAutoSave(type) {
+    clearTimeout(this.autoSaveTimeouts?.[type]);
+    
+    if (!this.autoSaveTimeouts) this.autoSaveTimeouts = {};
+    
+    this.autoSaveTimeouts[type] = setTimeout(() => {
+        if (type === 'class') {
+            this.autoSaveClassForm();
+        }
+    }, 1500); // 1.5 second delay
+}
+
+async autoSaveClassForm() {
+    const yearGroup = document.getElementById('yearGroup')?.value;
+    const classCode = document.getElementById('classCode')?.value?.trim();
+    const maleCount = parseInt(document.getElementById('maleCount')?.value) || 0;
+    const femaleCount = parseInt(document.getElementById('femaleCount')?.value) || 0;
+    
+    if (!yearGroup || !classCode) return;
+    
+    const classData = {
+        id: `draft_class_${Date.now()}`,
+        yearGroup: yearGroup,
+        code: classCode,
+        males: maleCount,
+        females: femaleCount,
+        total: maleCount + femaleCount,
+        name: `${yearGroup} - ${classCode}`,
+        isDraft: true,
+        lastAutoSave: new Date().toISOString()
+    };
+    
+    // Save draft to localStorage
+    const drafts = Storage.get('classDrafts') || [];
+    const existingIndex = drafts.findIndex(d => 
+        d.yearGroup === yearGroup && d.code === classCode
+    );
+    
+    if (existingIndex >= 0) {
+        drafts[existingIndex] = classData;
+    } else {
+        drafts.push(classData);
     }
     
-    render(container) {
-        if (!this.app.user) {
-            container.innerHTML = `<div class="error">No user found. Please login again.</div>`;
-            return;
-        }
+    Storage.set('classDrafts', drafts);
+    
+    // Show auto-save status
+    this.showAutoSaveStatus('class', 'Draft autosaved');
+}
+
+class ReportsModule {
+    constructor(firebaseService, attendanceSystem) {
+        this.firebaseService = firebaseService;
+        this.attendanceSystem = attendanceSystem;
+        this.container = null;
+    }
+
+    render() {
+        this.container = document.getElementById('reportsModule');
+        if (!this.container) return;
         
-        container.innerHTML = `
+        this.container.innerHTML = `
             <div class="reports-page">
                 <div class="reports-container">
                     <div class="reports-header">
@@ -1760,47 +2746,1095 @@ class ReportsModule {
                         <p class="reports-subtitle">Generate detailed attendance reports and analytics</p>
                     </div>
                     
-                    <div class="reports-coming-soon">
-                        <i class="fas fa-chart-bar"></i>
-                        <h3>Reports Coming Soon</h3>
-                        <p>This feature is currently under development.</p>
-                        <a href="dashboard.html" class="btn btn-primary">Back to Dashboard</a>
+                    <section class="reports-section">
+                        <div class="section-title">Report Configuration</div>
+                        
+                        <div class="filter-section">
+                            <div class="filter-row">
+                                <div class="filter-group">
+                                    <label class="filter-label">Report Type:</label>
+                                    <select id="report-type" class="reports-select">
+                                        <option value="daily">Daily Report</option>
+                                        <option value="weekly">Weekly Report</option>
+                                        <option value="monthly">Monthly Report</option>
+                                        <option value="term">Term Report</option>
+                                        <option value="comparison">Class Comparison</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="filter-group">
+                                    <label class="filter-label">Date Range:</label>
+                                    <div class="date-range">
+                                        <input type="date" id="start-date" class="date-input" value="${this.getFirstDayOfMonth()}">
+                                        <span>to</span>
+                                        <input type="date" id="end-date" class="date-input" value="${this.getTodayDate()}">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="filter-row">
+                                <div class="filter-group">
+                                    <label class="filter-label">Class:</label>
+                                    <select id="report-class" class="reports-select">
+                                        <option value="all">All Classes</option>
+                                        <!-- Classes will be populated -->
+                                    </select>
+                                </div>
+                                
+                                <div class="filter-group">
+                                    <label class="filter-label">Format:</label>
+                                    <select id="report-format" class="reports-select">
+                                        <option value="summary">Summary</option>
+                                        <option value="detailed">Detailed</option>
+                                        <option value="analytics">Analytics</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="section-title">Report Actions</div>
+                        
+                        <div class="controls-section">
+                            <button class="control-btn primary-btn" id="generate-report">
+                                <i class="fas fa-chart-bar"></i> Generate Report
+                            </button>
+                            <button class="control-btn secondary-btn" id="export-pdf">
+                                <i class="fas fa-file-pdf"></i> Export PDF
+                            </button>
+                            <button class="control-btn secondary-btn" id="export-excel">
+                                <i class="fas fa-file-excel"></i> Export Excel
+                            </button>
+                            <button class="control-btn secondary-btn" id="print-report">
+                                <i class="fas fa-print"></i> Print
+                            </button>
+                        </div>
+                        
+                        <div class="section-title">Report Output</div>
+                        
+                        <div class="report-output" id="report-output">
+                            <div class="output-header">
+                                <span id="report-title">Attendance Report</span>
+                                <span id="report-time">Select filters and generate report</span>
+                            </div>
+                            
+                            <div class="output-content">
+                                <div class="loading" id="report-loading" style="display: none;">
+                                    <div class="spinner"></div>
+                                    <div>Generating report...</div>
+                                </div>
+                                
+                                <div id="report-content">
+                                    <div class="no-report">
+                                        <i class="fas fa-chart-bar"></i>
+                                        <h3>No Report Generated</h3>
+                                        <p>Configure your report filters and click "Generate Report" to view data.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </div>
+        `;
+        
+        this.setupEventListeners();
+        this.populateClassDropdown();
+    }
+
+    setupEventListeners() {
+        // Generate report button
+        document.getElementById('generate-report')?.addEventListener('click', () => {
+            this.generateReport();
+        });
+        
+        // Export buttons
+        document.getElementById('export-pdf')?.addEventListener('click', () => {
+            this.exportReport('pdf');
+        });
+        
+        document.getElementById('export-excel')?.addEventListener('click', () => {
+            this.exportReport('excel');
+        });
+        
+        document.getElementById('print-report')?.addEventListener('click', () => {
+            window.print();
+        });
+    }
+
+    async populateClassDropdown() {
+        const dropdown = document.getElementById('report-class');
+        if (!dropdown) return;
+        
+        let classes = [];
+        
+        if (this.firebaseService.isAvailable) {
+            classes = await this.firebaseService.getClasses();
+        } else {
+            classes = Storage.get('classes') || [];
+        }
+        
+        classes.forEach(cls => {
+            const option = document.createElement('option');
+            option.value = cls.id;
+            option.textContent = `${cls.code} (${cls.yearGroup || ''})`;
+            dropdown.appendChild(option);
+        });
+    }
+
+    async generateReport() {
+        const reportType = document.getElementById('report-type').value;
+        const startDate = document.getElementById('start-date').value;
+        const endDate = document.getElementById('end-date').value;
+        const classId = document.getElementById('report-class').value;
+        const format = document.getElementById('report-format').value;
+        
+        // Show loading
+        const loading = document.getElementById('report-loading');
+        const reportContent = document.getElementById('report-content');
+        
+        if (loading) loading.style.display = 'flex';
+        if (reportContent) reportContent.innerHTML = '';
+        
+        try {
+            // Get data
+            let attendance = [], classes = [];
+            
+            if (this.firebaseService.isAvailable) {
+                attendance = await this.firebaseService.getAttendance();
+                classes = await this.firebaseService.getClasses();
+            } else {
+                attendance = Storage.get('attendance') || [];
+                classes = Storage.get('classes') || [];
+            }
+            
+            // Filter attendance based on criteria
+            const filteredAttendance = attendance.filter(a => {
+                const dateMatch = (!startDate || a.date >= startDate) && (!endDate || a.date <= endDate);
+                const classMatch = classId === 'all' || a.classId === classId;
+                return dateMatch && classMatch;
+            });
+            
+            // Generate report content
+            const reportHTML = this.generateReportContent(filteredAttendance, classes, {
+                type: reportType,
+                startDate,
+                endDate,
+                classId,
+                format
+            });
+            
+            // Update UI
+            if (loading) loading.style.display = 'none';
+            if (reportContent) reportContent.innerHTML = reportHTML;
+            
+            // Update title
+            const reportTitle = document.getElementById('report-title');
+            if (reportTitle) {
+                const className = classId === 'all' ? 'All Classes' : 
+                    classes.find(c => c.id === classId)?.code || 'Selected Class';
+                reportTitle.textContent = `${reportType.toUpperCase()} Report - ${className}`;
+            }
+            
+            // Update time
+            const reportTime = document.getElementById('report-time');
+            if (reportTime) {
+                reportTime.textContent = `Generated: ${new Date().toLocaleTimeString()}`;
+            }
+            
+            this.showSuccess('Report generated successfully!');
+            
+        } catch (error) {
+            console.error('Error generating report:', error);
+            this.showError('Failed to generate report');
+            if (loading) loading.style.display = 'none';
+        }
+    }
+
+    generateReportContent(attendance, classes, options) {
+        if (attendance.length === 0) {
+            return `
+                <div class="no-data-report">
+                    <i class="fas fa-chart-bar"></i>
+                    <h3>No Data Available</h3>
+                    <p>No attendance records found for the selected criteria.</p>
+                </div>
+            `;
+        }
+        
+        if (options.type === 'comparison') {
+            return this.generateComparisonReport(attendance, classes, options);
+        }
+        
+        // Default summary report
+        return this.generateSummaryReport(attendance, classes, options);
+    }
+
+    generateSummaryReport(attendance, classes, options) {
+        // Group by class
+        const attendanceByClass = {};
+        attendance.forEach(record => {
+            if (!attendanceByClass[record.classId]) {
+                attendanceByClass[record.classId] = [];
+            }
+            attendanceByClass[record.classId].push(record);
+        });
+        
+        let html = `
+            <div class="report-summary">
+                <h3>Report Summary</h3>
+                <div class="summary-stats">
+                    <div class="stat-item">
+                        <span class="stat-label">Total Records:</span>
+                        <span class="stat-value">${attendance.length}</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Date Range:</span>
+                        <span class="stat-value">${options.startDate} to ${options.endDate}</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Classes Covered:</span>
+                        <span class="stat-value">${Object.keys(attendanceByClass).length}</span>
                     </div>
                 </div>
             </div>
         `;
+        
+        // Add class-wise details
+        Object.entries(attendanceByClass).forEach(([classId, classAttendance]) => {
+            const cls = classes.find(c => c.id === classId);
+            if (!cls) return;
+            
+            // Calculate averages
+            let totalPresent = 0, totalPossible = 0;
+            classAttendance.forEach(record => {
+                const present = record.totalPresent || (record.malePresentAM || 0) + (record.malePresentPM || 0) + 
+                               (record.femalePresentAM || 0) + (record.femalePresentPM || 0);
+                const total = record.totalStudents || cls.total || 0;
+                totalPresent += present;
+                totalPossible += total;
+            });
+            
+            const averageRate = totalPossible > 0 ? Math.round((totalPresent / totalPossible) * 100) : 0;
+            
+            html += `
+                <div class="class-report">
+                    <h4>${cls.code} (${cls.yearGroup || ''})</h4>
+                    <div class="class-stats">
+                        <div class="stat-card">
+                            <div class="stat-icon">📊</div>
+                            <div class="stat-info">
+                                <span class="stat-value">${classAttendance.length}</span>
+                                <span class="stat-label">Days</span>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">👥</div>
+                            <div class="stat-info">
+                                <span class="stat-value">${cls.total || 0}</span>
+                                <span class="stat-label">Students</span>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">✅</div>
+                            <div class="stat-info">
+                                <span class="stat-value">${averageRate}%</span>
+                                <span class="stat-label">Average</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        
+        return html;
+    }
+
+    generateComparisonReport(attendance, classes, options) {
+        // Group attendance by class
+        const attendanceByClass = {};
+        attendance.forEach(record => {
+            if (!attendanceByClass[record.classId]) {
+                attendanceByClass[record.classId] = [];
+            }
+            attendanceByClass[record.classId].push(record);
+        });
+        
+        // Calculate statistics for each class
+        const classStats = [];
+        
+        Object.entries(attendanceByClass).forEach(([classId, classAttendance]) => {
+            const cls = classes.find(c => c.id === classId);
+            if (!cls) return;
+            
+            let totalPresent = 0, totalPossible = 0;
+            classAttendance.forEach(record => {
+                const present = record.totalPresent || (record.malePresentAM || 0) + (record.malePresentPM || 0) + 
+                               (record.femalePresentAM || 0) + (record.femalePresentPM || 0);
+                const total = record.totalStudents || cls.total || 0;
+                totalPresent += present;
+                totalPossible += total;
+            });
+            
+            const averageRate = totalPossible > 0 ? Math.round((totalPresent / totalPossible) * 100) : 0;
+            
+            classStats.push({
+                classId,
+                className: cls.code,
+                yearGroup: cls.yearGroup,
+                totalStudents: cls.total || 0,
+                totalDays: classAttendance.length,
+                averageRate,
+                rank: 0
+            });
+        });
+        
+        // Sort by average rate
+        classStats.sort((a, b) => b.averageRate - a.averageRate);
+        classStats.forEach((stat, index) => {
+            stat.rank = index + 1;
+        });
+        
+        // Generate comparison table
+        let html = `
+            <div class="comparison-report">
+                <h3>Class Comparison Report</h3>
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Class</th>
+                            <th>Year Group</th>
+                            <th>Students</th>
+                            <th>Days</th>
+                            <th>Average Rate</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+        
+        classStats.forEach(stat => {
+            html += `
+                <tr class="rank-${stat.rank}">
+                    <td>${stat.rank}</td>
+                    <td><strong>${stat.className}</strong></td>
+                    <td>${stat.yearGroup || ''}</td>
+                    <td>${stat.totalStudents}</td>
+                    <td>${stat.totalDays}</td>
+                    <td class="rate ${this.getRateClass(stat.averageRate)}">${stat.averageRate}%</td>
+                </tr>
+            `;
+        });
+        
+        html += `
+                    </tbody>
+                </table>
+            </div>
+        `;
+        
+        return html;
+    }
+
+    getRateClass(rate) {
+        if (rate >= 90) return 'high';
+        if (rate >= 80) return 'medium-high';
+        if (rate >= 70) return 'medium';
+        if (rate >= 60) return 'medium-low';
+        return 'low';
+    }
+
+    exportReport(format) {
+        this.showInfo(`${format.toUpperCase()} export feature coming soon`);
+    }
+
+    getFirstDayOfMonth() {
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        return `${year}-${month}-01`;
+    }
+
+    getTodayDate() {
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+
+    showSuccess(message) {
+        if (window.app && window.app.showToast) {
+            window.app.showToast(message, 'success');
+        }
+    }
+
+    showError(message) {
+        if (window.app && window.app.showToast) {
+            window.app.showToast(message, 'error');
+        }
+    }
+
+    showInfo(message) {
+        if (window.app && window.app.showToast) {
+            window.app.showToast(message, 'info');
+        }
     }
 }
 
-// ==================== SETTINGS MODULE ====================
-class SettingsModule {
-    constructor(app) {
-        this.app = app;
-    }
-    
-    render(container) {
-        if (!this.app.user) {
-            container.innerHTML = `<div class="error">No user found. Please login again.</div>`;
-            return;
+// COMPARISON REPORT CALCULATIONS FROM OLD APP
+generateComparisonReport(attendance, classes, students, options) {
+    // Group attendance by class
+    const attendanceByClass = {};
+    attendance.forEach(record => {
+        if (!attendanceByClass[record.classId]) {
+            attendanceByClass[record.classId] = [];
         }
+        attendanceByClass[record.classId].push(record);
+    });
+    
+    // Calculate statistics for each class
+    const classStats = [];
+    
+    Object.entries(attendanceByClass).forEach(([classId, classAttendance]) => {
+        const cls = classes.find(c => c.id === classId);
+        if (!cls) return;
         
-        container.innerHTML = `
+        // Get students in this class
+        const classStudents = students.filter(s => s.classId === classId);
+        const totalMale = classStudents.filter(s => s.gender?.toLowerCase() === 'male').length;
+        const totalFemale = classStudents.filter(s => s.gender?.toLowerCase() === 'female').length;
+        const totalStudents = classStudents.length;
+        
+        // Calculate averages from attendance records
+        let totalMaleAM = 0, totalMalePM = 0, totalFemaleAM = 0, totalFemalePM = 0;
+        let totalDays = 0;
+        
+        classAttendance.forEach(record => {
+            totalMaleAM += record.malePresentAM || 0;
+            totalMalePM += record.malePresentPM || 0;
+            totalFemaleAM += record.femalePresentAM || 0;
+            totalFemalePM += record.femalePresentPM || 0;
+            totalDays++;
+        });
+        
+        // Calculate averages
+        const avgMaleAM = totalDays > 0 ? Math.round((totalMaleAM / totalDays) / totalMale * 100) : 0;
+        const avgMalePM = totalDays > 0 ? Math.round((totalMalePM / totalDays) / totalMale * 100) : 0;
+        const avgFemaleAM = totalDays > 0 ? Math.round((totalFemaleAM / totalDays) / totalFemale * 100) : 0;
+        const avgFemalePM = totalDays > 0 ? Math.round((totalFemalePM / totalDays) / totalFemale * 100) : 0;
+        
+        // Overall average
+        const overallAvg = Math.round((avgMaleAM + avgMalePM + avgFemaleAM + avgFemalePM) / 4);
+        
+        // Calculate consistency
+        const dailyRates = classAttendance.map(record => {
+            const maleRate = totalMale > 0 ? 
+                Math.round(((record.malePresentAM || 0) + (record.malePresentPM || 0)) / (totalMale * 2) * 100) : 0;
+            const femaleRate = totalFemale > 0 ? 
+                Math.round(((record.femalePresentAM || 0) + (record.femalePresentPM || 0)) / (totalFemale * 2) * 100) : 0;
+            return Math.round((maleRate + femaleRate) / 2);
+        });
+        
+        const avgRate = dailyRates.length > 0 ? 
+            Math.round(dailyRates.reduce((a, b) => a + b, 0) / dailyRates.length) : 0;
+            
+        const consistency = dailyRates.length > 1 ? 
+            100 - Math.round(Math.sqrt(
+                dailyRates.reduce((sum, rate) => sum + Math.pow(rate - avgRate, 2), 0) / dailyRates.length
+            )) : 100;
+        
+        classStats.push({
+            classId,
+            className: cls.name,
+            classCode: cls.code,
+            yearGroup: cls.yearGroup,
+            totalStudents,
+            avgMaleAM,
+            avgMalePM,
+            avgFemaleAM,
+            avgFemalePM,
+            overallAvg,
+            consistency,
+            totalDays,
+            rank: 0
+        });
+    });
+    
+    // Calculate ranks
+    classStats.sort((a, b) => b.overallAvg - a.overallAvg);
+    classStats.forEach((stat, index) => {
+        stat.rank = index + 1;
+        stat.percentile = Math.round((index / classStats.length) * 100);
+    });
+    
+    return this.renderComparisonReport(classStats, options);
+}
+
+getRateClass(rate) {
+    if (rate >= 90) return 'excellent';
+    if (rate >= 80) return 'good';
+    if (rate >= 70) return 'average';
+    return 'poor';
+}
+
+getConsistencyClass(consistency) {
+    if (consistency >= 90) return 'high';
+    if (consistency >= 80) return 'medium';
+    return 'low';
+}
+
+class SettingsModule {
+    constructor(firebaseService) {
+        this.firebaseService = firebaseService;
+        this.container = null;
+    }
+
+    render() {
+        this.container = document.getElementById('settingsModule');
+        if (!this.container) return;
+        
+        this.container.innerHTML = `
             <div class="settings-page">
                 <div class="settings-container">
                     <div class="settings-header">
-                        <h1>User Settings</h1>
-                        <p class="settings-subtitle">Manage your account preferences and app settings</p>
+                        <h1>Settings</h1>
+                        <p class="settings-subtitle">Configure your attendance system</p>
                     </div>
                     
-                    <div class="settings-coming-soon">
-                        <i class="fas fa-cogs"></i>
-                        <h3>Settings Coming Soon</h3>
-                        <p>This feature is currently under development.</p>
-                        <a href="dashboard.html" class="btn btn-primary">Back to Dashboard</a>
+                    <div class="settings-content">
+                        <div class="settings-section">
+                            <h3><i class="fas fa-cog"></i> General Settings</h3>
+                            <div class="settings-form">
+                                <div class="form-group">
+                                    <label class="form-label">School Name</label>
+                                    <input type="text" id="schoolName" class="form-input" placeholder="Enter school name">
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label class="form-label">Default Session Type</label>
+                                    <select id="defaultSession" class="form-input">
+                                        <option value="both">Both Sessions</option>
+                                        <option value="am">AM Only</option>
+                                        <option value="pm">PM Only</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label class="form-label">Auto-save Interval</label>
+                                    <select id="autoSaveInterval" class="form-input">
+                                        <option value="30000">30 seconds</option>
+                                        <option value="60000">1 minute</option>
+                                        <option value="120000">2 minutes</option>
+                                        <option value="300000">5 minutes</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="settings-section">
+                            <h3><i class="fas fa-database"></i> Data Management</h3>
+                            <div class="settings-form">
+                                <div class="form-group">
+                                    <button class="btn btn-primary" id="backup-data">
+                                        <i class="fas fa-download"></i> Backup Data
+                                    </button>
+                                    <p class="form-hint">Export all your data to a JSON file</p>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <button class="btn btn-secondary" id="restore-data">
+                                        <i class="fas fa-upload"></i> Restore Data
+                                    </button>
+                                    <p class="form-hint">Import data from a previous backup</p>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <button class="btn btn-danger" id="clear-data">
+                                        <i class="fas fa-trash"></i> Clear All Data
+                                    </button>
+                                    <p class="form-hint warning">Warning: This will delete all data</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="settings-section">
+                            <h3><i class="fas fa-info-circle"></i> About</h3>
+                            <div class="about-info">
+                                <p><strong>Smart Attendance System</strong></p>
+                                <p>Version: 2.0.0</p>
+                                <p>© ${new Date().getFullYear()} Attendance Tracker</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         `;
+        
+        this.setupEventListeners();
+        this.loadSettings();
+    }
+
+    setupEventListeners() {
+        // Backup button
+        document.getElementById('backup-data')?.addEventListener('click', () => {
+            this.backupData();
+        });
+        
+        // Restore button
+        document.getElementById('restore-data')?.addEventListener('click', () => {
+            this.restoreData();
+        });
+        
+        // Clear data button
+        document.getElementById('clear-data')?.addEventListener('click', () => {
+            this.clearData();
+        });
+        
+        // Save settings on change
+        document.getElementById('schoolName')?.addEventListener('change', () => {
+            this.saveSettings();
+        });
+        
+        document.getElementById('defaultSession')?.addEventListener('change', () => {
+            this.saveSettings();
+        });
+        
+        document.getElementById('autoSaveInterval')?.addEventListener('change', () => {
+            this.saveSettings();
+        });
+    }
+
+    loadSettings() {
+        const settings = Storage.get('app_settings') || {};
+        
+        document.getElementById('schoolName').value = settings.schoolName || '';
+        document.getElementById('defaultSession').value = settings.defaultSession || 'both';
+        document.getElementById('autoSaveInterval').value = settings.autoSaveInterval || '30000';
+    }
+
+    saveSettings() {
+        const settings = {
+            schoolName: document.getElementById('schoolName').value,
+            defaultSession: document.getElementById('defaultSession').value,
+            autoSaveInterval: document.getElementById('autoSaveInterval').value,
+            updatedAt: new Date().toISOString()
+        };
+        
+        Storage.set('app_settings', settings);
+        
+        if (window.app && window.app.showToast) {
+            window.app.showToast('Settings saved', 'success');
+        }
+    }
+
+    backupData() {
+        try {
+            const backup = {
+                version: '2.0',
+                timestamp: new Date().toISOString(),
+                data: {
+                    classes: Storage.get('classes') || [],
+                    students: Storage.get('students') || [],
+                    attendance: Storage.get('attendance') || [],
+                    settings: Storage.get('app_settings') || {}
+                }
+            };
+            
+            const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `attendance_backup_${new Date().toISOString().slice(0, 10)}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+            
+            if (window.app && window.app.showToast) {
+                window.app.showToast('Backup downloaded successfully!', 'success');
+            }
+        } catch (error) {
+            console.error('Error creating backup:', error);
+            if (window.app && window.app.showToast) {
+                window.app.showToast('Error creating backup', 'error');
+            }
+        }
+    }
+
+    restoreData() {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.json';
+        
+        input.onchange = (e) => {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+            
+            reader.onload = (e) => {
+                try {
+                    const backup = JSON.parse(e.target.result);
+                    
+                    if (!backup.data) {
+                        throw new Error('Invalid backup file format');
+                    }
+                    
+                    if (confirm('Restoring backup will overwrite all current data. Continue?')) {
+                        Storage.set('classes', backup.data.classes || []);
+                        Storage.set('students', backup.data.students || []);
+                        Storage.set('attendance', backup.data.attendance || []);
+                        Storage.set('app_settings', backup.data.settings || {});
+                        
+                        if (window.app && window.app.showToast) {
+                            window.app.showToast('Data restored successfully!', 'success');
+                        }
+                        
+                        // Reload settings
+                        this.loadSettings();
+                    }
+                } catch (error) {
+                    console.error('Error restoring backup:', error);
+                    if (window.app && window.app.showToast) {
+                        window.app.showToast('Error restoring backup', 'error');
+                    }
+                }
+            };
+            
+            reader.readAsText(file);
+        };
+        
+        input.click();
+    }
+
+    clearData() {
+        if (confirm('WARNING: This will delete ALL data including classes, students, and attendance records. This action cannot be undone. Continue?')) {
+            if (confirm('Are you absolutely sure? Type "DELETE" to confirm.')) {
+                const confirmation = prompt('Type DELETE to confirm:');
+                if (confirmation === 'DELETE') {
+                    // Clear all data except current user
+                    Storage.remove('classes');
+                    Storage.remove('students');
+                    Storage.remove('attendance');
+                    Storage.remove('app_settings');
+                    
+                    if (window.app && window.app.showToast) {
+                        window.app.showToast('All data has been cleared', 'info');
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ==================== NAVIGATION MANAGER ====================
+class NavigationManager {
+    constructor() {
+        this.currentModule = null;
+        this.modules = {};
+        this.navLinks = {};
+        this.init();
+    }
+
+    init() {
+        this.setupEventListeners();
+        this.setupModuleLinks();
+    }
+
+    setupEventListeners() {
+        // Hamburger menu toggle
+        const hamburgerBtn = document.getElementById('hamburgerBtn');
+        const sidebar = document.getElementById('sidebar');
+        
+        if (hamburgerBtn) {
+            hamburgerBtn.addEventListener('click', () => {
+                sidebar.classList.toggle('active');
+            });
+        }
+
+        // Close sidebar when clicking outside on mobile
+        document.addEventListener('click', (e) => {
+            if (window.innerWidth <= 768) {
+                const isClickInsideSidebar = sidebar.contains(e.target);
+                const isClickOnHamburger = hamburgerBtn.contains(e.target);
+                
+                if (!isClickInsideSidebar && !isClickOnHamburger && sidebar.classList.contains('active')) {
+                    sidebar.classList.remove('active');
+                }
+            }
+        });
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            if (window.innerWidth > 768) {
+                sidebar.classList.remove('active');
+            }
+        });
+    }
+
+    setupModuleLinks() {
+        // Map module names to their container IDs
+        this.modules = {
+            'dashboard': document.getElementById('dashboardModule'),
+            'attendance': document.getElementById('attendanceModule'),
+            'setup': document.getElementById('setupModule'),
+            'reports': document.getElementById('reportsModule'),
+            'settings': document.getElementById('settingsModule')
+        };
+
+        // Get all navigation links
+        this.navLinks = {
+            'dashboard': document.getElementById('navDashboard'),
+            'attendance': document.getElementById('navAttendance'),
+            'setup': document.getElementById('navSetup'),
+            'reports': document.getElementById('navReports'),
+            'settings': document.getElementById('navSettings')
+        };
+
+        // Add click events to all nav links
+        Object.keys(this.navLinks).forEach(moduleName => {
+            const link = this.navLinks[moduleName];
+            if (link) {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    this.switchModule(moduleName);
+                    if (window.innerWidth <= 768) {
+                        document.getElementById('sidebar').classList.remove('active');
+                    }
+                });
+            }
+        });
+
+        // Add event listeners to dashboard cards (if they exist)
+        setTimeout(() => {
+            const quickAttendanceCard = document.getElementById('quickAttendanceCard');
+            const manageClassesCard = document.getElementById('manageClassesCard');
+            const viewReportsCard = document.getElementById('viewReportsCard');
+
+            if (quickAttendanceCard) {
+                quickAttendanceCard.addEventListener('click', () => {
+                    this.switchModule('attendance');
+                });
+            }
+
+            if (manageClassesCard) {
+                manageClassesCard.addEventListener('click', () => {
+                    this.switchModule('setup');
+                });
+            }
+
+            if (viewReportsCard) {
+                viewReportsCard.addEventListener('click', () => {
+                    this.switchModule('reports');
+                });
+            }
+        }, 100);
+
+        // Set default module
+        this.switchModule('dashboard');
+    }
+
+    switchModule(moduleName) {
+        console.log(`🔄 Switching to module: ${moduleName}`);
+        
+        // Hide all modules
+        Object.values(this.modules).forEach(module => {
+            if (module) {
+                module.style.display = 'none';
+                module.classList.remove('active');
+            }
+        });
+
+        // Remove active class from all nav links
+        Object.values(this.navLinks).forEach(link => {
+            if (link) link.classList.remove('active');
+        });
+
+        // Show selected module
+        if (this.modules[moduleName]) {
+            this.modules[moduleName].style.display = 'block';
+            this.modules[moduleName].classList.add('active');
+            this.currentModule = moduleName;
+            
+            // Update page title
+            document.title = `Smart Attendance - ${this.getModuleTitle(moduleName)}`;
+            
+            // Update active nav link
+            if (this.navLinks[moduleName]) {
+                this.navLinks[moduleName].classList.add('active');
+            }
+
+            // Update header title
+            const pageTitle = document.querySelector('.header h1');
+            if (pageTitle) {
+                pageTitle.textContent = this.getModuleTitle(moduleName);
+            }
+
+            // Initialize module-specific functionality
+            this.initializeModule(moduleName);
+        } else {
+            console.error(`Module ${moduleName} not found!`);
+        }
+    }
+
+    getModuleTitle(moduleName) {
+        const titles = {
+            'dashboard': 'Dashboard',
+            'attendance': 'Take Attendance',
+            'setup': 'Class Setup',
+            'reports': 'Reports',
+            'settings': 'Settings'
+        };
+        return titles[moduleName] || 'Smart Attendance';
+    }
+
+    initializeModule(moduleName) {
+        console.log(`🚀 Initializing module: ${moduleName}`);
+        
+        // Get module instance from window object
+        switch(moduleName) {
+            case 'dashboard':
+                if (window.dashboardModule) {
+                    // First render the content, then load data
+                    if (typeof window.dashboardModule.render === 'function') {
+                        window.dashboardModule.render();
+                    } else {
+                        console.error('DashboardModule.render() method not found!');
+                    }
+                } else {
+                    console.error('DashboardModule not found in window object!');
+                }
+                break;
+                
+            case 'attendance':
+                if (window.attendanceModule) {
+                    if (typeof window.attendanceModule.render === 'function') {
+                        window.attendanceModule.render();
+                    } else {
+                        console.error('AttendanceModule.render() method not found!');
+                    }
+                } else {
+                    console.error('AttendanceModule not found in window object!');
+                }
+                break;
+                
+            case 'setup':
+                if (window.setupModule) {
+                    if (typeof window.setupModule.render === 'function') {
+                        window.setupModule.render();
+                    } else {
+                        console.error('SetupModule.render() method not found!');
+                    }
+                } else {
+                    console.error('SetupModule not found in window object!');
+                }
+                break;
+                
+            case 'reports':
+                if (window.reportsModule) {
+                    if (typeof window.reportsModule.render === 'function') {
+                        window.reportsModule.render();
+                    } else {
+                        console.error('ReportsModule.render() method not found!');
+                    }
+                } else {
+                    console.error('ReportsModule not found in window object!');
+                }
+                break;
+                
+            case 'settings':
+                if (window.settingsModule) {
+                    if (typeof window.settingsModule.render === 'function') {
+                        window.settingsModule.render();
+                    } else {
+                        console.error('SettingsModule.render() method not found!');
+                    }
+                } else {
+                    console.error('SettingsModule not found in window object!');
+                }
+                break;
+                
+            default:
+                console.error(`Unknown module: ${moduleName}`);
+        }
+    }
+}
+
+// ==================== APP CLASS (MODIFIED) ====================
+class App {
+    constructor() {
+        this.firebaseService = new FirebaseService();
+        this.attendanceSystem = new AttendanceSystem();
+        this.navigationManager = null;
+        
+        // Initialize all modules and store them globally
+        window.dashboardModule = new DashboardModule(this.firebaseService, this.attendanceSystem);
+        window.attendanceModule = new AttendanceModule(this.firebaseService, this.attendanceSystem);
+        window.setupModule = new SetupModule(this.firebaseService);
+        window.reportsModule = new ReportsModule(this.firebaseService, this.attendanceSystem);
+        window.settingsModule = new SettingsModule(this.firebaseService);
+        
+        // Also store locally for easy access
+        this.modules = {
+            dashboard: window.dashboardModule,
+            attendance: window.attendanceModule,
+            setup: window.setupModule,
+            reports: window.reportsModule,
+            settings: window.settingsModule
+        };
+        
+        // Make navigation manager globally accessible
+        window.navigationManager = this;
+        
+        this.init();
+    }
+
+    async init() {
+        console.log('🚀 Initializing Smart Attendance System...');
+        
+        // Initialize Firebase
+        await this.firebaseService.init();
+        
+        // Initialize Attendance System with current user
+        const currentUser = JSON.parse(localStorage.getItem('attendance_user') || 'null');
+        if (currentUser) {
+            this.attendanceSystem.initialize(currentUser);
+        }
+        
+        // Initialize Navigation Manager
+        this.navigationManager = new NavigationManager();
+        
+        // Check online status
+        this.checkOnlineStatus();
+        
+        // Initialize service worker for offline capability
+        this.initServiceWorker();
+        
+        console.log('✅ Smart Attendance System initialized successfully');
+    }
+
+    checkOnlineStatus() {
+        const updateOnlineStatus = () => {
+            const isOnline = navigator.onLine;
+            const statusElement = document.getElementById('onlineStatus');
+            if (statusElement) {
+                statusElement.textContent = isOnline ? 'Online' : 'Offline';
+                statusElement.className = `status-indicator ${isOnline ? 'online' : 'offline'}`;
+            }
+        };
+
+        window.addEventListener('online', updateOnlineStatus);
+        window.addEventListener('offline', updateOnlineStatus);
+        updateOnlineStatus();
+    }
+
+    initServiceWorker() {
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/service-worker.js')
+                .then(registration => {
+                    console.log('ServiceWorker registered:', registration);
+                })
+                .catch(error => {
+                    console.log('ServiceWorker registration failed:', error);
+                });
+        }
     }
 }
 
