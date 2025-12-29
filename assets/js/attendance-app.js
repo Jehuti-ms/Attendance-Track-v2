@@ -347,12 +347,13 @@ class AttendanceApp {
         
         this.state = {
             currentUser: null,
-            isOnline: navigator.onLine
+            isOnline: navigator.onLine,
+            resizeListenerInitialized: false
         };
 
         this.user = null;
-        this.firebaseService = new FirebaseService();
-        this.attendanceSystem = new AttendanceSystem();
+        this.firebaseService = null; // Will be initialized only when needed
+        this.attendanceSystem = null; // Will be initialized only when needed
         this.navigationManager = null;
         
         // Initialize app
@@ -366,7 +367,7 @@ class AttendanceApp {
             // Check authentication
             const authResult = await this.checkAuth();
             const currentPage = this.getCurrentPage();
-            const publicPages = ['index', 'login'];
+            const publicPages = ['index', 'login', ''];
             
             if (!authResult.success && !publicPages.includes(currentPage)) {
                 window.location.href = 'index.html';
@@ -378,7 +379,10 @@ class AttendanceApp {
                 this.state.currentUser = authResult.user;
                 
                 // Initialize services
+                this.firebaseService = new FirebaseService();
                 await this.firebaseService.init();
+                
+                this.attendanceSystem = new AttendanceSystem();
                 this.attendanceSystem.initialize(this.user);
                 
                 // Store globally for modules to access
@@ -393,6 +397,9 @@ class AttendanceApp {
             
             // Update user status in sidebar
             this.updateUserStatus();
+            
+            // Setup UI components
+            this.setupUIComponents();
             
             console.log('✅ Smart Attendance System initialized successfully');
             
@@ -440,6 +447,7 @@ class AttendanceApp {
             return { success: true, user };
         } catch (error) {
             console.error("❌ Error in checkAuth:", error);
+            localStorage.removeItem('attendance_user');
             return { success: false, user: null };
         }
     }
@@ -452,17 +460,22 @@ class AttendanceApp {
             return;
         }
         
-        const currentPage = this.state.currentPage;
+        const currentPage = this.getCurrentPage();
         console.log(`📄 Loading content for: ${currentPage}`);
         
         try {
             appContainer.innerHTML = '';
             
-            if (this.modules[currentPage]) {
+            // Note: You mentioned 'modules' property but it's not defined in the class
+            // I'll comment this out for now. If you need modules functionality, you should define it.
+            /*
+            if (this.modules && this.modules[currentPage]) {
                 this.modules[currentPage].render(appContainer);
             } else {
+            */
                 switch(currentPage) {
                     case 'index':
+                    case '':
                         await this.loadIndexContent(appContainer);
                         break;
                     case 'login':
@@ -471,7 +484,9 @@ class AttendanceApp {
                     default:
                         this.showPageNotFound(appContainer);
                 }
+            /*
             }
+            */
         } catch (error) {
             console.error(`❌ Error loading ${currentPage} content:`, error);
             this.showError(`Failed to load ${currentPage} page`);
@@ -565,7 +580,8 @@ class AttendanceApp {
             lastLogin: new Date().toISOString()
         };
         
-        Storage.set('attendance_user', user);
+        // Fixed: Changed Storage.set to localStorage.setItem
+        localStorage.setItem('attendance_user', JSON.stringify(user));
         this.user = user;
         this.state.currentUser = user;
         
@@ -601,7 +617,8 @@ class AttendanceApp {
             lastLogin: new Date().toISOString()
         };
         
-        Storage.set('attendance_user', demoUser);
+        // Fixed: Changed Storage.set to localStorage.setItem
+        localStorage.setItem('attendance_user', JSON.stringify(demoUser));
         this.user = demoUser;
         this.state.currentUser = demoUser;
         
@@ -675,8 +692,9 @@ class AttendanceApp {
         hamburger.addEventListener('click', () => {
             const navLinks = document.querySelector('.nav-links');
             if (navLinks) {
-                navLinks.style.display = navLinks.style.display === 'none' ? 'flex' : 'none';
-                hamburger.innerHTML = navLinks.style.display === 'none' ? '☰' : '✕';
+                const isHidden = navLinks.style.display === 'none';
+                navLinks.style.display = isHidden ? 'flex' : 'none';
+                hamburger.innerHTML = isHidden ? '✕' : '☰';
             }
         });
     }
@@ -710,7 +728,7 @@ class AttendanceApp {
     }
     
     redirectTo(page) {
-        window.location.href = this.getBasePath() + page;
+        window.location.href = page.includes('.html') ? page : `${page}.html`;
     }
     
     showToast(message, type = 'info') {
@@ -742,8 +760,7 @@ class AttendanceApp {
     
     initServiceWorker() {
         if ('serviceWorker' in navigator) {
-            const basePath = this.getBasePath();
-            navigator.serviceWorker.register(`${basePath}service-worker.js`)
+            navigator.serviceWorker.register('service-worker.js')
                 .then(registration => {
                     console.log('✅ Service Worker registered:', registration.scope);
                 })
@@ -751,6 +768,13 @@ class AttendanceApp {
                     console.warn('⚠️ Service Worker registration failed:', error);
                 });
         }
+    }
+    
+    getBasePath() {
+        // Helper method to get base path if needed
+        return window.location.pathname.includes('/') 
+            ? window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1)
+            : './';
     }
 }
 
