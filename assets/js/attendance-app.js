@@ -347,89 +347,83 @@ class AttendanceApp {
         
         this.state = {
             currentUser: null,
-            currentPage: this.getCurrentPage(),
-            isOnline: navigator.onLine,
-            navLinksElement: null,
-            hamburgerElement: null,
-            resizeListenerInitialized: false
+            isOnline: navigator.onLine
         };
 
         this.user = null;
-        this.modules = {};
+        this.firebaseService = new FirebaseService();
+        this.attendanceSystem = new AttendanceSystem();
+        this.navigationManager = null;
         
+        // Initialize app
         this.init();
+    }
+    
+    async init() {
+        console.log('🚀 Initializing Smart Attendance System...');
+        
+        try {
+            // Check authentication
+            const authResult = await this.checkAuth();
+            const currentPage = this.getCurrentPage();
+            const publicPages = ['index', 'login'];
+            
+            if (!authResult.success && !publicPages.includes(currentPage)) {
+                window.location.href = 'index.html';
+                return;
+            }
+            
+            if (authResult.success) {
+                this.user = authResult.user;
+                this.state.currentUser = authResult.user;
+                
+                // Initialize services
+                await this.firebaseService.init();
+                this.attendanceSystem.initialize(this.user);
+                
+                // Store globally for modules to access
+                window.firebaseService = this.firebaseService;
+                window.attendanceSystem = this.attendanceSystem;
+                window.currentUser = this.user;
+            }
+            
+            // Initialize navigation (renders everything)
+            this.navigationManager = new NavigationManager();
+            window.navigationManager = this.navigationManager;
+            
+            // Update user status in sidebar
+            this.updateUserStatus();
+            
+            console.log('✅ Smart Attendance System initialized successfully');
+            
+        } catch (error) {
+            console.error('❌ Error initializing app:', error);
+            this.showError('Failed to initialize application');
+        }
     }
     
     getCurrentPage() {
         const path = window.location.pathname;
-        let page = path.split('/').pop() || 'index.html';
+        let page = path.split('/').pop() || 'dashboard.html';
         page = page.replace('.html', '').split('?')[0];
-        
-        if (page === '' || page === '/' || page === 'index') {
-            return 'index';
-        }
-        
-        return page;
+        return page === '' ? 'dashboard' : page;
     }
-
-    getBasePath() {
-        const pathname = window.location.pathname;
-        if (pathname.includes('/Attendance-Track-v2/')) {
-            return '/Attendance-Track-v2/';
-        } else if (pathname === '/Attendance-Track-v2' || pathname.endsWith('/Attendance-Track-v2/')) {
-            return '/Attendance-Track-v2/';
-        }
-        return '/';
-    }
-
-    async init() {
-        console.log('🚀 Initializing AttendanceApp...');
+    
+    updateUserStatus() {
+        if (!this.user) return;
         
-        try {
-            const currentPage = this.state.currentPage;
-            const authResult = await this.checkAuth();
-            const hasUser = authResult.success;
-            const publicPages = ['index', 'login'];
-            const isPublicPage = publicPages.includes(currentPage);
-            
-            // Handle routing logic
-            if (hasUser && isPublicPage) {
-                window.location.replace('dashboard.html');
-                return;
-            }
-            
-            if (!hasUser && !isPublicPage && currentPage !== 'setup') {
-                window.location.replace('index.html');
-                return;
-            }
-            
-            if (hasUser) {
-                this.user = authResult.user;
-                this.state.currentUser = authResult.user;
-            } else {
-                this.user = null;
-                this.state.currentUser = null;
-            }
-            
-            // Initialize modules
-            this.modules = {
-                dashboard: new DashboardModule(this),
-                attendance: new AttendanceModule(this),
-                reports: new ReportsModule(this),
-                setup: new SetupModule(this),
-                settings: new SettingsModule(this)
-            };
-            
-            await this.loadPageContent();
-            this.setupUIComponents();
-            this.initServiceWorker();
-            
-            console.log('✅ AttendanceApp initialized successfully');
-            
-        } catch (error) {
-            console.error('❌ Error initializing app:', error);
-            this.showError(error.message);
-        }
+        const userStatus = document.getElementById('navUserStatus');
+        if (!userStatus) return;
+        
+        userStatus.innerHTML = `
+            <div class="status-content">
+                <i class="fas fa-user-circle"></i>
+                <div class="user-info">
+                    <div class="user-name">${this.user.name || this.user.email}</div>
+                    <div class="user-role">${this.user.role || 'Teacher'}</div>
+                </div>
+            </div>
+        `;
     }
     
     async checkAuth() {
@@ -759,6 +753,11 @@ class AttendanceApp {
         }
     }
 }
+
+// Initialize app when DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+    window.app = new AttendanceApp();
+});
 
 // ==================== DASHBOARD MODULE ====================
 class DashboardModule {
@@ -3527,154 +3526,154 @@ class SettingsModule {
 // ==================== NAVIGATION MANAGER ====================
 class NavigationManager {
     constructor() {
-        this.currentModule = null;
-        this.modules = {};
-        this.navLinks = {};
+        this.currentPage = this.getCurrentPage();
+        this.user = null;
         this.init();
     }
 
     init() {
+        console.log('🚀 NavigationManager initializing for page:', this.currentPage);
+        
+        // First, render the entire page structure
+        this.renderPageLayout();
+        
+        // Then setup event listeners
         this.setupEventListeners();
-        this.setupModuleLinks();
+        
+        // Highlight current page
+        this.updateActiveNav();
     }
 
-    setupEventListeners() {
-        // Hamburger menu toggle
-        const hamburgerBtn = document.getElementById('hamburgerBtn');
-        const sidebar = document.getElementById('sidebar');
+    getCurrentPage() {
+        const path = window.location.pathname;
+        let page = path.split('/').pop() || 'dashboard.html';
+        page = page.replace('.html', '').split('?')[0];
         
-        if (hamburgerBtn) {
-            hamburgerBtn.addEventListener('click', () => {
-                sidebar.classList.toggle('active');
-            });
+        // Default to dashboard if empty
+        if (page === '' || page === 'index') {
+            return 'dashboard';
         }
+        
+        return page;
+    }
 
-        // Close sidebar when clicking outside on mobile
-        document.addEventListener('click', (e) => {
-            if (window.innerWidth <= 768) {
-                const isClickInsideSidebar = sidebar.contains(e.target);
-                const isClickOnHamburger = hamburgerBtn.contains(e.target);
+    renderPageLayout() {
+        const appRoot = document.getElementById('app-root');
+        if (!appRoot) {
+            console.error('❌ app-root element not found!');
+            return;
+        }
+        
+        // Render the complete page structure
+        appRoot.innerHTML = `
+            <div class="app-wrapper">
+                <!-- Sidebar Navigation -->
+                <aside class="app-sidebar" id="sidebar">
+                    ${this.renderSidebar()}
+                </aside>
                 
-                if (!isClickInsideSidebar && !isClickOnHamburger && sidebar.classList.contains('active')) {
-                    sidebar.classList.remove('active');
-                }
-            }
-        });
-
-        // Handle window resize
-        window.addEventListener('resize', () => {
-            if (window.innerWidth > 768) {
-                sidebar.classList.remove('active');
-            }
-        });
-    }
-
-    setupModuleLinks() {
-        // Map module names to their container IDs
-        this.modules = {
-            'dashboard': document.getElementById('dashboardModule'),
-            'attendance': document.getElementById('attendanceModule'),
-            'setup': document.getElementById('setupModule'),
-            'reports': document.getElementById('reportsModule'),
-            'settings': document.getElementById('settingsModule')
-        };
-
-        // Get all navigation links
-        this.navLinks = {
-            'dashboard': document.getElementById('navDashboard'),
-            'attendance': document.getElementById('navAttendance'),
-            'setup': document.getElementById('navSetup'),
-            'reports': document.getElementById('navReports'),
-            'settings': document.getElementById('navSettings')
-        };
-
-        // Add click events to all nav links
-        Object.keys(this.navLinks).forEach(moduleName => {
-            const link = this.navLinks[moduleName];
-            if (link) {
-                link.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    this.switchModule(moduleName);
-                    if (window.innerWidth <= 768) {
-                        document.getElementById('sidebar').classList.remove('active');
-                    }
-                });
-            }
-        });
-
-        // Add event listeners to dashboard cards (if they exist)
-        setTimeout(() => {
-            const quickAttendanceCard = document.getElementById('quickAttendanceCard');
-            const manageClassesCard = document.getElementById('manageClassesCard');
-            const viewReportsCard = document.getElementById('viewReportsCard');
-
-            if (quickAttendanceCard) {
-                quickAttendanceCard.addEventListener('click', () => {
-                    this.switchModule('attendance');
-                });
-            }
-
-            if (manageClassesCard) {
-                manageClassesCard.addEventListener('click', () => {
-                    this.switchModule('setup');
-                });
-            }
-
-            if (viewReportsCard) {
-                viewReportsCard.addEventListener('click', () => {
-                    this.switchModule('reports');
-                });
-            }
-        }, 100);
-
-        // Set default module
-        this.switchModule('dashboard');
-    }
-
-    switchModule(moduleName) {
-        console.log(`🔄 Switching to module: ${moduleName}`);
+                <!-- Main Content Area -->
+                <main class="app-main">
+                    <!-- Top Header -->
+                    <header class="app-header">
+                        ${this.renderHeader()}
+                    </header>
+                    
+                    <!-- Page Content Container -->
+                    <div class="page-content" id="page-content">
+                        <div class="loading-state">
+                            <div class="loading-spinner"></div>
+                            <p>Loading ${this.currentPage}...</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Footer -->
+                    <footer class="app-footer">
+                        <p>&copy; ${new Date().getFullYear()} Smart Attendance System</p>
+                    </footer>
+                </main>
+            </div>
+        `;
         
-        // Hide all modules
-        Object.values(this.modules).forEach(module => {
-            if (module) {
-                module.style.display = 'none';
-                module.classList.remove('active');
-            }
-        });
-
-        // Remove active class from all nav links
-        Object.values(this.navLinks).forEach(link => {
-            if (link) link.classList.remove('active');
-        });
-
-        // Show selected module
-        if (this.modules[moduleName]) {
-            this.modules[moduleName].style.display = 'block';
-            this.modules[moduleName].classList.add('active');
-            this.currentModule = moduleName;
-            
-            // Update page title
-            document.title = `Smart Attendance - ${this.getModuleTitle(moduleName)}`;
-            
-            // Update active nav link
-            if (this.navLinks[moduleName]) {
-                this.navLinks[moduleName].classList.add('active');
-            }
-
-            // Update header title
-            const pageTitle = document.querySelector('.header h1');
-            if (pageTitle) {
-                pageTitle.textContent = this.getModuleTitle(moduleName);
-            }
-
-            // Initialize module-specific functionality
-            this.initializeModule(moduleName);
-        } else {
-            console.error(`Module ${moduleName} not found!`);
-        }
+        // Now load the specific page content
+        this.loadPageContent();
     }
 
-    getModuleTitle(moduleName) {
+    renderSidebar() {
+        return `
+            <div class="sidebar-header">
+                <h2>📊 Smart Attendance</h2>
+                <p class="subtitle">Manage attendance effortlessly</p>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <ul class="nav-menu">
+                    <li>
+                        <a href="#" data-page="dashboard" class="nav-link ${this.currentPage === 'dashboard' ? 'active' : ''}">
+                            <i class="fas fa-tachometer-alt"></i>
+                            <span>Dashboard</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" data-page="attendance" class="nav-link ${this.currentPage === 'attendance' ? 'active' : ''}">
+                            <i class="fas fa-clipboard-check"></i>
+                            <span>Take Attendance</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" data-page="setup" class="nav-link ${this.currentPage === 'setup' ? 'active' : ''}">
+                            <i class="fas fa-cogs"></i>
+                            <span>Class Setup</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" data-page="reports" class="nav-link ${this.currentPage === 'reports' ? 'active' : ''}">
+                            <i class="fas fa-chart-bar"></i>
+                            <span>Reports</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" data-page="settings" class="nav-link ${this.currentPage === 'settings' ? 'active' : ''}">
+                            <i class="fas fa-sliders-h"></i>
+                            <span>Settings</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <div class="user-status" id="navUserStatus">
+                    <div class="status-content">
+                        <i class="fas fa-user"></i>
+                        <span>Loading user...</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    renderHeader() {
+        return `
+            <div class="header-left">
+                <button class="sidebar-toggle" id="sidebarToggle">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <h1 class="page-title">${this.getPageTitle()}</h1>
+            </div>
+            
+            <div class="header-right">
+                <div class="online-status" id="onlineStatus">
+                    <span class="status-dot"></span>
+                    <span class="status-text">Online</span>
+                </div>
+                <button class="btn-logout" id="logoutBtn" title="Logout">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
+            </div>
+        `;
+    }
+
+    getPageTitle() {
         const titles = {
             'dashboard': 'Dashboard',
             'attendance': 'Take Attendance',
@@ -3682,77 +3681,135 @@ class NavigationManager {
             'reports': 'Reports',
             'settings': 'Settings'
         };
-        return titles[moduleName] || 'Smart Attendance';
+        return titles[this.currentPage] || 'Smart Attendance';
     }
 
-    initializeModule(moduleName) {
-        console.log(`🚀 Initializing module: ${moduleName}`);
+    async loadPageContent() {
+        const contentContainer = document.getElementById('page-content');
+        if (!contentContainer) return;
         
-        // Get module instance from window object
-        switch(moduleName) {
-            case 'dashboard':
-                if (window.dashboardModule) {
-                    // First render the content, then load data
-                    if (typeof window.dashboardModule.render === 'function') {
-                        window.dashboardModule.render();
-                    } else {
-                        console.error('DashboardModule.render() method not found!');
-                    }
-                } else {
-                    console.error('DashboardModule not found in window object!');
-                }
-                break;
+        console.log(`📄 Loading content for: ${this.currentPage}`);
+        
+        try {
+            // Create appropriate module instance
+            let moduleInstance;
+            
+            switch(this.currentPage) {
+                case 'dashboard':
+                    moduleInstance = new DashboardModule(window.firebaseService, window.attendanceSystem);
+                    break;
+                case 'attendance':
+                    moduleInstance = new AttendanceModule(window.firebaseService, window.attendanceSystem);
+                    break;
+                case 'setup':
+                    moduleInstance = new SetupModule(window.firebaseService);
+                    break;
+                case 'reports':
+                    moduleInstance = new ReportsModule(window.firebaseService, window.attendanceSystem);
+                    break;
+                case 'settings':
+                    moduleInstance = new SettingsModule(window.firebaseService);
+                    break;
+                default:
+                    contentContainer.innerHTML = '<div class="error">Page not found</div>';
+                    return;
+            }
+            
+            // Render the module content
+            if (moduleInstance && typeof moduleInstance.render === 'function') {
+                contentContainer.innerHTML = moduleInstance.render();
                 
-            case 'attendance':
-                if (window.attendanceModule) {
-                    if (typeof window.attendanceModule.render === 'function') {
-                        window.attendanceModule.render();
-                    } else {
-                        console.error('AttendanceModule.render() method not found!');
-                    }
-                } else {
-                    console.error('AttendanceModule not found in window object!');
+                // Initialize the module
+                if (typeof moduleInstance.initialize === 'function') {
+                    await moduleInstance.initialize();
                 }
-                break;
-                
-            case 'setup':
-                if (window.setupModule) {
-                    if (typeof window.setupModule.render === 'function') {
-                        window.setupModule.render();
-                    } else {
-                        console.error('SetupModule.render() method not found!');
-                    }
-                } else {
-                    console.error('SetupModule not found in window object!');
-                }
-                break;
-                
-            case 'reports':
-                if (window.reportsModule) {
-                    if (typeof window.reportsModule.render === 'function') {
-                        window.reportsModule.render();
-                    } else {
-                        console.error('ReportsModule.render() method not found!');
-                    }
-                } else {
-                    console.error('ReportsModule not found in window object!');
-                }
-                break;
-                
-            case 'settings':
-                if (window.settingsModule) {
-                    if (typeof window.settingsModule.render === 'function') {
-                        window.settingsModule.render();
-                    } else {
-                        console.error('SettingsModule.render() method not found!');
-                    }
-                } else {
-                    console.error('SettingsModule not found in window object!');
-                }
-                break;
-                
-            default:
-                console.error(`Unknown module: ${moduleName}`);
+            }
+            
+        } catch (error) {
+            console.error('Error loading page content:', error);
+            contentContainer.innerHTML = `
+                <div class="error">
+                    <h3>Error Loading Page</h3>
+                    <p>${error.message}</p>
+                    <button onclick="location.reload()">Reload Page</button>
+                </div>
+            `;
+        }
+    }
+
+    setupEventListeners() {
+        // Sidebar toggle for mobile
+        const sidebarToggle = document.getElementById('sidebarToggle');
+        const sidebar = document.getElementById('sidebar');
+        
+        if (sidebarToggle && sidebar) {
+            sidebarToggle.addEventListener('click', () => {
+                sidebar.classList.toggle('collapsed');
+            });
+        }
+        
+        // Navigation links
+        document.querySelectorAll('.nav-link[data-page]').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const page = link.getAttribute('data-page');
+                this.navigateTo(page);
+            });
+        });
+        
+        // Logout button
+        const logoutBtn = document.getElementById('logoutBtn');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.handleLogout();
+            });
+        }
+        
+        // Online/offline status
+        window.addEventListener('online', () => this.updateOnlineStatus(true));
+        window.addEventListener('offline', () => this.updateOnlineStatus(false));
+        this.updateOnlineStatus(navigator.onLine);
+    }
+
+    navigateTo(page) {
+        if (page === this.currentPage) return; // Already on this page
+        
+        console.log(`🔄 Navigating to: ${page}`);
+        
+        // Update URL without full page reload if using SPA-style
+        // OR do a full page navigation to the HTML file
+        window.location.href = `${page}.html`;
+    }
+
+    updateActiveNav() {
+        document.querySelectorAll('.nav-link').forEach(link => {
+            const page = link.getAttribute('data-page');
+            if (page === this.currentPage) {
+                link.classList.add('active');
+            } else {
+                link.classList.remove('active');
+            }
+        });
+    }
+
+    updateOnlineStatus(isOnline) {
+        const statusElement = document.getElementById('onlineStatus');
+        if (!statusElement) return;
+        
+        const dot = statusElement.querySelector('.status-dot');
+        const text = statusElement.querySelector('.status-text');
+        
+        if (dot && text) {
+            dot.className = 'status-dot ' + (isOnline ? 'online' : 'offline');
+            text.textContent = isOnline ? 'Online' : 'Offline';
+        }
+    }
+
+    async handleLogout() {
+        if (confirm('Are you sure you want to logout?')) {
+            localStorage.removeItem('attendance_user');
+            window.location.href = 'index.html';
         }
     }
 }
