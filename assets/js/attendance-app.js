@@ -348,7 +348,8 @@ class AttendanceApp {
         this.state = {
             currentUser: null,
             isOnline: navigator.onLine,
-            resizeListenerInitialized: false
+            resizeListenerInitialized: false,
+            currentPage: this.getCurrentPage()
         };
 
         this.user = null;
@@ -356,6 +357,7 @@ class AttendanceApp {
         this.attendanceSystem = null;
         this.navigationManager = null;
         
+        // Initialize app
         this.init();
     }
     
@@ -363,6 +365,7 @@ class AttendanceApp {
         console.log('🚀 Initializing Smart Attendance System...');
         
         try {
+            // Check authentication
             const authResult = await this.checkAuth();
             const currentPage = this.getCurrentPage();
             const publicPages = ['index', 'login', ''];
@@ -376,24 +379,28 @@ class AttendanceApp {
                 this.user = authResult.user;
                 this.state.currentUser = authResult.user;
                 
+                // Initialize services
                 this.firebaseService = new FirebaseService();
                 await this.firebaseService.init();
                 
                 this.attendanceSystem = new AttendanceSystem();
                 this.attendanceSystem.initialize(this.user);
                 
+                // Store globally for modules to access
                 window.firebaseService = this.firebaseService;
                 window.attendanceSystem = this.attendanceSystem;
                 window.currentUser = this.user;
             }
             
+            // Initialize navigation
             this.navigationManager = new NavigationManager();
             window.navigationManager = this.navigationManager;
             
+            // Update UI
             this.updateUserStatus();
             this.setupUIComponents();
             
-            // Load page-specific content if needed
+            // Load page content
             await this.loadPageContent();
             
             console.log('✅ Smart Attendance System initialized successfully');
@@ -455,7 +462,7 @@ class AttendanceApp {
             return;
         }
         
-        const currentPage = this.getCurrentPage();
+        const currentPage = this.state.currentPage;
         console.log(`📄 Loading content for: ${currentPage}`);
         
         try {
@@ -558,36 +565,73 @@ class AttendanceApp {
     async loadDashboardContent(container) {
         container.innerHTML = `
             <div class="dashboard-container">
-                <h1>Dashboard</h1>
-                <div class="dashboard-grid">
-                    <div class="card">
-                        <h3>Today's Attendance</h3>
-                        <div class="stat-value">--</div>
-                        <p>Students present today</p>
+                <h1>Welcome, ${this.user?.name || 'Teacher'}</h1>
+                
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">🏫</div>
+                        <div class="stat-content">
+                            <div class="stat-value" id="total-classes">0</div>
+                            <div class="stat-label">Total Classes</div>
+                        </div>
                     </div>
-                    <div class="card">
-                        <h3>This Week</h3>
-                        <div class="stat-value">--</div>
-                        <p>Average attendance</p>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon">👨‍🎓</div>
+                        <div class="stat-content">
+                            <div class="stat-value" id="total-students">0</div>
+                            <div class="stat-label">Total Students</div>
+                        </div>
                     </div>
-                    <div class="card">
-                        <h3>Classes</h3>
-                        <div class="stat-value">--</div>
-                        <p>Active classes</p>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon">📊</div>
+                        <div class="stat-content">
+                            <div class="stat-value" id="total-sessions">0</div>
+                            <div class="stat-label">Sessions</div>
+                        </div>
                     </div>
-                    <div class="card">
-                        <h3>Students</h3>
-                        <div class="stat-value">--</div>
-                        <p>Total students</p>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon">📈</div>
+                        <div class="stat-content">
+                            <div class="stat-value" id="attendance-rate">0%</div>
+                            <div class="stat-label">Today's Rate</div>
+                        </div>
                     </div>
                 </div>
-                <div class="dashboard-actions">
-                    <button onclick="window.app.loadDashboardData()" class="btn btn-primary">
-                        Load Dashboard Data
-                    </button>
+                
+                <div class="dashboard-sections">
+                    <div class="section">
+                        <h2>Recent Activity</h2>
+                        <div id="recent-activity" class="activity-list">
+                            <div class="activity-placeholder">No recent activity</div>
+                        </div>
+                    </div>
+                    
+                    <div class="section">
+                        <h2>Quick Actions</h2>
+                        <div class="quick-actions">
+                            <button onclick="window.app.navigateTo('take-attendance')" class="action-btn primary">
+                                <i class="fas fa-clipboard-check"></i>
+                                Take Attendance
+                            </button>
+                            <button onclick="window.app.navigateTo('manage-classes')" class="action-btn secondary">
+                                <i class="fas fa-chalkboard-teacher"></i>
+                                Manage Classes
+                            </button>
+                            <button onclick="window.app.loadDashboardData()" class="action-btn tertiary">
+                                <i class="fas fa-sync"></i>
+                                Refresh Data
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
         `;
+        
+        // Load data after rendering
+        await this.loadDashboardData();
     }
     
     async handleLogin() {
@@ -738,8 +782,8 @@ class AttendanceApp {
         
         this.state.resizeListenerInitialized = true;
         
-        // Trigger once on init
-        window.dispatchEvent(new Event('resize'));
+        // Trigger resize event to set initial state
+        setTimeout(() => window.dispatchEvent(new Event('resize')), 100);
     }
     
     showPageNotFound(container) {
@@ -750,6 +794,12 @@ class AttendanceApp {
                 <a href="index.html" class="btn btn-primary">Go Home</a>
             </div>
         `;
+    }
+    
+    navigateTo(page) {
+        console.log(`Navigating to: ${page}`);
+        // This would be handled by your navigation manager
+        this.showToast(`Navigating to ${page}...`, 'info');
     }
     
     redirectTo(page) {
@@ -770,12 +820,14 @@ class AttendanceApp {
             border-radius: 4px;
             z-index: 10000;
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            animation: slideIn 0.3s ease-out;
         `;
         
         document.body.appendChild(toast);
         
         setTimeout(() => {
-            toast.remove();
+            toast.style.animation = 'slideOut 0.3s ease-out forwards';
+            setTimeout(() => toast.remove(), 300);
         }, 3000);
     }
     
@@ -783,35 +835,60 @@ class AttendanceApp {
         this.showToast(message, 'error');
     }
     
-    // ==================== DASHBOARD FUNCTIONS ====================
+    // ==================== DASHBOARD METHODS ====================
+    
+    loadStats() {
+        console.log('Loading dashboard stats...');
+        // Your existing stats loading code
+        // This could be called from loadDashboardData or separately
+    }
+    
+    loadRecentAttendance() {
+        console.log('Loading recent attendance...');
+        // Your existing recent attendance loading code
+    }
     
     async loadDashboardData() {
-        console.log('📊 Loading dashboard data...');
-        
         try {
-            if (!this.user) {
-                this.showError('Please login first');
-                return;
+            console.log('📊 Loading dashboard data...');
+            
+            // Use Storage helper if available, otherwise use localStorage directly
+            const Storage = window.Storage || {
+                get: (key) => {
+                    const item = localStorage.getItem(key);
+                    return item ? JSON.parse(item) : [];
+                }
+            };
+            
+            const classes = Storage.get('classes') || [];
+            const students = Storage.get('students') || [];
+            const attendance = Storage.get('attendance') || [];
+            
+            // Update stats
+            document.getElementById('total-classes').textContent = classes.length;
+            document.getElementById('total-students').textContent = students.length;
+            document.getElementById('total-sessions').textContent = attendance.length;
+            
+            // Calculate today's attendance rate
+            const today = new Date().toISOString().split('T')[0];
+            const todayAttendance = attendance.filter(a => a.date === today);
+            
+            let rate = 0;
+            if (todayAttendance.length > 0) {
+                const totalPresent = todayAttendance.reduce((sum, a) => sum + (a.totalPresent || 0), 0);
+                const totalStudents = todayAttendance.reduce((sum, a) => sum + (a.totalStudents || 0), 0);
+                rate = totalStudents > 0 ? Math.round((totalPresent / totalStudents) * 100) : 0;
             }
+            document.getElementById('attendance-rate').textContent = `${rate}%`;
             
-            this.showToast('Loading dashboard data...', 'info');
+            // Load recent activity
+            this.loadRecentActivity(attendance);
             
-            // Simulate loading data
-            const todayAttendance = 45;
-            const weekAverage = '92%';
-            const activeClasses = 6;
-            const totalStudents = 150;
+            // Call other load methods
+            this.loadStats();
+            this.loadRecentAttendance();
             
-            // Update dashboard UI
-            const stats = document.querySelectorAll('.stat-value');
-            if (stats.length >= 4) {
-                stats[0].textContent = todayAttendance;
-                stats[1].textContent = weekAverage;
-                stats[2].textContent = activeClasses;
-                stats[3].textContent = totalStudents;
-            }
-            
-            this.showToast('Dashboard data loaded!', 'success');
+            console.log('✅ Dashboard data loaded successfully');
             
         } catch (error) {
             console.error('❌ Error loading dashboard data:', error);
@@ -819,13 +896,70 @@ class AttendanceApp {
         }
     }
     
-    // ==================== SERVICE WORKER ====================
+    loadRecentActivity(attendance) {
+        try {
+            const container = document.getElementById('recent-activity');
+            if (!container) return;
+            
+            if (!attendance || attendance.length === 0) {
+                container.innerHTML = `
+                    <div class="activity-placeholder">
+                        <i class="fas fa-calendar-times"></i>
+                        <p>No attendance records yet</p>
+                        <button onclick="window.app.navigateTo('take-attendance')" class="btn btn-sm btn-primary">
+                            Take First Attendance
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Sort by date (newest first) and take last 5
+            const recent = [...attendance]
+                .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0))
+                .slice(0, 5);
+            
+            container.innerHTML = recent.map(item => `
+                <div class="activity-item">
+                    <div class="activity-icon">
+                        <i class="fas fa-clipboard-check"></i>
+                    </div>
+                    <div class="activity-details">
+                        <div class="activity-title">${item.className || 'Class'} Attendance</div>
+                        <div class="activity-info">
+                            <span class="activity-date">${this.formatDate(item.date)}</span>
+                            <span class="activity-stats">${item.totalPresent || 0}/${item.totalStudents || 0} present</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+            
+        } catch (error) {
+            console.error('❌ Error loading recent activity:', error);
+        }
+    }
+    
+    formatDate(dateString) {
+        if (!dateString) return 'Unknown date';
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', { 
+            month: 'short', 
+            day: 'numeric',
+            year: 'numeric'
+        });
+    }
+    
+    // ==================== SERVICE WORKER INITIALIZATION ====================
     
     initServiceWorker() {
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('service-worker.js')
                 .then(registration => {
                     console.log('✅ Service Worker registered:', registration.scope);
+                    // Check for updates
+                    registration.addEventListener('updatefound', () => {
+                        console.log('🔄 Service Worker update found');
+                    });
                 })
                 .catch(error => {
                     console.warn('⚠️ Service Worker registration failed:', error);
@@ -837,7 +971,26 @@ class AttendanceApp {
 // Initialize app when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
     window.app = new AttendanceApp();
+    
+    // Add CSS for animations
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes slideOut {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
+        }
+    `;
+    document.head.appendChild(style);
 });
+
+// Make app accessible globally
+window.AttendanceApp = AttendanceApp;
+    
+    
 
 // ==================== DASHBOARD MODULE ====================
 class DashboardModule {
