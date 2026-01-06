@@ -993,7 +993,7 @@ window.AttendanceApp = AttendanceApp;
     
 
 // ==================== DASHBOARD MODULE ====================
-class DashboardModule {
+/*class DashboardModule {
     constructor(firebaseService, attendanceSystem) {
         this.firebaseService = firebaseService;
         this.attendanceSystem = attendanceSystem;
@@ -1067,7 +1067,7 @@ class DashboardModule {
         // Setup event listeners for quick action cards
         this.setupQuickActions();
     }
-
+*/
     // ADD THIS METHOD
     setupQuickActions() {
         const quickAttendanceCard = document.getElementById('quickAttendanceCard');
@@ -1112,33 +1112,7 @@ class DashboardModule {
         console.log('Loading recent attendance...');
     }
 }
-    
-    async loadDashboardData() {
-        try {
-            const classes = Storage.get('classes') || [];
-            const students = Storage.get('students') || [];
-            const attendance = Storage.get('attendance') || [];
-            
-            document.getElementById('total-classes').textContent = classes.length;
-            document.getElementById('total-students').textContent = students.length;
-            document.getElementById('total-sessions').textContent = attendance.length;
-            
-            const today = new Date().toISOString().split('T')[0];
-            const todayAttendance = attendance.filter(a => a.date === today);
-            if (todayAttendance.length > 0) {
-                const totalPresent = todayAttendance.reduce((sum, a) => sum + (a.totalPresent || 0), 0);
-                const totalStudents = todayAttendance.reduce((sum, a) => sum + (a.totalStudents || 0), 0);
-                const rate = totalStudents > 0 ? Math.round((totalPresent / totalStudents) * 100) : 0;
-                document.getElementById('attendance-rate').textContent = `${rate}%`;
-            }
-            
-            this.loadRecentActivity(attendance);
-            
-        } catch (error) {
-            console.error('Error loading dashboard data:', error);
-        }
-    }
-    
+       
     loadRecentActivity(attendance) {
         const activityList = document.getElementById('recent-activity');
         if (!activityList) return;
