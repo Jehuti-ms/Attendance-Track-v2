@@ -34,16 +34,38 @@
     
     <!-- Optional: Simple logout script -->
     <script>
-        function logout() {
-            if (confirm('Are you sure you want to logout?')) {
-                localStorage.removeItem('attendance_user');
-                window.location.href = 'index.html';
+    document.addEventListener('DOMContentLoaded', async function() {
+        try {
+            // Wait for app to be loaded
+            while (!window.app) {
+                await new Promise(resolve => setTimeout(resolve, 100));
             }
+            
+            // Check authentication
+            const isAuthenticated = await window.app.checkAuth();
+            if (!isAuthenticated) {
+                window.location.href = 'login.html';
+                return;
+            }
+            
+            // Load header and footer
+            window.app.loadHeader(document.getElementById('header-container'));
+            window.app.loadFooter(document.getElementById('footer-container'));
+            
+            // Load DASHBOARD content (not attendance)
+            window.app.loadPageContent(document.getElementById('app-container'));
+            
+        } catch (error) {
+            console.error('Error loading dashboard page:', error);
+            document.getElementById('app-container').innerHTML = `
+                <div class="error-state">
+                    <h3>Error Loading Dashboard</h3>
+                    <p>${error.message}</p>
+                    <a href="login.html" class="btn-primary">Go to Login</a>
+                </div>
+            `;
         }
-        
-        // Simple debug
-        console.log('Dashboard HTML loaded');
-        console.log('User:', JSON.parse(localStorage.getItem('attendance_user') || 'null'));
-    </script>
+    });
+</script>
 </body>
 </html>
