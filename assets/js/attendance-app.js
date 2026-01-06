@@ -501,9 +501,57 @@ class AttendanceApp {
         window.location.href = './attendance.html';
     }
 
-    async loadReportsPage(container) {
-        window.location.href = './reports.html';
+    // Add this method to your AttendanceApp class in attendance-app.js
+async loadReportsContent(container) {
+    try {
+        console.log('📈 Loading reports content...');
+        
+        if (!container) throw new Error('Container not found');
+        
+        // Show loading state
+        container.innerHTML = `
+            <div class="loading-state">
+                <div class="loading-spinner">
+                    <i class="fas fa-spinner fa-spin"></i>
+                </div>
+                <p>Loading reports...</p>
+            </div>
+        `;
+        
+        // Import and initialize your ReportsModule
+        const { ReportsModule } = await import('./modules/reports.js');
+        const reportsModule = new ReportsModule(this);
+        await reportsModule.init();
+        
+        // Store reference
+        this.modules.reports = reportsModule;
+        
+        console.log('✅ Reports module loaded');
+        
+        // Note: Your ReportsModule should handle the UI rendering
+        // If it doesn't, you might need to add a render() method to it
+        
+    } catch (error) {
+        console.error('Reports content load error:', error);
+        container.innerHTML = `
+            <div class="error-state">
+                <div class="error-icon">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <h3>Error Loading Reports</h3>
+                <p>${error.message}</p>
+                <div class="error-actions">
+                    <button onclick="window.location.reload()" class="btn-primary">
+                        <i class="fas fa-redo"></i> Try Again
+                    </button>
+                    <a href="./dashboard.html" class="btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Back to Dashboard
+                    </a>
+                </div>
+            </div>
+        `;
     }
+}
 
     async loadMaintenancePage(container) {
         window.location.href = './maintenance.html';
