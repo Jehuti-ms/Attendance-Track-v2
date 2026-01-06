@@ -1,12 +1,9 @@
-// attendance-app.js - Main App Integration
-import { Auth } from './firebase.js';
-
+// attendance-app.js - COMPATIBLE VERSION
 class AttendanceApp {
     constructor() {
-        this.auth = Auth;
         this.currentUser = null;
-        this.modules = {};
         this.initialized = false;
+        this.modules = {};
     }
 
     // Main initialization
@@ -22,7 +19,7 @@ class AttendanceApp {
             }
             
             // Get current user
-            this.currentUser = this.auth.getCurrentUser();
+            this.currentUser = this.getCurrentUser();
             
             // Register globally
             window.app = this;
@@ -40,19 +37,20 @@ class AttendanceApp {
     // Check authentication
     async checkAuth() {
         try {
-            // Check Firebase auth
-            const user = this.auth.getCurrentUser();
-            
-            if (user) {
-                console.log('✅ User authenticated:', user.email);
-                return true;
-            }
-            
-            // Fallback to localStorage
+            // Check localStorage
             const storedUser = localStorage.getItem('attendance_user');
             if (storedUser) {
                 console.log('✅ User authenticated (localStorage)');
                 return true;
+            }
+            
+            // Check Firebase if available
+            if (typeof window !== 'undefined' && window.Auth) {
+                const user = window.Auth.getCurrentUser();
+                if (user) {
+                    console.log('✅ User authenticated (Firebase)');
+                    return true;
+                }
             }
             
             console.log('❌ No user authenticated');
@@ -61,6 +59,20 @@ class AttendanceApp {
         } catch (error) {
             console.error('Auth check error:', error);
             return false;
+        }
+    }
+
+    // Get current user
+    getCurrentUser() {
+        try {
+            const storedUser = localStorage.getItem('attendance_user');
+            if (storedUser) {
+                return JSON.parse(storedUser);
+            }
+            return null;
+        } catch (error) {
+            console.error('Get user error:', error);
+            return null;
         }
     }
 
@@ -84,7 +96,7 @@ class AttendanceApp {
             
         } catch (error) {
             console.error('Header load error:', error);
-            container.innerHTML = '<div class="header-error">Header load failed</div>';
+            container.innerHTML = this.createBasicHeader();
         }
     }
 
@@ -103,14 +115,14 @@ class AttendanceApp {
             
         } catch (error) {
             console.error('Footer load error:', error);
-            container.innerHTML = '<div class="footer-error">Footer load failed</div>';
+            container.innerHTML = this.createBasicFooter();
         }
     }
 
     // Create basic header HTML
     createBasicHeader() {
-        const user = JSON.parse(localStorage.getItem('attendance_user') || '{}');
-        const userName = user.name || user.email || 'User';
+        const user = this.getCurrentUser();
+        const userName = user?.name || user?.email || 'User';
         
         return `
             <header class="app-header">
@@ -220,9 +232,9 @@ class AttendanceApp {
     // Logout function
     async logout() {
         try {
-            // Firebase logout
-            if (this.auth.signOutUser) {
-                await this.auth.signOutUser();
+            // Firebase logout if available
+            if (window.Auth && window.Auth.signOutUser) {
+                await window.Auth.signOutUser();
             }
             
             // Clear localStorage
@@ -239,26 +251,23 @@ class AttendanceApp {
 
     // ========== MODULE LOADING METHODS ==========
     
-    // Load attendance content
+    // Load attendance content (main method called from attendance.html)
     async loadAttendanceContent(container) {
         try {
             console.log('📊 Loading attendance module...');
             
             // Clear and show loading
-            container.innerHTML = this.createLoadingHTML('Loading attendance report...');
+            container.innerHTML = this.createLoadingHTML('Loading attendance...');
             
-            // Import attendance module
-            const { AttendanceModule } = await import('./modules/attendance.js');
+            // Dynamically import your existing attendance module
+            const { AttendanceManager } = await import('./attendance.js');
             
-            // Initialize module
-            const module = new AttendanceModule(this);
-            await module.init();
+            // Initialize the module
+            const attendanceModule = new AttendanceManager(this);
+            await attendanceModule.init();
             
-            // Store module reference
-            this.modules.attendance = module;
-            
-            // Render module UI
-            container.innerHTML = module.render();
+            // Store reference
+            this.modules.attendance = attendanceModule;
             
             console.log('✅ Attendance module loaded');
             
@@ -275,13 +284,8 @@ class AttendanceApp {
             
             container.innerHTML = this.createLoadingHTML('Loading dashboard...');
             
-            // You would import a DashboardModule here
-            const { DashboardModule } = await import('./modules/dashboard.js');
-            const module = new DashboardModule(this);
-            await module.init();
-            this.modules.dashboard = module;
-            
-            container.innerHTML = module.render();
+            // Simple dashboard for now
+            container.innerHTML = this.createDashboardHTML();
             
             console.log('✅ Dashboard loaded');
             
@@ -300,11 +304,9 @@ class AttendanceApp {
             
             // Import from your existing reports.js
             const { ReportsModule } = await import('./modules/reports.js');
-            const module = new ReportsModule(this);
-            await module.init();
-            this.modules.reports = module;
-            
-            container.innerHTML = this.createReportsHTML();
+            const reportsModule = new ReportsModule(this);
+            await reportsModule.init();
+            this.modules.reports = reportsModule;
             
             console.log('✅ Reports module loaded');
             
@@ -314,22 +316,17 @@ class AttendanceApp {
         }
     }
 
-    // Load maintenance/setup content
+    // Load maintenance content
     async loadMaintenanceContent(container) {
         try {
             console.log('⚙️ Loading maintenance...');
             
             container.innerHTML = this.createLoadingHTML('Loading setup...');
             
-            // You would import a MaintenanceModule here
-            const { MaintenanceModule } = await import('./modules/maintenance.js');
-            const module = new MaintenanceModule(this);
-            await module.init();
-            this.modules.maintenance = module;
+            // Simple maintenance page for now
+            container.innerHTML = this.createMaintenanceHTML();
             
-            container.innerHTML = module.render();
-            
-            console.log('✅ Maintenance module loaded');
+            console.log('✅ Maintenance loaded');
             
         } catch (error) {
             console.error('Maintenance load error:', error);
@@ -346,12 +343,12 @@ class AttendanceApp {
             
             // Use your existing ExportModule
             const { ExportModule } = await import('./modules/export.js');
-            const module = new ExportModule(this);
-            await module.initialize();
-            this.modules.export = module;
+            const exportModule = new ExportModule(this);
+            await exportModule.initialize();
+            this.modules.export = exportModule;
             
             // Render the export interface
-            module.renderExportInterface();
+            exportModule.renderExportInterface();
             
             console.log('✅ Export module loaded');
             
@@ -397,86 +394,220 @@ class AttendanceApp {
         `;
     }
 
-    createReportsHTML() {
+    createDashboardHTML() {
         return `
-            <div class="reports-container">
-                <div class="page-header">
-                    <h1><i class="fas fa-chart-bar"></i> Reports</h1>
-                    <p class="subtitle">Generate and view attendance reports</p>
+            <div class="dashboard-container">
+                <div class="dashboard-header">
+                    <h1><i class="fas fa-tachometer-alt"></i> Dashboard</h1>
+                    <p class="subtitle">Welcome to Attendance Track v2</p>
                 </div>
                 
-                <div class="reports-grid">
-                    <div class="report-card">
-                        <div class="card-icon">
-                            <i class="fas fa-calendar-day"></i>
+                <div class="dashboard-stats">
+                    <div class="stat-card">
+                        <div class="stat-icon primary">
+                            <i class="fas fa-calendar-check"></i>
                         </div>
-                        <h3>Daily Report</h3>
-                        <p>View today's attendance summary</p>
-                        <button class="btn-primary" onclick="app.generateDailyReport()">
-                            Generate
-                        </button>
+                        <div class="stat-content">
+                            <h3 id="total-attendance">0</h3>
+                            <p>Today's Attendance</p>
+                        </div>
                     </div>
                     
-                    <div class="report-card">
-                        <div class="card-icon">
-                            <i class="fas fa-calendar-week"></i>
-                        </div>
-                        <h3>Weekly Report</h3>
-                        <p>Weekly attendance trends and analysis</p>
-                        <button class="btn-primary" onclick="app.generateWeeklyReport()">
-                            Generate
-                        </button>
-                    </div>
-                    
-                    <div class="report-card">
-                        <div class="card-icon">
-                            <i class="fas fa-calendar-alt"></i>
-                        </div>
-                        <h3>Monthly Report</h3>
-                        <p>Monthly attendance statistics</p>
-                        <button class="btn-primary" onclick="app.generateMonthlyReport()">
-                            Generate
-                        </button>
-                    </div>
-                    
-                    <div class="report-card">
-                        <div class="card-icon">
+                    <div class="stat-card">
+                        <div class="stat-icon success">
                             <i class="fas fa-users"></i>
                         </div>
-                        <h3>Class Report</h3>
-                        <p>Class-wise attendance analysis</p>
-                        <button class="btn-primary" onclick="app.generateClassReport()">
-                            Generate
-                        </button>
-                    </div>
-                    
-                    <div class="report-card">
-                        <div class="card-icon">
-                            <i class="fas fa-user-graduate"></i>
+                        <div class="stat-content">
+                            <h3 id="total-classes">0</h3>
+                            <p>Total Classes</p>
                         </div>
-                        <h3>Student Report</h3>
-                        <p>Individual student attendance history</p>
-                        <button class="btn-primary" onclick="app.generateStudentReport()">
-                            Generate
-                        </button>
                     </div>
                     
-                    <div class="report-card">
-                        <div class="card-icon">
+                    <div class="stat-card">
+                        <div class="stat-icon warning">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="attendance-rate">0%</h3>
+                            <p>Overall Rate</p>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon info">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="pending">0</h3>
+                            <p>Pending Actions</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="dashboard-actions">
+                    <div class="action-card">
+                        <div class="action-icon">
+                            <i class="fas fa-calendar-plus"></i>
+                        </div>
+                        <h4>Take Attendance</h4>
+                        <p>Record today's attendance</p>
+                        <a href="attendance.html" class="btn-primary">
+                            Go to Attendance
+                        </a>
+                    </div>
+                    
+                    <div class="action-card">
+                        <div class="action-icon">
+                            <i class="fas fa-chart-bar"></i>
+                        </div>
+                        <h4>View Reports</h4>
+                        <p>Generate attendance reports</p>
+                        <a href="reports.html" class="btn-primary">
+                            View Reports
+                        </a>
+                    </div>
+                    
+                    <div class="action-card">
+                        <div class="action-icon">
+                            <i class="fas fa-cogs"></i>
+                        </div>
+                        <h4>Setup Classes</h4>
+                        <p>Manage classes and settings</p>
+                        <a href="maintenance.html" class="btn-primary">
+                            Go to Setup
+                        </a>
+                    </div>
+                    
+                    <div class="action-card">
+                        <div class="action-icon">
                             <i class="fas fa-file-export"></i>
                         </div>
-                        <h3>Custom Report</h3>
-                        <p>Create custom reports with filters</p>
-                        <button class="btn-primary" onclick="app.showCustomReport()">
-                            Create
+                        <h4>Export Data</h4>
+                        <p>Export attendance records</p>
+                        <a href="export.html" class="btn-primary">
+                            Export Data
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="recent-activity">
+                    <h3>Recent Activity</h3>
+                    <div class="activity-list">
+                        <div class="activity-item">
+                            <i class="fas fa-check-circle text-success"></i>
+                            <div class="activity-details">
+                                <p>Attendance recorded for 3AN</p>
+                                <small>Just now</small>
+                            </div>
+                        </div>
+                        <div class="activity-item">
+                            <i class="fas fa-upload text-info"></i>
+                            <div class="activity-details">
+                                <p>Data exported to Excel</p>
+                                <small>2 hours ago</small>
+                            </div>
+                        </div>
+                        <div class="activity-item">
+                            <i class="fas fa-user-plus text-warning"></i>
+                            <div class="activity-details">
+                                <p>New class added: 3TL</p>
+                                <small>Yesterday</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    createMaintenanceHTML() {
+        return `
+            <div class="maintenance-container">
+                <div class="maintenance-header">
+                    <h1><i class="fas fa-cogs"></i> Setup & Maintenance</h1>
+                    <p class="subtitle">Configure your attendance system</p>
+                </div>
+                
+                <div class="maintenance-grid">
+                    <div class="setup-card">
+                        <div class="setup-icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <h3>Classes Setup</h3>
+                        <p>Add, edit, and manage classes</p>
+                        <button class="btn-primary" onclick="app.openClassesSetup()">
+                            Manage Classes
+                        </button>
+                    </div>
+                    
+                    <div class="setup-card">
+                        <div class="setup-icon">
+                            <i class="fas fa-user-graduate"></i>
+                        </div>
+                        <h3>Students</h3>
+                        <p>Manage student information</p>
+                        <button class="btn-primary" onclick="app.openStudentsSetup()">
+                            Manage Students
+                        </button>
+                    </div>
+                    
+                    <div class="setup-card">
+                        <div class="setup-icon">
+                            <i class="fas fa-calendar-alt"></i>
+                        </div>
+                        <h3>Academic Terms</h3>
+                        <p>Set up terms and weeks</p>
+                        <button class="btn-primary" onclick="app.openTermsSetup()">
+                            Manage Terms
+                        </button>
+                    </div>
+                    
+                    <div class="setup-card">
+                        <div class="setup-icon">
+                            <i class="fas fa-database"></i>
+                        </div>
+                        <h3>Data Management</h3>
+                        <p>Import, export, and backup data</p>
+                        <button class="btn-primary" onclick="app.openDataManagement()">
+                            Manage Data
+                        </button>
+                    </div>
+                    
+                    <div class="setup-card">
+                        <div class="setup-icon">
+                            <i class="fas fa-sliders-h"></i>
+                        </div>
+                        <h3>Settings</h3>
+                        <p>Configure system settings</p>
+                        <button class="btn-primary" onclick="app.openSettings()">
+                            Open Settings
+                        </button>
+                    </div>
+                    
+                    <div class="setup-card">
+                        <div class="setup-icon">
+                            <i class="fas fa-sync-alt"></i>
+                        </div>
+                        <h3>Synchronization</h3>
+                        <p>Sync data with cloud</p>
+                        <button class="btn-primary" onclick="app.openSync()">
+                            Sync Now
                         </button>
                     </div>
                 </div>
                 
-                <div class="recent-reports">
-                    <h3>Recent Reports</h3>
-                    <div class="reports-list" id="reports-list">
-                        <p class="no-data">No recent reports</p>
+                <div class="data-actions">
+                    <h3>Data Actions</h3>
+                    <div class="action-buttons">
+                        <button class="btn btn-secondary" onclick="app.importData()">
+                            <i class="fas fa-file-import"></i> Import Data
+                        </button>
+                        <button class="btn btn-secondary" onclick="app.backupData()">
+                            <i class="fas fa-database"></i> Backup Data
+                        </button>
+                        <button class="btn btn-danger" onclick="app.resetData()">
+                            <i class="fas fa-trash"></i> Reset Data
+                        </button>
                     </div>
                 </div>
             </div>
@@ -487,7 +618,6 @@ class AttendanceApp {
     
     // For dashboard.html
     async loadPageContent(container) {
-        // This is called from dashboard.html
         await this.loadDashboardContent(container);
     }
 
@@ -508,15 +638,18 @@ class AttendanceApp {
 
     // For setup.html
     async loadSetupPage(container) {
-        // Setup is same as maintenance
         await this.loadMaintenanceContent(container);
     }
 
     // File import handler (for setup page)
     handleFileImport(file) {
         console.log('File import:', file);
-        // Implement file import logic here
-        alert(`File selected: ${file.name}`);
+        alert(`File selected: ${file.name}\n\nThis would import the data in a real implementation.`);
+    }
+
+    // Navigation helper
+    goToSetup() {
+        window.location.href = 'maintenance.html';
     }
 }
 
@@ -526,18 +659,11 @@ const attendanceApp = new AttendanceApp();
 // Export for module usage
 export { AttendanceApp, attendanceApp };
 
-// Auto-initialize when loaded
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', async () => {
-        console.log('📱 DOM loaded, initializing AttendanceApp...');
-        await attendanceApp.init();
-    });
-} else {
-    console.log('📱 DOM already loaded, initializing AttendanceApp...');
-    attendanceApp.init();
-}
-
-// Also initialize when window loads
-window.addEventListener('load', () => {
-    console.log('🖥️ Window loaded');
+// Auto-initialize
+document.addEventListener('DOMContentLoaded', async () => {
+    console.log('📱 DOM loaded, initializing AttendanceApp...');
+    await attendanceApp.init();
 });
+
+// Make sure app is available globally
+window.attendanceApp = attendanceApp;
