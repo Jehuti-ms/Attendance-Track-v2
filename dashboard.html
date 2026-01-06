@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard</title>
-    <!-- Link your CSS files -->
+    <title>Dashboard - Attendance Track</title>
+    
+    <!-- CSS Files - FIXED: Added ./ at beginning for correct paths -->
     <link rel="stylesheet" href="./assets/css/theme.css">
     <link rel="stylesheet" href="./assets/css/main.css">
     <link rel="stylesheet" href="./assets/css/components.css">
@@ -13,6 +14,109 @@
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
+    <!-- PWA -->
+    <link rel="manifest" href="./manifest.json">
+    <link rel="icon" type="image/png" href="./assets/icons/icon-192.png">
+    
+    <!-- Critical CSS to ensure something shows immediately -->
+    <style>
+        /* Critical styles that load instantly */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+        }
+        
+        #header-container {
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        
+        #app-container {
+            min-height: calc(100vh - 140px);
+        }
+        
+        .loading-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 80vh;
+            color: #666;
+        }
+        
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(52, 152, 219, 0.2);
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .error-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #333;
+        }
+        
+        .error-icon {
+            font-size: 48px;
+            color: #e74c3c;
+            margin-bottom: 20px;
+        }
+        
+        .error-actions {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 30px;
+        }
+        
+        .btn-primary, .btn-secondary {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #2980b9;
+        }
+        
+        .btn-secondary {
+            background: #95a5a6;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #7f8c8d;
+        }
+    </style>
 </head>
 <body>
     <!-- Header container -->
@@ -29,43 +133,101 @@
     <!-- Footer container -->
     <div id="footer-container"></div>
     
-    <!-- Load your main app -->
+    <!-- Load main app -->
     <script type="module" src="./assets/js/attendance-app.js"></script>
     
-    <!-- Optional: Simple logout script -->
+    <!-- Dashboard initialization -->
     <script>
-    document.addEventListener('DOMContentLoaded', async function() {
-        try {
-            // Wait for app to be loaded
-            while (!window.app) {
-                await new Promise(resolve => setTimeout(resolve, 100));
+        console.log('📋 Dashboard page loading...');
+        
+        // Wait for app to be ready
+        let appCheckInterval = setInterval(async () => {
+            if (window.app && window.app.initialized) {
+                clearInterval(appCheckInterval);
+                await initializeDashboard();
             }
-            
-            // Check authentication
-            const isAuthenticated = await window.app.checkAuth();
-            if (!isAuthenticated) {
-                window.location.href = 'login.html';
-                return;
+        }, 100);
+        
+        // Timeout after 10 seconds
+        setTimeout(() => {
+            if (appCheckInterval) {
+                clearInterval(appCheckInterval);
+                showError('App initialization timeout. Please refresh.');
             }
-            
-            // Load header and footer
-            window.app.loadHeader(document.getElementById('header-container'));
-            window.app.loadFooter(document.getElementById('footer-container'));
-            
-            // Load DASHBOARD content (not attendance)
-            window.app.loadPageContent(document.getElementById('app-container'));
-            
-        } catch (error) {
-            console.error('Error loading dashboard page:', error);
-            document.getElementById('app-container').innerHTML = `
-                <div class="error-state">
-                    <h3>Error Loading Dashboard</h3>
-                    <p>${error.message}</p>
-                    <a href="login.html" class="btn-primary">Go to Login</a>
-                </div>
-            `;
+        }, 10000);
+        
+        async function initializeDashboard() {
+            try {
+                console.log('🚀 Initializing dashboard...');
+                
+                // Check authentication
+                const isAuthenticated = await window.app.checkAuth();
+                if (!isAuthenticated) {
+                    console.log('🔒 Not authenticated, redirecting to login');
+                    window.location.href = './login.html';
+                    return;
+                }
+                
+                console.log('✅ User authenticated');
+                
+                // Get containers
+                const headerContainer = document.getElementById('header-container');
+                const footerContainer = document.getElementById('footer-container');
+                const appContainer = document.getElementById('app-container');
+                
+                // Load header
+                if (headerContainer) {
+                    console.log('🔼 Loading header...');
+                    await window.app.loadHeader(headerContainer);
+                }
+                
+                // Load footer
+                if (footerContainer) {
+                    console.log('🔽 Loading footer...');
+                    await window.app.loadFooter(footerContainer);
+                }
+                
+                // Load dashboard content
+                if (appContainer) {
+                    console.log('📊 Loading dashboard content...');
+                    await window.app.loadPageContent(appContainer);
+                }
+                
+                console.log('🎉 Dashboard fully loaded');
+                
+            } catch (error) {
+                console.error('❌ Dashboard initialization error:', error);
+                showError(error.message);
+            }
         }
-    });
-</script>
+        
+        function showError(message) {
+            const container = document.getElementById('app-container');
+            if (container) {
+                container.innerHTML = `
+                    <div class="error-state">
+                        <div class="error-icon">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                        <h2>Error Loading Dashboard</h2>
+                        <p>${message || 'An unknown error occurred'}</p>
+                        <div class="error-actions">
+                            <button onclick="window.location.reload()" class="btn-primary">
+                                <i class="fas fa-redo"></i> Try Again
+                            </button>
+                            <a href="./login.html" class="btn-secondary">
+                                <i class="fas fa-sign-in-alt"></i> Go to Login
+                            </a>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+        
+        // Log initial state
+        console.log('📄 Dashboard HTML loaded');
+        const user = JSON.parse(localStorage.getItem('attendance_user') || 'null');
+        console.log('👤 User:', user);
+    </script>
 </body>
 </html>
