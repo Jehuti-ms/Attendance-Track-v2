@@ -1,4 +1,4 @@
-// attendance-app.js - COMPATIBLE VERSION
+// attendance-app.js - FIXED VERSION
 class AttendanceApp {
     constructor() {
         this.currentUser = null;
@@ -287,11 +287,55 @@ class AttendanceApp {
             // Simple dashboard for now
             container.innerHTML = this.createDashboardHTML();
             
+            // Load dashboard data
+            this.loadDashboardData();
+            
             console.log('✅ Dashboard loaded');
             
         } catch (error) {
             console.error('Dashboard load error:', error);
             container.innerHTML = this.createErrorHTML('Failed to load dashboard', error);
+        }
+    }
+
+    // Load dashboard data
+    loadDashboardData() {
+        try {
+            // Load data from localStorage
+            const classes = JSON.parse(localStorage.getItem('attendance_classes') || '[]');
+            const attendance = JSON.parse(localStorage.getItem('attendance_records') || '[]');
+            
+            // Update dashboard stats
+            const totalClassesEl = document.getElementById('total-classes');
+            const totalAttendanceEl = document.getElementById('total-attendance');
+            const attendanceRateEl = document.getElementById('attendance-rate');
+            const pendingEl = document.getElementById('pending');
+            
+            if (totalClassesEl) totalClassesEl.textContent = classes.length;
+            
+            // Calculate today's attendance
+            const today = new Date().toISOString().split('T')[0];
+            const todayAttendance = attendance.filter(record => record.date === today);
+            let totalPresent = 0;
+            let totalPossible = 0;
+            
+            todayAttendance.forEach(record => {
+                record.classes?.forEach(cls => {
+                    totalPresent += (cls.male?.am || 0) + (cls.male?.pm || 0) + 
+                                  (cls.female?.am || 0) + (cls.female?.pm || 0);
+                    totalPossible += cls.totalStudents * 2; // AM and PM
+                });
+            });
+            
+            if (totalAttendanceEl) totalAttendanceEl.textContent = todayAttendance.length;
+            if (attendanceRateEl) {
+                const rate = totalPossible > 0 ? Math.round((totalPresent / totalPossible) * 100) : 0;
+                attendanceRateEl.textContent = `${rate}%`;
+            }
+            if (pendingEl) pendingEl.textContent = '0';
+            
+        } catch (error) {
+            console.error('Dashboard data load error:', error);
         }
     }
 
@@ -612,6 +656,56 @@ class AttendanceApp {
                 </div>
             </div>
         `;
+    }
+
+    // ========== SETUP METHODS ==========
+    openClassesSetup() {
+        console.log('Opening classes setup');
+        alert('Classes setup would open here');
+    }
+
+    openStudentsSetup() {
+        console.log('Opening students setup');
+        alert('Students setup would open here');
+    }
+
+    openTermsSetup() {
+        console.log('Opening terms setup');
+        alert('Terms setup would open here');
+    }
+
+    openDataManagement() {
+        console.log('Opening data management');
+        alert('Data management would open here');
+    }
+
+    openSettings() {
+        console.log('Opening settings');
+        alert('Settings would open here');
+    }
+
+    openSync() {
+        console.log('Opening sync');
+        alert('Sync would open here');
+    }
+
+    importData() {
+        console.log('Importing data');
+        alert('Import data feature');
+    }
+
+    backupData() {
+        console.log('Backing up data');
+        alert('Backup data feature');
+    }
+
+    resetData() {
+        if (confirm('Are you sure you want to reset all data? This cannot be undone.')) {
+            console.log('Resetting data');
+            localStorage.clear();
+            alert('Data reset completed');
+            window.location.reload();
+        }
     }
 
     // ========== GLOBAL METHODS FOR HTML PAGES ==========
