@@ -1067,7 +1067,7 @@ window.AttendanceApp = AttendanceApp;
         // Setup event listeners for quick action cards
         this.setupQuickActions();
     }
-*/
+
     // ADD THIS METHOD
     setupQuickActions() {
         const quickAttendanceCard = document.getElementById('quickAttendanceCard');
@@ -1111,7 +1111,7 @@ window.AttendanceApp = AttendanceApp;
         // Your existing recent attendance loading code
         console.log('Loading recent attendance...');
     }
-}
+} */
        
     loadRecentActivity(attendance) {
         const activityList = document.getElementById('recent-activity');
