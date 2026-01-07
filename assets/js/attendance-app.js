@@ -1,9 +1,15 @@
-// attendance-app.js - CSS-COMPATIBLE VERSION
+// attendance-app.js - STABLE VERSION
 class AttendanceApp {
     constructor() {
         this.currentUser = null;
         this.initialized = false;
-        this.modules = {}; // Add modules object
+        this.modules = {};
+        this.pageLoadHandlers = {
+            'dashboard': this.loadDashboardContent.bind(this),
+            'attendance': this.loadAttendanceContent.bind(this),
+            'reports': this.loadReportsContent.bind(this),
+            'maintenance': this.loadMaintenancePage.bind(this)
+        };
     }
 
     async init() {
@@ -17,6 +23,14 @@ class AttendanceApp {
                 console.log('✅ User found:', this.currentUser.email);
             } else {
                 console.log('⚠️ No user found in localStorage');
+                // If no user and not on login/index page, redirect to login
+                const currentPage = window.location.pathname;
+                if (!currentPage.includes('login.html') && 
+                    !currentPage.includes('index.html') &&
+                    currentPage.includes('.html')) {
+                    window.location.href = './login.html';
+                    return false;
+                }
             }
             
             // Register globally
@@ -37,22 +51,7 @@ class AttendanceApp {
     async checkAuth() {
         try {
             const userData = localStorage.getItem('attendance_user');
-            if (!userData) {
-                return false;
-            }
-            
-            const user = JSON.parse(userData);
-            const now = Date.now();
-            const lastLogin = new Date(user.lastLogin).getTime();
-            const hoursSinceLogin = (now - lastLogin) / (1000 * 60 * 60);
-            
-            // Session expires after 24 hours
-            if (hoursSinceLogin > 24) {
-                localStorage.removeItem('attendance_user');
-                return false;
-            }
-            
-            return true;
+            return !!userData; // Simple check - just see if user exists
         } catch (error) {
             console.error('Auth check error:', error);
             return false;
@@ -65,7 +64,13 @@ class AttendanceApp {
         try {
             console.log('🔼 Loading header...');
             
-            // Use your CSS classes instead of inline styles
+            // Get current page for active link
+            const currentPage = window.location.pathname;
+            const isDashboard = currentPage.includes('dashboard');
+            const isAttendance = currentPage.includes('attendance');
+            const isReports = currentPage.includes('reports');
+            const isMaintenance = currentPage.includes('maintenance');
+            
             container.innerHTML = `
                 <header class="main-header">
                     <div class="header-container">
@@ -86,73 +91,46 @@ class AttendanceApp {
                         <nav class="main-nav">
                             <ul class="nav-list toggleable-links">
                                 <li class="nav-item">
-                                    <a href="./dashboard.html" class="nav-link">
+                                    <a href="./dashboard.html" class="nav-link ${isDashboard ? 'active' : ''}">
                                         <i class="fas fa-tachometer-alt"></i>
                                         <span>Dashboard</span>
                                     </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a href="./attendance.html" class="nav-link">
+                                    <a href="./attendance.html" class="nav-link ${isAttendance ? 'active' : ''}">
                                         <i class="fas fa-calendar-check"></i>
                                         <span>Attendance</span>
                                     </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a href="./reports.html" class="nav-link">
+                                    <a href="./reports.html" class="nav-link ${isReports ? 'active' : ''}">
                                         <i class="fas fa-chart-bar"></i>
                                         <span>Reports</span>
                                     </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a href="./maintenance.html" class="nav-link">
+                                    <a href="./maintenance.html" class="nav-link ${isMaintenance ? 'active' : ''}">
                                         <i class="fas fa-cogs"></i>
                                         <span>Setup</span>
                                     </a>
                                 </li>
                             </ul>
-                            
-                            <!-- Mobile menu toggle -->
-                            <button class="hamburger-menu navbar-toggle" onclick="app.toggleMobileMenu()">
-                                <div class="menu-line"></div>
-                                <div class="menu-line"></div>
-                                <div class="menu-line"></div>
-                            </button>
                         </nav>
                         
                         <!-- User Menu -->
                         <div class="user-menu">
-                            <div id="navUserStatus" class="user-status">
-                                <div class="status-content">
-                                    <div class="user-display">
-                                        <i class="fas fa-user user-icon"></i>
-                                        <span class="user-name">${this.currentUser?.name || 'User'}</span>
-                                    </div>
-                                    <div class="connection-status">
-                                        <span class="status-dot online"></span>
-                                        <span class="status-text">Online</span>
-                                    </div>
+                            <div class="user-info">
+                                <div class="user-avatar">
+                                    <i class="fas fa-user"></i>
                                 </div>
+                                <span class="user-name">${this.currentUser?.name || 'User'}</span>
                             </div>
-                            <button onclick="app.logout()" class="logout-btn-styled logout-hover">
-                                <i class="fas fa-sign-out-alt logout-icon"></i>
+                            <button onclick="app.logout()" class="logout-btn">
+                                <i class="fas fa-sign-out-alt"></i>
                             </button>
                         </div>
                     </div>
                 </header>
-                
-                <style>
-                    /* Ensure navigation is visible on desktop */
-                    @media (min-width: 768px) {
-                        .toggleable-links {
-                            display: flex !important;
-                            visibility: visible !important;
-                            opacity: 1 !important;
-                        }
-                        .hamburger-menu.navbar-toggle {
-                            display: none !important;
-                        }
-                    }
-                </style>
             `;
             
             console.log('✅ Header loaded');
@@ -160,8 +138,10 @@ class AttendanceApp {
         } catch (error) {
             console.error('Header load error:', error);
             container.innerHTML = `
-                <div style="background: #f8d7da; color: #721c24; padding: 10px; text-align: center;">
-                    Header failed to load: ${error.message}
+                <div style="background: #f5f5f5; padding: 10px; text-align: center;">
+                    <a href="./dashboard.html" style="color: #405dde; text-decoration: none;">
+                        <i class="fas fa-calendar-check"></i> Attendance Track
+                    </a>
                 </div>
             `;
         }
@@ -173,19 +153,12 @@ class AttendanceApp {
         try {
             console.log('🔽 Loading footer...');
             
-            // Use your CSS footer structure
             container.innerHTML = `
                 <footer class="main-footer">
                     <div class="footer-container">
                         <div class="footer-content">
                             <div class="footer-copyright">
                                 Attendance Track v2 &copy; ${new Date().getFullYear()} | Secure Attendance Management
-                            </div>
-                            <div class="footer-links">
-                                <a href="#" class="footer-link">Help</a>
-                                <a href="#" class="footer-link">Privacy</a>
-                                <a href="#" class="footer-link">Terms</a>
-                                <a href="#" class="footer-link">Contact</a>
                             </div>
                         </div>
                     </div>
@@ -196,363 +169,297 @@ class AttendanceApp {
             
         } catch (error) {
             console.error('Footer load error:', error);
-            // Don't show error for footer
+            // Silent fail for footer
         }
     }
 
     async loadDashboardContent(container) {
+        if (!container) return;
+        
         try {
             console.log('📊 Loading dashboard content...');
             
-            if (!container) throw new Error('Container not found');
+            // Clear container first
+            container.innerHTML = '';
             
-            // Create dashboard using YOUR dashboard.css classes
-            container.innerHTML = `
+            // Create a simple, stable dashboard
+            const dashboardHTML = `
                 <div class="dashboard-page">
-                    <!-- Dashboard Header - using unified-header -->
                     <div class="dashboard-header">
-                        <div class="header-top-row">
-                            <div class="welcome-text">
-                                <h1>
-                                    <i class="fas fa-tachometer-alt"></i>
-                                    Dashboard
-                                </h1>
-                                <p class="dashboard-subtitle">
-                                    Welcome back, ${this.currentUser?.name || 'Teacher'}!
-                                </p>
+                        <h1><i class="fas fa-tachometer-alt"></i> Dashboard</h1>
+                        <p>Welcome back, ${this.currentUser?.name || 'Teacher'}!</p>
+                    </div>
+                    
+                    <div style="padding: 20px;">
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 30px;">
+                            <div style="background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                                <h3 style="color: #3498db; margin-bottom: 10px;">
+                                    <i class="fas fa-calendar-check"></i> Today's Attendance
+                                </h3>
+                                <p style="font-size: 2rem; font-weight: bold; color: #333;">0</p>
                             </div>
                             
-                            <div class="connection-status">
-                                <span class="status-dot connected"></span>
-                                <span class="status-text">Online</span>
+                            <div style="background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                                <h3 style="color: #2ecc71; margin-bottom: 10px;">
+                                    <i class="fas fa-users"></i> Total Classes
+                                </h3>
+                                <p style="font-size: 2rem; font-weight: bold; color: #333;">3</p>
+                            </div>
+                            
+                            <div style="background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                                <h3 style="color: #e67e22; margin-bottom: 10px;">
+                                    <i class="fas fa-chart-line"></i> Attendance Rate
+                                </h3>
+                                <p style="font-size: 2rem; font-weight: bold; color: #333;">95%</p>
                             </div>
                         </div>
                         
-                        <div class="date-display">
-                            <i class="fas fa-calendar"></i>
-                            ${new Date().toLocaleDateString('en-US', { 
-                                weekday: 'long', 
-                                year: 'numeric', 
-                                month: 'long', 
-                                day: 'numeric' 
-                            })}
-                        </div>
-                    </div>
-                    
-                    <!-- Stats Grid -->
-                    <div class="stats-grid">
-                        <div class="stat-card">
-                            <div class="stat-icon" style="color: #3498db;">
-                                <i class="fas fa-calendar-check"></i>
+                        <div style="background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                            <h3 style="margin-bottom: 20px; color: #2c3e50;">
+                                <i class="fas fa-bolt"></i> Quick Actions
+                            </h3>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                                <a href="./attendance.html" style="
+                                    display: block;
+                                    padding: 15px;
+                                    background: #f0f7ff;
+                                    border: 2px solid #3498db;
+                                    border-radius: 8px;
+                                    text-decoration: none;
+                                    color: #3498db;
+                                    text-align: center;
+                                    transition: all 0.3s;
+                                ">
+                                    <i class="fas fa-calendar-plus" style="font-size: 1.5rem; margin-bottom: 10px;"></i>
+                                    <div style="font-weight: bold;">Take Attendance</div>
+                                </a>
+                                
+                                <a href="./reports.html" style="
+                                    display: block;
+                                    padding: 15px;
+                                    background: #f0f8ff;
+                                    border: 2px solid #2ecc71;
+                                    border-radius: 8px;
+                                    text-decoration: none;
+                                    color: #2ecc71;
+                                    text-align: center;
+                                    transition: all 0.3s;
+                                ">
+                                    <i class="fas fa-chart-bar" style="font-size: 1.5rem; margin-bottom: 10px;"></i>
+                                    <div style="font-weight: bold;">View Reports</div>
+                                </a>
+                                
+                                <a href="./maintenance.html" style="
+                                    display: block;
+                                    padding: 15px;
+                                    background: #fff8f0;
+                                    border: 2px solid #e67e22;
+                                    border-radius: 8px;
+                                    text-decoration: none;
+                                    color: #e67e22;
+                                    text-align: center;
+                                    transition: all 0.3s;
+                                ">
+                                    <i class="fas fa-cogs" style="font-size: 1.5rem; margin-bottom: 10px;"></i>
+                                    <div style="font-weight: bold;">Setup</div>
+                                </a>
                             </div>
-                            <div class="stat-content">
-                                <h3 id="total-attendance">0</h3>
-                                <p>Today's Attendance</p>
-                            </div>
-                        </div>
-                        
-                        <div class="stat-card">
-                            <div class="stat-icon" style="color: #2ecc71;">
-                                <i class="fas fa-users"></i>
-                            </div>
-                            <div class="stat-content">
-                                <h3 id="total-classes">3</h3>
-                                <p>Total Classes</p>
-                            </div>
-                        </div>
-                        
-                        <div class="stat-card">
-                            <div class="stat-icon" style="color: #e67e22;">
-                                <i class="fas fa-chart-line"></i>
-                            </div>
-                            <div class="stat-content">
-                                <h3 id="attendance-rate">95%</h3>
-                                <p>Overall Rate</p>
-                            </div>
-                        </div>
-                        
-                        <div class="stat-card">
-                            <div class="stat-icon" style="color: #9b59b6;">
-                                <i class="fas fa-clock"></i>
-                            </div>
-                            <div class="stat-content">
-                                <h3 id="pending">0</h3>
-                                <p>Pending Actions</p>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Actions Grid -->
-                    <div class="actions-grid">
-                        <a href="./attendance.html" class="action-card">
-                            <div class="action-icon">
-                                <i class="fas fa-calendar-plus"></i>
-                            </div>
-                            <h4>Take Attendance</h4>
-                            <p>Record today's attendance for all classes</p>
-                        </a>
-                        
-                        <a href="./reports.html" class="action-card">
-                            <div class="action-icon">
-                                <i class="fas fa-chart-bar"></i>
-                            </div>
-                            <h4>View Reports</h4>
-                            <p>Generate and analyze attendance reports</p>
-                        </a>
-                        
-                        <a href="./maintenance.html" class="action-card">
-                            <div class="action-icon">
-                                <i class="fas fa-cogs"></i>
-                            </div>
-                            <h4>Setup Classes</h4>
-                            <p>Manage classes, students, and settings</p>
-                        </a>
-                        
-                        <a href="#" class="action-card" onclick="app.exportData()">
-                            <div class="action-icon">
-                                <i class="fas fa-file-export"></i>
-                            </div>
-                            <h4>Export Data</h4>
-                            <p>Export attendance records in various formats</p>
-                        </a>
-                    </div>
-                    
-                    <!-- Recent Activity -->
-                    <div class="recent-activity">
-                        <div class="activity-header">
-                            <h3><i class="fas fa-history"></i> Recent Activity</h3>
-                            <button class="btn-refresh" onclick="app.refreshActivity()">
-                                <i class="fas fa-sync-alt"></i> Refresh
-                            </button>
-                        </div>
-                        
-                        <div class="activity-list" id="activity-list">
-                            <!-- Activities loaded dynamically -->
                         </div>
                     </div>
                 </div>
             `;
             
-            // Load real data
-            this.loadDashboardData();
-            this.loadRecentActivities();
+            // Set content
+            container.innerHTML = dashboardHTML;
             
             console.log('✅ Dashboard content loaded');
             
         } catch (error) {
             console.error('Dashboard content load error:', error);
             container.innerHTML = `
-                <div class="error-state">
-                    <div class="error-icon">
-                        <i class="fas fa-exclamation-triangle"></i>
-                    </div>
-                    <h2>Error Loading Dashboard</h2>
+                <div style="text-align: center; padding: 50px;">
+                    <h3>Error Loading Dashboard</h3>
                     <p>${error.message}</p>
-                    <div class="error-actions">
-                        <button onclick="window.location.reload()" class="btn-primary">
-                            <i class="fas fa-redo"></i> Try Again
-                        </button>
-                        <a href="./index.html" class="btn-secondary">
-                            <i class="fas fa-arrow-left"></i> Return Home
-                        </a>
-                    </div>
+                    <button onclick="location.reload()" style="
+                        padding: 10px 20px;
+                        background: #405dde;
+                        color: white;
+                        border: none;
+                        border-radius: 5px;
+                        cursor: pointer;
+                        margin-top: 20px;
+                    ">
+                        Reload Page
+                    </button>
                 </div>
             `;
         }
     }
 
-    async loadDashboardData() {
+    async loadAttendanceContent(container) {
+        if (!container) return;
+        
         try {
-            // Load data from localStorage
-            const classes = JSON.parse(localStorage.getItem('attendance_classes') || '[]');
-            const attendance = JSON.parse(localStorage.getItem('attendance_records') || '[]');
+            console.log('📅 Loading attendance content...');
             
-            // Update stats
-            const totalClassesEl = document.getElementById('total-classes');
-            const totalAttendanceEl = document.getElementById('total-attendance');
-            const attendanceRateEl = document.getElementById('attendance-rate');
-            const pendingEl = document.getElementById('pending');
-            
-            if (totalClassesEl) {
-                totalClassesEl.textContent = classes.length > 0 ? classes.length : '3';
-            }
-            
-            // Calculate today's attendance
-            const today = new Date().toISOString().split('T')[0];
-            const todayAttendance = attendance.filter(record => record.date === today);
-            
-            if (totalAttendanceEl) {
-                totalAttendanceEl.textContent = todayAttendance.length;
-            }
-            
-            // Calculate attendance rate
-            if (attendanceRateEl) {
-                const totalRecords = attendance.length;
-                const presentRecords = attendance.filter(a => a.status === 'present').length;
-                const rate = totalRecords > 0 ? Math.round((presentRecords / totalRecords) * 100) : 95;
-                attendanceRateEl.textContent = `${rate}%`;
-            }
-            
-            // Update pending actions
-            if (pendingEl) {
-                pendingEl.textContent = '0';
-            }
-            
-        } catch (error) {
-            console.error('Dashboard data load error:', error);
-        }
-    }
-
-    async loadRecentActivities() {
-        try {
-            const activities = [
-                {
-                    icon: 'check-circle',
-                    color: '#27ae60',
-                    text: 'Attendance recorded for 3AN',
-                    time: 'Just now'
-                },
-                {
-                    icon: 'upload',
-                    color: '#3498db',
-                    text: 'Data exported to Excel',
-                    time: '2 hours ago'
-                },
-                {
-                    icon: 'user-plus',
-                    color: '#e67e22',
-                    text: 'New class added: 3TL',
-                    time: 'Yesterday'
-                },
-                {
-                    icon: 'chart-line',
-                    color: '#9b59b6',
-                    text: 'Monthly report generated',
-                    time: '2 days ago'
-                }
-            ];
-            
-            const container = document.getElementById('activity-list');
-            if (!container) return;
-            
-            container.innerHTML = activities.map(activity => `
-                <div class="activity-item">
-                    <div class="activity-icon" style="color: ${activity.color};">
-                        <i class="fas fa-${activity.icon}"></i>
-                    </div>
-                    <div class="activity-content">
-                        <p>${activity.text}</p>
-                        <small>${activity.time}</small>
+            container.innerHTML = `
+                <div style="padding: 20px;">
+                    <div style="background: white; border-radius: 10px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                        <h2 style="color: #2c3e50; margin-bottom: 20px;">
+                            <i class="fas fa-calendar-check"></i> Attendance Recording
+                        </h2>
+                        
+                        <div style="margin-bottom: 30px;">
+                            <label style="display: block; margin-bottom: 10px; font-weight: bold;">Select Date</label>
+                            <input type="date" style="
+                                width: 100%;
+                                padding: 10px;
+                                border: 1px solid #ddd;
+                                border-radius: 5px;
+                                font-size: 16px;
+                            " value="${new Date().toISOString().split('T')[0]}">
+                        </div>
+                        
+                        <div style="margin-bottom: 30px;">
+                            <label style="display: block; margin-bottom: 10px; font-weight: bold;">Select Session</label>
+                            <div style="display: flex; gap: 10px;">
+                                <button style="
+                                    padding: 10px 20px;
+                                    background: #3498db;
+                                    color: white;
+                                    border: none;
+                                    border-radius: 5px;
+                                    cursor: pointer;
+                                    flex: 1;
+                                ">Morning (AM)</button>
+                                <button style="
+                                    padding: 10px 20px;
+                                    background: #f5f5f5;
+                                    color: #333;
+                                    border: 1px solid #ddd;
+                                    border-radius: 5px;
+                                    cursor: pointer;
+                                    flex: 1;
+                                ">Afternoon (PM)</button>
+                            </div>
+                        </div>
+                        
+                        <div style="text-align: center; padding: 40px; color: #666;">
+                            <i class="fas fa-calendar-plus" style="font-size: 48px; margin-bottom: 20px; color: #ddd;"></i>
+                            <h3>Attendance Page</h3>
+                            <p>This is where you would take attendance for your classes.</p>
+                            <button onclick="location.href='./dashboard.html'" style="
+                                padding: 10px 20px;
+                                background: #405dde;
+                                color: white;
+                                border: none;
+                                border-radius: 5px;
+                                cursor: pointer;
+                                margin-top: 20px;
+                            ">
+                                <i class="fas fa-arrow-left"></i> Back to Dashboard
+                            </button>
+                        </div>
                     </div>
                 </div>
-            `).join('');
+            `;
+            
+            console.log('✅ Attendance content loaded');
             
         } catch (error) {
-            console.error('Activities load error:', error);
-        }
-    }
-
-    refreshActivity() {
-        console.log('Refreshing activity...');
-        this.loadRecentActivities();
-        
-        // Show notification
-        this.showNotification('Activity refreshed!', 'success');
-    }
-
-    toggleMobileMenu() {
-        const navLinks = document.querySelector('.toggleable-links');
-        const hamburger = document.querySelector('.hamburger-menu');
-        
-        if (navLinks) {
-            navLinks.classList.toggle('links-hidden');
-            navLinks.classList.toggle('links-visible');
-            
-            if (hamburger) {
-                hamburger.classList.toggle('active');
-            }
+            console.error('Attendance content load error:', error);
+            container.innerHTML = `
+                <div style="text-align: center; padding: 50px;">
+                    <h3>Error Loading Attendance</h3>
+                    <p>${error.message}</p>
+                    <button onclick="location.href='./dashboard.html'" style="
+                        padding: 10px 20px;
+                        background: #405dde;
+                        color: white;
+                        border: none;
+                        border-radius: 5px;
+                        cursor: pointer;
+                        margin-top: 20px;
+                    ">
+                        Back to Dashboard
+                    </button>
+                </div>
+            `;
         }
     }
 
     async loadReportsContent(container) {
+        if (!container) return;
+        
         try {
             console.log('📈 Loading reports content...');
             
-            if (!container) throw new Error('Container not found');
-            
-            // Create reports page using reports.css classes
             container.innerHTML = `
-                <div class="reports-page">
-                    <div class="reports-container">
-                        <!-- Reports Header -->
-                        <div class="reports-header">
-                            <h1><i class="fas fa-chart-bar"></i> Attendance Reports</h1>
-                            <p class="reports-subtitle">Generate, analyze, and export attendance data</p>
+                <div style="padding: 20px;">
+                    <div style="background: white; border-radius: 10px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                        <h2 style="color: #2c3e50; margin-bottom: 20px;">
+                            <i class="fas fa-chart-bar"></i> Attendance Reports
+                        </h2>
+                        
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 30px;">
+                            <div style="border: 1px solid #ddd; border-radius: 8px; padding: 15px;">
+                                <h4 style="color: #3498db; margin-bottom: 10px;">Daily Report</h4>
+                                <p>View daily attendance statistics</p>
+                                <button style="
+                                    padding: 8px 15px;
+                                    background: #3498db;
+                                    color: white;
+                                    border: none;
+                                    border-radius: 5px;
+                                    cursor: pointer;
+                                    margin-top: 10px;
+                                ">Generate</button>
+                            </div>
+                            
+                            <div style="border: 1px solid #ddd; border-radius: 8px; padding: 15px;">
+                                <h4 style="color: #2ecc71; margin-bottom: 10px;">Weekly Summary</h4>
+                                <p>Weekly attendance overview</p>
+                                <button style="
+                                    padding: 8px 15px;
+                                    background: #2ecc71;
+                                    color: white;
+                                    border: none;
+                                    border-radius: 5px;
+                                    cursor: pointer;
+                                    margin-top: 10px;
+                                ">Generate</button>
+                            </div>
+                            
+                            <div style="border: 1px solid #ddd; border-radius: 8px; padding: 15px;">
+                                <h4 style="color: #e67e22; margin-bottom: 10px;">Monthly Analysis</h4>
+                                <p>Monthly attendance trends</p>
+                                <button style="
+                                    padding: 8px 15px;
+                                    background: #e67e22;
+                                    color: white;
+                                    border: none;
+                                    border-radius: 5px;
+                                    cursor: pointer;
+                                    margin-top: 10px;
+                                ">Generate</button>
+                            </div>
                         </div>
                         
-                        <!-- Reports Section -->
-                        <div class="reports-section">
-                            <!-- Filters -->
-                            <div class="filter-section">
-                                <h3 class="section-title">Report Filters</h3>
-                                <div class="filter-row">
-                                    <div class="filter-group">
-                                        <label class="filter-label">Report Type</label>
-                                        <select class="reports-select" id="report-type">
-                                            <option value="daily">Daily Report</option>
-                                            <option value="weekly">Weekly Summary</option>
-                                            <option value="monthly">Monthly Analysis</option>
-                                            <option value="comparison">Class Comparison</option>
-                                            <option value="student">Student Performance</option>
-                                        </select>
-                                    </div>
-                                    <div class="filter-group">
-                                        <label class="filter-label">Class</label>
-                                        <select class="reports-select" id="report-class">
-                                            <option value="all">All Classes</option>
-                                            <option value="3AN">3AN</option>
-                                            <option value="3TL">3TL</option>
-                                            <option value="3SR">3SR</option>
-                                        </select>
-                                    </div>
-                                    <div class="filter-group">
-                                        <label class="filter-label">Date Range</label>
-                                        <div class="date-range">
-                                            <input type="date" class="date-input" id="start-date">
-                                            <span>to</span>
-                                            <input type="date" class="date-input" id="end-date">
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Actions -->
-                            <div class="controls-section">
-                                <button class="control-btn primary-btn" onclick="app.generateReport()">
-                                    <i class="fas fa-play"></i> Generate Report
-                                </button>
-                                <button class="control-btn secondary-btn" onclick="app.exportReport()">
-                                    <i class="fas fa-download"></i> Export as PDF
-                                </button>
-                                <button class="control-btn secondary-btn" onclick="app.exportExcel()">
-                                    <i class="fas fa-file-excel"></i> Export as Excel
-                                </button>
-                            </div>
-                            
-                            <!-- Report Output -->
-                            <div class="report-output">
-                                <div class="output-header">
-                                    <span>Report Output</span>
-                                    <span id="report-info">No report generated yet</span>
-                                </div>
-                                <div class="output-content" id="report-output">
-                                    <div class="no-report">
-                                        <i class="fas fa-chart-line"></i>
-                                        <h3>No Report Generated</h3>
-                                        <p>Select filters and click "Generate Report" to view data</p>
-                                    </div>
-                                </div>
-                            </div>
+                        <div style="text-align: center; padding: 40px; color: #666;">
+                            <i class="fas fa-chart-line" style="font-size: 48px; margin-bottom: 20px; color: #ddd;"></i>
+                            <h3>Reports Dashboard</h3>
+                            <p>Generate and analyze attendance reports here.</p>
+                            <button onclick="location.href='./dashboard.html'" style="
+                                padding: 10px 20px;
+                                background: #405dde;
+                                color: white;
+                                border: none;
+                                border-radius: 5px;
+                                cursor: pointer;
+                                margin-top: 20px;
+                            ">
+                                <i class="fas fa-arrow-left"></i> Back to Dashboard
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -563,189 +470,106 @@ class AttendanceApp {
         } catch (error) {
             console.error('Reports content load error:', error);
             container.innerHTML = `
-                <div class="error-state">
-                    <div class="error-icon">
-                        <i class="fas fa-exclamation-triangle"></i>
-                    </div>
+                <div style="text-align: center; padding: 50px;">
                     <h3>Error Loading Reports</h3>
                     <p>${error.message}</p>
-                    <div class="error-actions">
-                        <button onclick="window.location.reload()" class="btn-primary">
-                            <i class="fas fa-redo"></i> Try Again
-                        </button>
-                        <a href="./dashboard.html" class="btn-secondary">
-                            <i class="fas fa-arrow-left"></i> Back to Dashboard
-                        </a>
-                    </div>
+                    <button onclick="location.href='./dashboard.html'" style="
+                        padding: 10px 20px;
+                        background: #405dde;
+                        color: white;
+                        border: none;
+                        border-radius: 5px;
+                        cursor: pointer;
+                        margin-top: 20px;
+                    ">
+                        Back to Dashboard
+                    </button>
                 </div>
             `;
         }
-    }
-
-    generateReport() {
-        console.log('Generating report...');
-        const reportType = document.getElementById('report-type').value;
-        const reportClass = document.getElementById('report-class').value;
-        const startDate = document.getElementById('start-date').value;
-        const endDate = document.getElementById('end-date').value;
-        
-        // In a real app, this would generate actual report data
-        const output = document.getElementById('report-output');
-        const info = document.getElementById('report-info');
-        
-        if (output && info) {
-            info.textContent = `${reportType} Report | ${reportClass} | ${startDate} to ${endDate}`;
-            
-            output.innerHTML = `
-                <div class="comparison-report">
-                    <div class="report-header">
-                        <h3>Class Attendance Comparison Report</h3>
-                        <p class="report-period">${startDate} to ${endDate}</p>
-                    </div>
-                    
-                    <div class="comparison-summary">
-                        <div class="summary-card">
-                            <div class="summary-icon top">
-                                <i class="fas fa-trophy"></i>
-                            </div>
-                            <div class="summary-info">
-                                <div class="summary-value">3AN</div>
-                                <div class="summary-label">Top Performing Class</div>
-                            </div>
-                        </div>
-                        
-                        <div class="summary-card">
-                            <div class="summary-icon consistent">
-                                <i class="fas fa-chart-line"></i>
-                            </div>
-                            <div class="summary-info">
-                                <div class="summary-value">96.5%</div>
-                                <div class="summary-label">Average Attendance</div>
-                            </div>
-                        </div>
-                        
-                        <div class="summary-card">
-                            <div class="summary-icon gender">
-                                <i class="fas fa-venus-mars"></i>
-                            </div>
-                            <div class="summary-info">
-                                <div class="summary-value">92%</div>
-                                <div class="summary-label">Girls vs 89% Boys</div>
-                            </div>
-                        </div>
-                        
-                        <div class="summary-card">
-                            <div class="summary-icon session">
-                                <i class="fas fa-clock"></i>
-                            </div>
-                            <div class="summary-info">
-                                <div class="summary-value">94% AM</div>
-                                <div class="summary-label">Morning Session Higher</div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Table would go here -->
-                    <div style="text-align: center; padding: 40px;">
-                        <i class="fas fa-chart-bar" style="font-size: 48px; color: #ddd; margin-bottom: 20px;"></i>
-                        <h3 style="color: #666;">Report Data Would Display Here</h3>
-                        <p style="color: #999;">In a real implementation, detailed comparison data would appear here.</p>
-                    </div>
-                </div>
-            `;
-            
-            this.showNotification('Report generated successfully!', 'success');
-        }
-    }
-
-    exportReport() {
-        this.showNotification('PDF export feature would be implemented here', 'info');
-    }
-
-    exportExcel() {
-        this.showNotification('Excel export feature would be implemented here', 'info');
-    }
-
-    exportData() {
-        this.showNotification('Export functionality coming soon!', 'info');
-    }
-
-    async loadAttendanceContent(container) {
-        // Simple redirect to attendance page
-        window.location.href = './attendance.html';
     }
 
     async loadMaintenancePage(container) {
-        window.location.href = './maintenance.html';
+        if (!container) return;
+        
+        try {
+            console.log('⚙️ Loading maintenance content...');
+            
+            container.innerHTML = `
+                <div style="padding: 20px;">
+                    <div style="background: white; border-radius: 10px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                        <h2 style="color: #2c3e50; margin-bottom: 20px;">
+                            <i class="fas fa-cogs"></i> System Setup
+                        </h2>
+                        
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 30px;">
+                            <div style="border: 1px solid #ddd; border-radius: 8px; padding: 20px; text-align: center;">
+                                <i class="fas fa-users" style="font-size: 2rem; color: #3498db; margin-bottom: 10px;"></i>
+                                <h4>Manage Classes</h4>
+                                <p style="color: #666; font-size: 0.9rem;">Add, edit, or remove classes</p>
+                            </div>
+                            
+                            <div style="border: 1px solid #ddd; border-radius: 8px; padding: 20px; text-align: center;">
+                                <i class="fas fa-user-graduate" style="font-size: 2rem; color: #2ecc71; margin-bottom: 10px;"></i>
+                                <h4>Manage Students</h4>
+                                <p style="color: #666; font-size: 0.9rem;">Add or remove students</p>
+                            </div>
+                            
+                            <div style="border: 1px solid #ddd; border-radius: 8px; padding: 20px; text-align: center;">
+                                <i class="fas fa-sliders-h" style="font-size: 2rem; color: #e67e22; margin-bottom: 10px;"></i>
+                                <h4>Settings</h4>
+                                <p style="color: #666; font-size: 0.9rem;">Configure system settings</p>
+                            </div>
+                        </div>
+                        
+                        <div style="text-align: center; padding: 40px; color: #666;">
+                            <i class="fas fa-tools" style="font-size: 48px; margin-bottom: 20px; color: #ddd;"></i>
+                            <h3>Setup & Configuration</h3>
+                            <p>Configure your attendance system settings here.</p>
+                            <button onclick="location.href='./dashboard.html'" style="
+                                padding: 10px 20px;
+                                background: #405dde;
+                                color: white;
+                                border: none;
+                                border-radius: 5px;
+                                cursor: pointer;
+                                margin-top: 20px;
+                            ">
+                                <i class="fas fa-arrow-left"></i> Back to Dashboard
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            console.log('✅ Maintenance content loaded');
+            
+        } catch (error) {
+            console.error('Maintenance content load error:', error);
+            container.innerHTML = `
+                <div style="text-align: center; padding: 50px;">
+                    <h3>Error Loading Setup</h3>
+                    <p>${error.message}</p>
+                    <button onclick="location.href='./dashboard.html'" style="
+                        padding: 10px 20px;
+                        background: #405dde;
+                        color: white;
+                        border: none;
+                        border-radius: 5px;
+                        cursor: pointer;
+                        margin-top: 20px;
+                    ">
+                        Back to Dashboard
+                    </button>
+                </div>
+            `;
+        }
     }
 
     logout() {
         if (confirm('Are you sure you want to logout?')) {
-            // Clear user data
             localStorage.removeItem('attendance_user');
-            
-            // Optional: Clear other session data
-            // localStorage.removeItem('attendance_classes');
-            // localStorage.removeItem('attendance_records');
-            
-            // Redirect to logout/index page
             window.location.href = './index.html';
-        }
-    }
-
-    showNotification(message, type = 'info') {
-        // Create notification element
-        const notification = document.createElement('div');
-        notification.className = `notification notification-${type}`;
-        notification.innerHTML = `
-            <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
-            <span>${message}</span>
-        `;
-        
-        // Add styles
-        notification.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: ${type === 'success' ? '#27ae60' : type === 'error' ? '#e74c3c' : '#3498db'};
-            color: white;
-            padding: 12px 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            z-index: 9999;
-            animation: slideIn 0.3s ease;
-        `;
-        
-        document.body.appendChild(notification);
-        
-        // Remove after 3 seconds
-        setTimeout(() => {
-            notification.style.animation = 'slideOut 0.3s ease';
-            setTimeout(() => {
-                if (notification.parentNode) {
-                    notification.parentNode.removeChild(notification);
-                }
-            }, 300);
-        }, 3000);
-        
-        // Add animation styles if not already present
-        if (!document.querySelector('#notification-styles')) {
-            const style = document.createElement('style');
-            style.id = 'notification-styles';
-            style.textContent = `
-                @keyframes slideIn {
-                    from { transform: translateX(100%); opacity: 0; }
-                    to { transform: translateX(0); opacity: 1; }
-                }
-                @keyframes slideOut {
-                    from { transform: translateX(0); opacity: 1; }
-                    to { transform: translateX(100%); opacity: 0; }
-                }
-            `;
-            document.head.appendChild(style);
         }
     }
 }
