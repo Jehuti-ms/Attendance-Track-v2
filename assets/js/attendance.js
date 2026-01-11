@@ -1,5 +1,5 @@
 // assets/js/attendance.js - COMPLETE FIXED VERSION with Firebase
-import { Utils, Storage } from './utils.js';
+/*import { Utils, Storage } from './utils.js';
 import { Firestore, getSchoolId } from './firebase.js';
 
 export class AttendanceManager {
@@ -818,4 +818,4 @@ export class AttendanceManager {
         });
     }
 }
-
+*/
