@@ -15,45 +15,462 @@
     <link rel="stylesheet" href="assets/css/main.css">
     <link rel="stylesheet" href="assets/css/components.css">
     
+    <!-- Add logout/relogin page styling -->
+    <style>
+    /* ===== LOGOUT/RELOGIN PAGE STYLES ===== */
+    /* Full viewport centering */
+    #app {
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+        background: linear-gradient(135deg, #f5f7fa 0%, #e4edf5 100%);
+    }
+
+    /* No header on logout page */
+    #header-container {
+        display: none !important;
+    }
+
+    /* Center main container */
+    #app-container {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 40px 20px;
+        text-align: center;
+    }
+
+    /* Main content card - using #2c3e50 for borders/accents */
+    .logout-container {
+        max-width: 500px;
+        width: 100%;
+        padding: 50px 40px;
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 20px 50px rgba(44, 62, 80, 0.15);
+        border: 1px solid rgba(44, 62, 80, 0.1);
+        animation: fadeIn 0.5s ease;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Icon - using #2c3e50 */
+    .logout-icon {
+        font-size: 72px;
+        color: #2c3e50;
+        background: rgba(44, 62, 80, 0.08);
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 30px;
+        border: 4px solid rgba(44, 62, 80, 0.2);
+        animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); }
+    }
+
+    /* Title - using #2c3e50 */
+    .logout-title {
+        color: #2c3e50;
+        font-size: 2.5rem;
+        margin-bottom: 15px;
+        font-weight: 700;
+        line-height: 1.2;
+    }
+
+    /* Message */
+    .logout-message {
+        color: #666;
+        font-size: 1.2rem;
+        margin-bottom: 40px;
+        line-height: 1.6;
+        max-width: 400px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    /* Loading text - using #2c3e50 */
+    #loading-content div:last-child {
+        color: #2c3e50;
+        font-size: 1.3rem;
+        font-weight: 600;
+        margin-top: 20px;
+    }
+
+    /* Action buttons - using #2c3e50 */
+    .action-buttons {
+        display: flex;
+        gap: 15px;
+        justify-content: center;
+        flex-wrap: wrap;
+        margin-top: 30px;
+    }
+
+    .btn-action {
+        padding: 16px 36px;
+        border-radius: 12px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border: none;
+        min-width: 180px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+    }
+
+    .btn-login {
+        background: #2c3e50; /* Solid color to match header */
+        color: white;
+        box-shadow: 0 8px 20px rgba(44, 62, 80, 0.25);
+    }
+
+    .btn-login:hover {
+        background: #34495e; /* Slightly lighter on hover */
+        transform: translateY(-3px);
+        box-shadow: 0 12px 25px rgba(44, 62, 80, 0.35);
+    }
+
+    .btn-login i {
+        font-size: 1.2rem;
+    }
+
+    /* Status message - using #2c3e50 */
+    .status-message {
+        margin-top: 25px;
+        padding: 15px;
+        background: rgba(44, 62, 80, 0.05);
+        border-radius: 10px;
+        border-left: 4px solid #2c3e50;
+        color: #666;
+        font-size: 0.95rem;
+    }
+
+    .status-message i {
+        color: #2c3e50;
+        margin-right: 8px;
+    }
+
+    /* Loading spinner - using #2c3e50 */
+    .loading-spinner {
+        width: 70px;
+        height: 70px;
+        border: 6px solid rgba(44, 62, 80, 0.1);
+        border-top: 6px solid #2c3e50;
+        border-radius: 50%;
+        animation: spin 1.2s linear infinite;
+        margin: 30px auto;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    /* Footer - using #2c3e50 to match */
+    footer.main-footer {
+        background: #2c3e50 !important;
+        color: white;
+        padding: 25px 20px;
+        text-align: center;
+        border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+    }
+
+    footer.main-footer p {
+        margin: 0;
+        color: rgba(255, 255, 255, 0.9);
+        font-size: 0.9rem;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .logout-container {
+            padding: 40px 25px;
+            margin: 20px;
+        }
+        
+        .logout-icon {
+            font-size: 56px;
+            width: 100px;
+            height: 100px;
+        }
+        
+        .logout-title {
+            font-size: 2rem;
+        }
+        
+        .logout-message {
+            font-size: 1.1rem;
+        }
+        
+        .btn-action {
+            padding: 14px 28px;
+            min-width: 160px;
+            font-size: 1rem;
+        }
+        
+        .action-buttons {
+            flex-direction: column;
+            align-items: center;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .logout-container {
+            padding: 30px 20px;
+        }
+        
+        .logout-title {
+            font-size: 1.8rem;
+        }
+        
+        .logout-message {
+            font-size: 1rem;
+        }
+        
+        .btn-action {
+            width: 100%;
+            max-width: 280px;
+        }
+    }
+
+        /* Action buttons - updated for demo button */
+    .action-buttons {
+        display: flex;
+        flex-direction: column; /* Stack vertically */
+        align-items: center; /* Center horizontally */
+        gap: 12px; /* Space between buttons */
+        margin-top: 30px;
+        width: 100%;
+    }
+
+    .btn-action {
+        padding: 16px 36px;
+        border-radius: 12px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border: none;
+        width: 100%; /* Full width of container */
+        max-width: 300px; /* But limit maximum width */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+    }
+
+    .btn-login {
+        background: #2c3e50;
+        color: white;
+        box-shadow: 0 8px 20px rgba(44, 62, 80, 0.25);
+    }
+
+    .btn-login:hover {
+        background: #34495e;
+        transform: translateY(-3px);
+        box-shadow: 0 12px 25px rgba(44, 62, 80, 0.35);
+    }
+
+    .btn-login i {
+        font-size: 1.2rem;
+    }
+
+    /* DEMO BUTTON - Darker text for visibility */
+    .btn-demo {
+        background: white;
+        color: #2c3e50 !important; /* DARK TEXT for visibility */
+        border: 2px solid #2c3e50;
+        font-weight: 600;
+    }
+
+    .btn-demo:hover {
+        background: rgba(44, 62, 80, 0.05);
+        color: #2c3e50 !important;
+        transform: translateY(-3px);
+        border-color: #34495e;
+        box-shadow: 0 8px 20px rgba(44, 62, 80, 0.15);
+    }
+
+    .btn-demo i {
+        color: #2c3e50 !important;
+        font-size: 1.2rem;
+    }
+
+    /* Or alternative: Solid colored demo button */
+    /* .btn-demo {
+        background: #3498db;  // Blue color for demo
+        color: white !important;
+        border: 2px solid #3498db;
+        font-weight: 600;
+    }
+
+    .btn-demo:hover {
+        background: #2980b9;
+        color: white !important;
+        transform: translateY(-3px);
+        border-color: #2980b9;
+        box-shadow: 0 8px 20px rgba(52, 152, 219, 0.25);
+    } */
+
+    /* Responsive updates */
+    @media (max-width: 768px) {
+        .btn-action {
+            padding: 14px 28px;
+            max-width: 280px;
+            font-size: 1rem;
+        }
+        
+        .action-buttons {
+            gap: 10px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .btn-action {
+            width: 100%;
+            max-width: 100%; /* Full width on mobile */
+        }
+        
+        .action-buttons {
+            width: 100%;
+        }
+    }
+        
+</style>
     
     <!-- PWA -->
     <link rel="manifest" href="manifest.json">
-    <link rel="icon" href="assets/icons/favicon.ico" type="image/x-icon">
+    <link rel="icon" href="/favicon.ico" type="image/x-icon">
     <link rel="apple-touch-icon" href="assets/icons/icon-192.png">
+    
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <!-- Load main app as ES6 module -->
     <script type="module" src="assets/js/attendance-app.js"></script>
 </head>
 <body>
     <div id="app">
-        <!-- Header loaded by JS -->
+        <!-- Header hidden on logout page -->
         <div id="header-container"></div>
         
         <!-- Main content -->
         <main id="app-container">
-            <!-- Loading indicator -->
-            <div id="loading-content">
-                <div class="loading-spinner"></div>
-                <div>Loading Attendance Track v2...</div>
+            <!-- Logout/Relogin Container -->
+            <div class="logout-container">
+                <div class="logout-icon">📋</div>
+                <h1 class="logout-title">Attendance Track v2</h1>
+                <p class="logout-message">You have been logged out. Please log in again to continue.</p>
+                
+                <!-- Loading indicator (shown while checking auth) -->
+                <div id="loading-content">
+                    <div class="loading-spinner"></div>
+                    <div>Checking authentication status...</div>
+                </div>
+                
+               <!-- Action buttons (hidden initially, shown by JS) -->
+                <div class="action-buttons" style="display: none;">
+                    <button class="btn-action btn-login" onclick="window.location.href='login.html'">
+                        <i class="fas fa-sign-in-alt"></i> Login Again
+                    </button>
+                    <button class="btn-action btn-demo" onclick="startDemoMode()">
+                        <i class="fas fa-play-circle"></i> Try Demo Mode
+                    </button>
+                </div>
+                
+                <!-- Status message -->
+                <div class="status-message">
+                    <i class="fas fa-info-circle"></i>
+                    <span>Session expired or logged out. Your data is securely saved.</span>
+                </div>
             </div>
         </main>
         
-        <!-- Simple footer -->
-        <footer style="
-            text-align: center;
-            padding: 20px;
-            color: #666;
-            font-size: 0.9rem;
-            border-top: 1px solid #eee;
-            margin-top: 40px;
-        ">
-            <p>Attendance Track v2 &copy; 2024</p>
+        <!-- Footer -->
+        <footer class="main-footer">
+            <div class="footer-container">
+                <p>Attendance Track v2 &copy; 2025 | Secure Attendance Management</p>
+            </div>
         </footer>
     </div>
-
-    <!-- Vendor libraries (load after module) -->
+    
+    <!-- Vendor libraries -->
     <script src="assets/vendors/jsPDF.min.js"></script>
     <script src="assets/vendors/jspdf-autotable.min.js"></script>
     <script src="assets/vendors/html2canvas.min.js"></script>
+
+    <!-- Logout page script -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const loadingContent = document.getElementById('loading-content');
+            const actionButtons = document.querySelector('.action-buttons');
+            
+            // Simulate auth check (in real app, this would check localStorage/tokens)
+            setTimeout(() => {
+                // Hide loading spinner
+                if (loadingContent) {
+                    loadingContent.style.display = 'none';
+                }
+                
+                // Show login button
+                if (actionButtons) {
+                    actionButtons.style.display = 'flex';
+                }
+                
+                // Optional: Auto-redirect after delay
+                setTimeout(() => {
+                    // Uncomment for auto-redirect
+                    // window.location.href = 'login.html';
+                }, 5000); // 5 second delay
+                
+            }, 1500); // 1.5 second loading simulation
+            
+            // Add keyboard shortcut (Enter to login)
+            document.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    window.location.href = 'login.html';
+                }
+            });
+        });
+
+    function startDemoMode() {
+        const loadingContent = document.getElementById('loading-content');
+        const actionButtons = document.querySelector('.action-buttons');
+        
+        // Hide buttons, show loading
+        if (actionButtons) actionButtons.style.display = 'none';
+        if (loadingContent) {
+            loadingContent.style.display = 'block';
+            loadingContent.querySelector('div:last-child').textContent = 'Starting Demo Mode...';
+        }
+        
+        // Simulate demo mode start
+        setTimeout(() => {
+            // In real app, this would redirect to demo dashboard
+            alert('Demo mode would start here. Redirecting to demo dashboard...');
+            // window.location.href = 'dashboard.html?demo=true';
+            
+            // For now, show buttons again
+            if (actionButtons) actionButtons.style.display = 'flex';
+            if (loadingContent) loadingContent.style.display = 'none';
+        }, 1500);
+    }
+</script>
+
 </body>
 </html>
