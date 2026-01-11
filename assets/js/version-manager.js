@@ -1,5 +1,5 @@
 // version-manager.js - ENHANCED VERSION
-const APP_VERSION = '2.0.0'; // ⬅️ UPDATE THIS
+const APP_VERSION = '4.0.0'; // ⬅️ UPDATE THIS
 
 // Check version on load
 function checkVersion() {
